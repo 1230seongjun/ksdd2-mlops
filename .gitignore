@@ -1,0 +1,31 @@
+# 데이터셋 (CC BY-NC-SA, 저장소에 올리지 않음)
+data/
+datasets/
+*.zip
+
+# 비밀정보
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 모델·실험 산출물
+mlruns/
+mlartifacts/
+*.pt
+*.pth
+*.onnx
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# 편집기·OS
+.vscode/
+.idea/
+.DS_Store
