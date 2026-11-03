@@ -1,0 +1,4 @@
+mlflow==3.6.0
+psycopg2-binary==2.9.11
+boto3==1.40.70
+SQLAlchemy==2.0.44

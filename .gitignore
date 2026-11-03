@@ -29,3 +29,7 @@ venv/
 .vscode/
 .idea/
 .DS_Store
+
+# MLOps secrets
+infra/mlops/.env
+infra/mlops/seaweedfs/s3.json
