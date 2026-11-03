@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>DefectCatch | AI 품질 검사</title>
+
+  <style>
+    :root {
+      --navy: #10243a;
+      --navy-light: #1b3550;
+      --teal: #087f77;
+      --teal-light: #dcf4f0;
+      --background: #f1f5f9;
+      --border: #dce5ed;
+      --text: #17253a;
+      --muted: #718096;
+      --danger: #b44338;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: Arial, "Malgun Gothic", sans-serif;
+    }
+
+    header {
+      background: var(--navy);
+      color: white;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      min-height: 76px;
+      margin: auto;
+      padding: 0 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .brand span {
+      color: #42d5c0;
+    }
+
+    .header-label {
+      color: #b9cad9;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    main {
+      max-width: 1400px;
+      margin: auto;
+      padding: 42px 30px 60px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+    }
+
+    .page-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+
+    .description {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .badge {
+      padding: 9px 13px;
+      border: 1px solid #d7e3ed;
+      border-radius: 20px;
+      background: white;
+      color: #567087;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .workflow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 30px 0 22px;
+      padding: 17px 20px;
+      border: 1px solid #c8e7e2;
+      border-radius: 10px;
+      background: #e8f6f4;
+      color: #265c58;
+      font-size: 13px;
+    }
+
+    .workflow strong {
+      margin-right: 6px;
+    }
+
+    .arrow {
+      color: #80a9a5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 26px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 8px 24px rgba(27, 46, 66, 0.05);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .card-description {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .section-number {
+      color: #a1b4c4;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .upload-box {
+      display: block;
+      padding: 26px 16px;
+      border: 2px dashed #bfcfda;
+      border-radius: 10px;
+      background: #f8fbfd;
+      text-align: center;
+    }
+
+    .upload-title {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .upload-help {
+      display: block;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    input[type="file"] {
+      max-width: 100%;
+      font-size: 13px;
+    }
+
+    .preview-container {
+      min-height: 290px;
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 10px;
+      background: #edf3f7;
+    }
+
+    .preview-placeholder {
+      color: #93a5b5;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .preview {
+      display: none;
+      width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+    }
+
+    .inspect-button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 15px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--teal);
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .inspect-button:hover {
+      background: #066b65;
+    }
+
+    .inspect-button:disabled {
+      background: #9bb8b5;
+      cursor: not-allowed;
+    }
+
+    .result-status {
+      padding: 16px;
+      border: 1px solid #dfe8ee;
+      border-radius: 9px;
+      background: #f4f8fa;
+    }
+
+    .status-label {
+      margin-bottom: 7px;
+      color: #71879a;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .status-message {
+      margin: 0;
+      color: #3d576d;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .result-status.error {
+      border-color: #f0c8c4;
+      background: #fff4f3;
+    }
+
+    .result-status.error .status-message {
+      color: var(--danger);
+    }
+
+    .result-status.success {
+      border-color: #bfe5dc;
+      background: #effaf7;
+    }
+
+    .result-status.success .status-message {
+      color: #087466;
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 25px 0 10px;
+    }
+
+    .section-heading h3 {
+      margin: 0;
+      color: #526b80;
+      font-size: 13px;
+    }
+
+    .section-hint {
+      color: #96a6b4;
+      font-size: 11px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      border-radius: 9px;
+      background: var(--navy);
+      color: #d8f7ef;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    #result {
+      min-height: 150px;
+      max-height: 260px;
+    }
+
+    #activity-log {
+      min-height: 160px;
+      max-height: 240px;
+      color: #cbdbe8;
+    }
+
+    .log-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .clear-button {
+      padding: 5px 9px;
+      border: 1px solid #d8e3eb;
+      border-radius: 5px;
+      background: white;
+      color: #60798d;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .clear-button:hover {
+      background: #f1f6f8;
+    }
+
+    .notice {
+      margin-top: 20px;
+      color: #8193a3;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    footer {
+      padding: 22px;
+      border-top: 1px solid #e0e8ef;
+      color: #91a1af;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .page-heading {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .header-label {
+        display: none;
+      }
+
+      main {
+        padding: 30px 18px 45px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">DEFECT<span>CATCH</span></div>
+      <div class="header-label">SMART FACTORY · QUALITY INSPECTION</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">AI QUALITY INSPECTION</p>
+        <h1>제품 표면 결함 검사</h1>
+        <p class="description">
+          제품 표면 이미지를 업로드하고 검사 결과와 진행 상태를 확인하세요.
+        </p>
+      </div>
+
+      <div class="badge">검사 서비스 테스트</div>
+    </div>
+
+    <div class="workflow">
+      <strong>검사 절차</strong>
+      <span>이미지 선택</span>
+      <span class="arrow">→</span>
+      <span>검사 요청</span>
+      <span class="arrow">→</span>
+      <span>결과 확인</span>
+    </div>
+
+    <div class="layout">
+      <!-- 왼쪽: 이미지 선택 및 검사 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2>검사 이미지</h2>
+            <p class="card-description">
+              검사할 제품의 표면 이미지를 선택하세요.
+            </p>
+          </div>
+
+          <span class="section-number">01 / INPUT</span>
+        </div>
+
+        <label class="upload-box" for="image-file">
+          <span class="upload-title">이미지 파일 선택</span>
+          <span class="upload-help">PNG 또는 JPEG 형식</span>
+
+          <input
+            id="image-file"
+            type="file"
+            accept="image/png,image/jpeg"
+          >
+        </label>
+
+        <div class="preview-container">
+          <span id="preview-placeholder" class="preview-placeholder">
+            선택한 이미지가 이곳에 표시됩니다.
+          </span>
+
+          <img
+            id="preview"
+            class="preview"
+            alt="선택한 이미지 미리보기"
+          >
+        </div>
+
+        <button id="inspect-button" class="inspect-button" type="button">
+          검사 시작
+        </button>
+
+        <p class="notice">
+          현재 연결된 API가 더미 모델을 사용한다면 실제 결함 판정은 수행되지 않습니다.
+        </p>
+      </section>
+
+      <!-- 오른쪽: 결과와 진행 로그 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2>검사 결과</h2>
+            <p class="card-description">
+              API 응답과 검사 진행 과정을 확인합니다.
+            </p>
+          </div>
+
+          <span class="section-number">02 / RESULT</span>
+        </div>
+
+        <div id="status-box" class="result-status" role="status" aria-live="polite">
+          <div class="status-label">CURRENT STATUS</div>
+
+          <p id="status-message" class="status-message">
+            이미지 선택 후 검사 시작 버튼을 눌러주세요.
+          </p>
+        </div>
+
+        <div class="section-heading">
+          <h3>API 응답</h3>
+          <span class="section-hint">JSON RESPONSE</span>
+        </div>
+
+        <pre id="result">아직 검사 결과가 없습니다.</pre>
+
+        <div class="section-heading">
+          <h3>검사 진행 로그</h3>
+
+          <div class="log-actions">
+            <span class="section-hint">BROWSER LOG</span>
+            <button id="clear-log" class="clear-button" type="button">
+              지우기
+            </button>
+          </div>
+        </div>
+
+        <pre id="activity-log" aria-live="polite"></pre>
+
+        <p class="notice">
+          진행 로그는 현재 브라우저 화면에서만 표시되며 새로고침하면 초기화됩니다.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    DefectCatch · AI 기반 제조품 표면 검사 프로젝트
+  </footer>
+
+  <script>
+    // 화면 요소를 가져온다.
+    const fileInput = document.getElementById("image-file");
+    const preview = document.getElementById("preview");
+    const previewPlaceholder = document.getElementById("preview-placeholder");
+    const inspectButton = document.getElementById("inspect-button");
+
+    const statusBox = document.getElementById("status-box");
+    const statusMessage = document.getElementById("status-message");
+    const resultBox = document.getElementById("result");
+
+    const activityLog = document.getElementById("activity-log");
+    const clearLogButton = document.getElementById("clear-log");
+
+    let previewUrl = null;
+
+    // 화면에 표시할 현재 상태를 변경한다.
+    function setStatus(message, type = "") {
+      statusMessage.textContent = message;
+
+      statusBox.classList.remove("success", "error");
+
+      if (type) {
+        statusBox.classList.add(type);
+      }
+    }
+
+    // 브라우저 화면에 시간과 함께 진행 로그를 추가한다.
+    function addLog(message) {
+      const time = new Date().toLocaleTimeString("ko-KR");
+
+      activityLog.textContent += `[${time}] ${message}\n`;
+      activityLog.scrollTop = activityLog.scrollHeight;
+    }
+
+    // 화면을 열었을 때 첫 로그를 표시한다.
+    addLog("검사 화면이 준비되었습니다.");
+
+    // 로그 지우기 버튼
+    clearLogButton.addEventListener("click", () => {
+      activityLog.textContent = "";
+      addLog("로그를 초기화했습니다.");
+    });
+
+    // 파일을 선택했을 때 미리보기를 표시한다.
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+
+      preview.style.display = "none";
+      preview.removeAttribute("src");
+      previewPlaceholder.style.display = "block";
+
+      resultBox.textContent = "아직 검사 결과가 없습니다.";
+
+      if (!file) {
+        setStatus("이미지를 선택해 주세요.");
+        addLog("이미지 선택이 취소되었습니다.");
+        return;
+      }
+
+      if (!["image/png", "image/jpeg"].includes(file.type)) {
+        setStatus("PNG 또는 JPEG 이미지를 선택해 주세요.", "error");
+        addLog("지원하지 않는 파일 형식입니다.");
+        return;
+      }
+
+      previewUrl = URL.createObjectURL(file);
+      preview.src = previewUrl;
+      preview.style.display = "block";
+      previewPlaceholder.style.display = "none";
+
+      setStatus("이미지를 선택했습니다. 검사 시작 버튼을 눌러주세요.");
+      addLog(`이미지 선택: ${file.name}`);
+    });
+
+    // 검사 버튼을 누르면 FastAPI로 이미지를 보낸다.
+    inspectButton.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+
+      if (!file) {
+        setStatus("먼저 이미지를 선택해 주세요.", "error");
+        addLog("검사 실패: 선택한 이미지가 없습니다.");
+        return;
+      }
+
+      if (!["image/png", "image/jpeg"].includes(file.type)) {
+        setStatus("PNG 또는 JPEG 이미지만 지원합니다.", "error");
+        addLog("검사 실패: 지원하지 않는 파일 형식입니다.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      inspectButton.disabled = true;
+      inspectButton.textContent = "검사 요청 중...";
+
+      setStatus("검사 요청을 처리하고 있습니다.");
+      resultBox.textContent = "API 응답을 기다리는 중입니다.";
+
+      addLog(`검사 요청 시작: ${file.name}`);
+
+      try {
+        // Nginx가 /api/predict를 FastAPI의 /predict로 전달한다.
+        const response = await fetch("/api/predict", {
+          method: "POST",
+          body: formData
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${responseText}`);
+        }
+
+        const data = JSON.parse(responseText);
+
+        resultBox.textContent = JSON.stringify(data, null, 2);
+
+        if (data.prediction === "not_evaluated") {
+          setStatus("요청 완료: 현재 모델은 실제 판정을 수행하지 않습니다.", "success");
+          addLog("API 응답 수신: 더미 모델 응답입니다.");
+        } else {
+          setStatus("검사 요청이 완료되었습니다.", "success");
+          addLog("API 응답을 받았습니다.");
+        }
+      } catch (error) {
+        resultBox.textContent = "결과를 가져오지 못했습니다.";
+
+        setStatus(`요청 실패: ${error.message}`, "error");
+        addLog(`요청 실패: ${error.message}`);
+      } finally {
+        inspectButton.disabled = false;
+        inspectButton.textContent = "검사 시작";
+      }
+    });
+  </script>
+</body>
+</html>
