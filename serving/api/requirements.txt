@@ -2,3 +2,4 @@ fastapi
 uvicorn
 python-multipart
 mlflow==3.6.0
+prometheus-client
