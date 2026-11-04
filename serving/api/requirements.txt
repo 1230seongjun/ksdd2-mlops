@@ -1,5 +1,9 @@
 fastapi
 uvicorn
 python-multipart
-mlflow==3.6.0
+mlflow==3.17.2
 prometheus-client
+pandas
+Pillow
+cloudpickle==3.1.2
+

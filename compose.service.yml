@@ -2,6 +2,11 @@ services:
   api:
     build: ./serving/api
     restart: unless-stopped
+
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MODEL_URI: "models:/m-6d9557f919414136907325ae8ca4e37a"
+
     networks:
       - default
       - mlops-net
