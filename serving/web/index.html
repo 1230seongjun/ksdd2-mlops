@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DefectCatch | 품질 검사</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Malgun Gothic", sans-serif;
+      background: #f1f5f9;
+      color: #17253a;
+    }
+
+    header {
+      padding: 20px 6%;
+      background: #10243a;
+      color: white;
+    }
+
+    header strong {
+      font-size: 21px;
+      letter-spacing: 1px;
+    }
+
+    header span {
+      color: #42d5c0;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: auto;
+      padding: 32px 20px 50px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 19px;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    p {
+      color: #687b8e;
+      line-height: 1.5;
+    }
+
+    .layout,
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .layout {
+      margin-top: 24px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 24px;
+      background: white;
+      border: 1px solid #dce5ed;
+      border-radius: 12px;
+    }
+
+    .upload {
+      display: block;
+      padding: 22px;
+      border: 2px dashed #bfd0dc;
+      border-radius: 8px;
+      background: #f8fbfd;
+      text-align: center;
+    }
+
+    input[type="file"] {
+      max-width: 100%;
+    }
+
+    .preview-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 250px;
+      margin-top: 16px;
+      background: #edf3f7;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #preview {
+      display: none;
+      max-width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+    }
+
+    #placeholder {
+      color: #8499aa;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 13px;
+      border: 0;
+      border-radius: 8px;
+      background: #087f77;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #9bb8b5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      background: #edf4f7;
+      color: #3d576d;
+    }
+
+    .status.error {
+      background: #fff0ef;
+      color: #a13a31;
+    }
+
+    pre {
+      min-height: 100px;
+      max-height: 220px;
+      margin: 8px 0 0;
+      padding: 15px;
+      overflow: auto;
+      border-radius: 8px;
+      background: #10243a;
+      color: #d8f7ef;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .monitor {
+      margin-top: 18px;
+    }
+
+    .monitor-grid {
+      margin-top: 20px;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      height: 220px;
+      border: 0;
+      border-radius: 8px;
+      background: #18202d;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #8193a3;
+    }
+
+    @media (max-width: 760px) {
+      .layout,
+      .monitor-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <strong>DEFECT<span>CATCH</span></strong>
+  </header>
+
+  <main>
+    <h1>제품 표면 결함 검사</h1>
+    <p>이미지를 업로드하고 검사 결과와 서비스 상태를 확인하세요.</p>
+
+    <div class="layout">
+      <!-- 이미지 선택 -->
+      <section class="card">
+        <h2>검사 이미지</h2>
+        <p>PNG 또는 JPEG 이미지를 선택하세요.</p>
+
+        <label class="upload" for="image-file">
+          <input
+            id="image-file"
+            type="file"
+            accept="image/png,image/jpeg"
+          >
+        </label>
+
+        <div class="preview-area">
+          <span id="placeholder">선택한 이미지가 표시됩니다.</span>
+          <img id="preview" alt="선택한 이미지 미리보기">
+        </div>
+
+        <button id="inspect-button" type="button">
+          검사 시작
+        </button>
+
+        <p class="hint">
+          현재 더미 모델을 사용하는 경우 실제 결함 판정은 수행되지 않습니다.
+        </p>
+      </section>
+
+      <!-- 검사 결과 -->
+      <section class="card">
+        <h2>검사 결과</h2>
+
+        <p id="status" class="status" role="status" aria-live="polite">
+          이미지를 선택해 주세요.
+        </p>
+
+        <strong>API 응답</strong>
+        <pre id="result">아직 검사 결과가 없습니다.</pre>
+
+        <p><strong>검사 진행 로그</strong></p>
+        <pre id="activity-log" aria-live="polite"></pre>
+
+        <p class="hint">
+          진행 로그는 브라우저에서만 표시되며 새로고침하면 초기화됩니다.
+        </p>
+      </section>
+    </div>
+
+    <!-- Grafana 모니터링 -->
+    <section class="card monitor">
+      <h2>서비스 모니터링</h2>
+      <p>Prometheus가 수집한 API 지표를 Grafana 패널로 표시합니다.</p>
+
+      <div class="monitor-grid">
+        <div>
+          <h3>검사 요청 수</h3>
+
+          <iframe
+            title="Grafana 검사 요청 수"
+            src="http://localhost:3000/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-1"
+          ></iframe>
+        </div>
+
+        <div>
+          <h3>평균 검사 요청 처리 시간</h3>
+
+          <iframe
+            title="Grafana 평균 검사 요청 처리 시간"
+            src="http://localhost:3000/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-2"
+          ></iframe>
+        </div>
+      </div>
+
+      <p class="hint">
+        Grafana의 SSH 터널과 로그인이 필요합니다.
+        현재 처리 시간은 더미 API 요청 기준입니다.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const input = document.getElementById("image-file");
+    const preview = document.getElementById("preview");
+    const placeholder = document.getElementById("placeholder");
+    const button = document.getElementById("inspect-button");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const activityLog = document.getElementById("activity-log");
+
+    let previewUrl = null;
+
+    function setStatus(message, isError = false) {
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+    }
+
+    function log(message) {
+      const time = new Date().toLocaleTimeString("ko-KR");
+
+      activityLog.textContent += `[${time}] ${message}\n`;
+      activityLog.scrollTop = activityLog.scrollHeight;
+    }
+
+    log("검사 화면이 준비되었습니다.");
+
+    // 이미지를 선택하면 미리보기를 표시한다.
+    input.addEventListener("change", () => {
+      const file = input.files[0];
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      previewUrl = null;
+      preview.removeAttribute("src");
+      preview.style.display = "none";
+      placeholder.style.display = "block";
+      result.textContent = "아직 검사 결과가 없습니다.";
+
+      if (!file) {
+        setStatus("이미지를 선택해 주세요.");
+        return;
+      }
+
+      if (!["image/png", "image/jpeg"].includes(file.type)) {
+        setStatus("PNG 또는 JPEG 이미지를 선택해 주세요.", true);
+        log("지원하지 않는 파일 형식입니다.");
+        return;
+      }
+
+      previewUrl = URL.createObjectURL(file);
+      preview.src = previewUrl;
+      preview.style.display = "block";
+      placeholder.style.display = "none";
+
+      setStatus("이미지를 선택했습니다. 검사 시작을 눌러주세요.");
+      log(`이미지 선택: ${file.name}`);
+    });
+
+    // 검사 버튼을 누르면 이미지를 FastAPI로 전송한다.
+    button.addEventListener("click", async () => {
+      const file = input.files[0];
+
+      if (!file || !["image/png", "image/jpeg"].includes(file.type)) {
+        setStatus("PNG 또는 JPEG 이미지를 선택해 주세요.", true);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      button.disabled = true;
+      button.textContent = "요청 중...";
+      result.textContent = "API 응답을 기다리는 중입니다.";
+
+      setStatus("검사 요청을 처리하고 있습니다.");
+      log(`검사 요청 시작: ${file.name}`);
+
+      try {
+        const response = await fetch("/api/predict", {
+          method: "POST",
+          body: formData
+        });
+
+        const body = await response.text();
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${body}`);
+        }
+
+        const data = JSON.parse(body);
+        result.textContent = JSON.stringify(data, null, 2);
+
+        if (data.prediction === "not_evaluated") {
+          setStatus("요청 완료: 현재 모델은 실제 판정을 수행하지 않습니다.");
+          log("더미 모델 응답을 받았습니다.");
+        } else {
+          setStatus("검사 요청이 완료되었습니다.");
+          log("API 응답을 받았습니다.");
+        }
+      } catch (error) {
+        result.textContent = "결과를 가져오지 못했습니다.";
+        setStatus(`요청 실패: ${error.message}`, true);
+        log(`요청 실패: ${error.message}`);
+      } finally {
+        button.disabled = false;
+        button.textContent = "검사 시작";
+      }
+    });
+  </script>
+</body>
+</html>
