@@ -15,8 +15,9 @@ case "$STACK" in
     HEALTH_URL="http://127.0.0.1:5000/health"; HEALTH_TRIES=40
     NCR_SERVICES="mlflow"; TAG_VARS="MLFLOW_TAG" ;;
   service)
+    # API는 시작할 때 MLflow에서 모델을 받아 올리느라 약 2분 걸림 → 최대 3분(3초 × 60) 대기
     SRC="infra/service"; FILE="compose.service.yaml"; PROJECT="ksdd2-mlops"
-    HEALTH_URL="http://127.0.0.1:8080/api/health"; HEALTH_TRIES=20
+    HEALTH_URL="http://127.0.0.1:8080/api/health"; HEALTH_TRIES=60
     NCR_SERVICES="api"; TAG_VARS="API_TAG" ;;
   *) echo "알 수 없는 스택: $STACK"; exit 2 ;;
 esac
@@ -65,7 +66,7 @@ deploy() {
   compose pull $NCR_SERVICES || return 1          # 우리 이미지만 받음 (postgres·nginx 등은 있으면 그대로 사용)
   # --remove-orphans 는 쓰지 않음: compose 에 없는 컨테이너(현재 수동으로 띄운 ui)를 지우지 않기 위해
   compose up -d || return 1
-  if [ "$STACK" = "service" ]; then  # 설정 파일 변경 반영
+  if [ "$STACK" = "service" ]; then  # 설정 파일 변경 반영 + 새 API 컨테이너 주소를 Nginx가 다시 찾게 함
     compose exec -T nginx nginx -s reload || true
     compose kill -s HUP prometheus || true
   fi
