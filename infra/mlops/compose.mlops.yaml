@@ -22,9 +22,7 @@ services:
       - mlops-net
 
   mlflow:
-    build:
-      context: ./mlflow
-      dockerfile: Dockerfile
+    image: ${NCR_REGISTRY}/${REGISTRY_PATH}/mlflow:${MLFLOW_TAG:?MLFLOW_TAG is not set in .env}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -55,6 +53,7 @@ services:
 
 networks:
   mlops-net:
+    name: ksdd2-mlops-infra_mlops-net
     driver: bridge
 
 volumes:
