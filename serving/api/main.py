@@ -183,7 +183,17 @@ def health():
         "model_loaded": loaded
     }
 
+@app.get("/ready")
+def ready():
+    # 모델이 없으면 추론 준비가 안 된 상태
+    if app.state.model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not ready"
+        )
 
+    # 모델 객체가 있으면 준비 상태로 응답
+    return {"status": "ready"}
 # ==========================================
 # 7. 이미지 예측 API
 # ==========================================
