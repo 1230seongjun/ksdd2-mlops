@@ -32,7 +32,7 @@ st.set_page_config(page_title="불량제로 실험 비교", page_icon="🔍", la
 
 # 화면 색: 지표마다 같은 색을 모든 그래프에서 쓴다
 INK, MUTED, LINE, PANEL = "#1d2731", "#66727e", "#dfe4e8", "#f6f8f9"
-COLOR = {"AP": "#2b5d78", "재현율": "#3c8a68", "정밀도": "#c27a2c"}
+COLOR = {"Average Precision": "#2b5d78", "재현율": "#3c8a68", "정밀도": "#c27a2c"}
 NORMAL_COLOR, DEFECT_COLOR = "#5b8db8", "#d0603a"
 
 st.markdown(f"""
@@ -62,7 +62,7 @@ st.markdown(f"""
 # 화면에 쓰는 지표: (보여 줄 이름, 정확히 같은 이름 후보, 이름 패턴, 제외 패턴)
 # 익스페리먼트마다 지표 이름이 달라서, 위에서부터 먼저 찾은 값을 쓴다. 패턴으로 찾을 때는 test_ 가 붙은 것을 먼저 쓴다.
 METRIC_RULES = {
-    "ap": ("AP",
+    "ap": ("Average Precision",
            ["test_average_precision", "average_precision", "test_ap", "ap", "test_auprc", "auprc", "pr_auc"],
            r"average_precision|auprc|pr_auc|^(test_|val_)?ap$", r"train"),
     "recall": ("재현율",
@@ -218,7 +218,7 @@ def recall98(run: pd.Series) -> dict:
 
 def best_per_experiment(df: pd.DataFrame, rule: str) -> pd.DataFrame:
     """익스페리먼트마다 대표 run 하나 (AP 최고 또는 가장 최근)."""
-    if rule == "AP 최고":
+    if rule == "Average Precision 최고":
         ordered = df.sort_values(["ap", "recall", "start_time"], ascending=[False, False, False], na_position="last")
     else:
         ordered = df.sort_values("start_time", ascending=False)
@@ -256,7 +256,7 @@ def kpi(box, label, value, who, color):
 def ratio(label, help_text=None, color=None):
     """0~1 값을 막대로 보여 주는 칸. color 는 지표 색 (AP 파랑 · 재현율 초록 · 정밀도 주황)."""
     return st.column_config.ProgressColumn(label, format="%.3f", min_value=0.0, max_value=1.0, help=help_text,
-                                           color=color or COLOR["AP"])
+                                           color=color or COLOR["Average Precision"])
 
 
 def number(label, fmt_text="%.3f", help_text=None):
@@ -269,13 +269,43 @@ BASE_CONFIG = {
     "start_time": st.column_config.DatetimeColumn("시작", format="MM-DD HH:mm"),
     "threshold": number("임계값", "%.4f"),
     "status": st.column_config.TextColumn("상태"),
-    "ap": ratio("AP", color=COLOR["AP"]),
+    "ap": ratio("Average Precision", "임계값과 상관없이 결함을 정상보다 높은 점수로 줄 세운 정도 (PR 곡선 아래 넓이)",
+                COLOR["Average Precision"]),
     "recall": ratio("재현율", color=COLOR["재현율"]),
     "precision": ratio("정밀도", color=COLOR["정밀도"]),
     "precision_at_target": number("목표 재현율 지점 정밀도"),
     "fp": number("오경보", "%d"),
     "fn": number("놓친 결함", "%d"),
 }
+
+
+KEY_COLUMNS = ["ap", "recall", "precision", "r98_recall", "r98_precision", "r98_fp", "r98_fn"]
+
+
+def key_metric_config() -> dict:
+    """핵심 지표 표와 run 비교 표가 같이 쓰는 칸 설정."""
+    config = dict(BASE_CONFIG)
+    config.update({
+        "recall": ratio("재현율", "학습 때 val 로 정한 임계값을 test 에 적용한 결과", COLOR["재현율"]),
+        "precision": ratio("정밀도", "학습 때 val 로 정한 임계값을 test 에 적용한 결과", COLOR["정밀도"]),
+        "r98_recall": ratio(f"재현율 ≥{R98}% · 재현율", f"test 에서 재현율이 {R98}% 이상이 되는 지점", COLOR["재현율"]),
+        "r98_precision": ratio(f"재현율 ≥{R98}% · 정밀도", "불량이라고 판정한 것 중 진짜 결함의 비율. 높을수록 오경보가 적습니다.",
+                               COLOR["정밀도"]),
+        "r98_fp": number(f"재현율 ≥{R98}% · 오경보", "%d"),
+        "r98_fn": number(f"재현율 ≥{R98}% · 놓친 결함", "%d"),
+        "r98_threshold": number(f"재현율 ≥{R98}% · 임계값", "%.4f"),
+        "r98_source": st.column_config.TextColumn("계산 방법"),
+    })
+    return config
+
+
+def add_recall98(df: pd.DataFrame) -> pd.DataFrame:
+    """run 마다 재현율 ≥98% 지점의 재현율·정밀도·오경보·놓친 결함을 붙인다 (점수 파일은 10분 캐시)."""
+    extra = pd.DataFrame([recall98(row) for _, row in df.iterrows()], index=df.index)
+    out = df.join(extra)
+    for key in ["r98_recall", "r98_precision", "r98_fp", "r98_fn", "r98_threshold"]:
+        out[key] = pd.to_numeric(out[key], errors="coerce").astype(float)
+    return out
 
 
 def grouped_runs(df: pd.DataFrame, columns: list, config: dict, key: str) -> None:
@@ -287,7 +317,7 @@ def grouped_runs(df: pd.DataFrame, columns: list, config: dict, key: str) -> Non
     order = df.groupby("experiment")["start_time"].max().sort_values(ascending=False).index
     for experiment in order:
         group = df[df["experiment"] == experiment].sort_values("start_time", ascending=False)
-        label = (f"**{experiment}**  ·  run {len(group)}개  ·  최고 AP {fmt(group['ap'].max())}  ·  "
+        label = (f"**{experiment}**  ·  run {len(group)}개  ·  최고 Average Precision {fmt(group['ap'].max())}  ·  "
                  f"최근 {group['start_time'].max():%m-%d %H:%M}")
         with st.expander(label, expanded=expand_all):
             st.dataframe(group[columns], column_config=config, hide_index=True, use_container_width=True,
@@ -313,7 +343,7 @@ with st.sidebar:
     st.markdown("### 보기 설정")
     all_experiments = runs.groupby("experiment")["start_time"].max().sort_values(ascending=False).index.tolist()
     chosen = st.multiselect("익스페리먼트", all_experiments, default=all_experiments)
-    only_metrics = st.toggle("지표가 있는 run 만", value=True, help="AP·재현율·정밀도 중 하나라도 기록된 run 만 봅니다.")
+    only_metrics = st.toggle("지표가 있는 run 만", value=True, help="Average Precision·재현율·정밀도 중 하나라도 기록된 run 만 봅니다.")
     st.divider()
     if st.button("MLflow 에서 다시 읽기", use_container_width=True):
         st.cache_data.clear()
@@ -356,17 +386,14 @@ st.markdown(f'<div style="border-bottom:1px solid {LINE}; margin:.2rem 0 .6rem">
 # ----- 핵심 지표 -----
 if view == "핵심 지표":
     left, right = st.columns([3, 2], vertical_alignment="bottom")
-    rule = left.segmented_control("익스페리먼트 대표 run", ["AP 최고", "가장 최근"], default="AP 최고")
-    rule = rule or "AP 최고"
+    rule = left.segmented_control("익스페리먼트 대표 run", ["Average Precision 최고", "가장 최근"], default="Average Precision 최고")
+    rule = rule or "Average Precision 최고"
     best = best_per_experiment(selected, rule).copy()
     with st.spinner("재현율 98% 기준 지표를 계산하는 중 ..."):
-        extra = pd.DataFrame([recall98(row) for _, row in best.iterrows()], index=best.index)
-    best = best.join(extra)
-    for key in ["r98_recall", "r98_precision", "r98_fp", "r98_fn"]:
-        best[key] = pd.to_numeric(best[key], errors="coerce").astype(float)
+        best = add_recall98(best)
 
     cards = st.columns(4)
-    candidates = [("AP 최고", "ap", COLOR["AP"]),
+    candidates = [("Average Precision 최고", "ap", COLOR["Average Precision"]),
                   (f"재현율 ≥ {R98}% 에서 정밀도 최고", "r98_precision", COLOR["정밀도"])]
     for box, (label, key, color) in zip(cards[:2], candidates):
         have = best.dropna(subset=[key])
@@ -383,28 +410,17 @@ if view == "핵심 지표":
         kpi(cards[2], f"재현율 ≥ {R98}% 에서 오경보 최소", f"{int(top['r98_fp'])}장",
             f"{top['experiment']}<br>{top['run_name']}", INK)
     kpi(cards[3], "비교한 익스페리먼트", f"{len(best)}개",
-        "대표 run: " + ("익스페리먼트마다 AP 가 가장 높은 run" if rule == "AP 최고" else "익스페리먼트마다 가장 최근 run"), MUTED)
+        "대표 run: " + ("익스페리먼트마다 Average Precision 이 가장 높은 run" if rule == "Average Precision 최고" else "익스페리먼트마다 가장 최근 run"), MUTED)
 
     section("익스페리먼트별 핵심 지표",
-            f"'기록' 칸은 학습 때 val 로 정한 임계값을 test 에 적용한 결과라서 test 재현율이 {R98}% 아래로 내려갈 수 있습니다. "
-            f"'재현율 ≥{R98}%' 칸은 test 에서 재현율이 {R98}% 이상이 되는 가장 높은 임계값을 잡았을 때의 값으로, 모든 익스페리먼트를 같은 기준으로 비교합니다.")
-    table = best[["experiment", "ap", "recall", "precision", "r98_recall", "r98_precision", "r98_fp", "r98_fn",
-                  "r98_source", "run_name"]]
-    config = dict(BASE_CONFIG)
-    config.update({
-        "recall": ratio("재현율 (기록)", "학습 때 val 로 정한 임계값을 test 에 적용한 결과", COLOR["재현율"]),
-        "precision": ratio("정밀도 (기록)", "학습 때 val 로 정한 임계값을 test 에 적용한 결과", COLOR["정밀도"]),
-        "r98_recall": ratio(f"재현율 ≥{R98}% · 재현율", color=COLOR["재현율"]),
-        "r98_precision": ratio(f"재현율 ≥{R98}% · 정밀도", "불량이라고 판정한 것 중 진짜 결함의 비율. 높을수록 오경보가 적습니다.",
-                               COLOR["정밀도"]),
-        "r98_fp": number(f"재현율 ≥{R98}% · 오경보", "%d"),
-        "r98_fn": number(f"재현율 ≥{R98}% · 놓친 결함", "%d"),
-        "r98_source": st.column_config.TextColumn("계산 방법"),
-    })
+            f"'재현율'·'정밀도' 는 학습 때 val 로 정한 임계값을 test 에 적용한 결과라서 test 재현율이 {R98}% 아래로 내려갈 수 있습니다. "
+            f"'재현율 ≥{R98}%' 칸은 test 에서 재현율이 {R98}% 이상이 되는 지점의 값으로, 모든 익스페리먼트를 같은 기준으로 비교합니다.")
+    table = best[["experiment"] + KEY_COLUMNS + ["r98_source", "run_name"]]
+    config = key_metric_config()
     st.dataframe(table, column_config=config, hide_index=True, use_container_width=True)
 
-    section("한눈에 보기", f"AP 와 재현율 ≥ {R98}% 기준 재현율·정밀도입니다. 막대 끝 숫자가 값입니다.")
-    chart_source = best.rename(columns={"ap": "AP", "r98_recall": "재현율", "r98_precision": "정밀도"})
+    section("한눈에 보기", f"Average Precision 과 재현율 ≥ {R98}% 기준 재현율·정밀도입니다. 막대 끝 숫자가 값입니다.")
+    chart_source = best.rename(columns={"ap": "Average Precision", "r98_recall": "재현율", "r98_precision": "정밀도"})
     long = chart_source.melt(id_vars=["experiment", "run_name"], value_vars=list(COLOR),
                              var_name="지표", value_name="value").dropna(subset=["value"])
     order = best["experiment"].tolist()
@@ -426,28 +442,31 @@ if view == "핵심 지표":
 
 # ----- run 비교 -----
 if view == "run 비교":
-    section("run 비교", f"시드 {FIXED_SEED} run 전체입니다. 익스페리먼트를 누르면 그 안의 run 이 최신순으로 펼쳐집니다. "
-                        "기준 run 을 고르면 각 run 이 기준보다 얼마나 달라졌는지 붙습니다. 값은 학습 때 기록된 지표입니다.")
-    ordered = selected
-    latest_first = selected.sort_values("start_time", ascending=False)   # 고르는 목록은 최신순
+    section("run 비교", f"시드 {FIXED_SEED} run 전체입니다. 칸 구성은 핵심 지표와 같습니다. "
+                        "익스페리먼트를 누르면 그 안의 run 이 최신순으로 펼쳐지고, 기준 run 을 고르면 기준과의 차이가 붙습니다.")
+    with st.spinner(f"run 마다 재현율 ≥{R98}% 지점을 계산하는 중 ..."):
+        ordered = add_recall98(selected)
+    latest_first = ordered.sort_values("start_time", ascending=False)   # 고르는 목록은 최신순
     names = {row.run_id: f"{row.start_time:%m-%d %H:%M} · {row.experiment} · {row.run_name}"
              for row in latest_first.itertuples()}
     baseline_id = st.selectbox("기준 run", ["(없음)"] + list(names),
                                format_func=lambda r: r if r == "(없음)" else names[r], key="compare_base")
-    columns = ["experiment", "run_name", "ap", "recall", "precision", "precision_at_target", "fp", "fn"]
-    shown = ordered[columns + ["threshold", "status", "start_time"]].copy()
+    columns = ["experiment", "run_name"] + KEY_COLUMNS
+    shown = ordered[columns + ["r98_threshold", "r98_source", "status", "start_time"]].copy()
     layout = columns[1:]
-    config = dict(BASE_CONFIG)
+    config = key_metric_config()
     if baseline_id != "(없음)":
-        base = selected[selected["run_id"] == baseline_id].iloc[0]
+        base = ordered[ordered["run_id"] == baseline_id].iloc[0]
         layout = ["run_name"]
         for key in columns[2:]:
             shown[f"{key}_delta"] = ordered[key] - base[key]
-            config[f"{key}_delta"] = number("차이", "%+d" if key in COUNT else "%+.3f")
+            config[f"{key}_delta"] = number("차이", "%+d" if key in ["r98_fp", "r98_fn"] else "%+.3f")
             layout += [key, f"{key}_delta"]
-        st.caption(f"기준: {base['experiment']} · {base['run_name']} — AP {fmt(base['ap'])} · 재현율 {fmt(base['recall'])} "
-                   f"· 정밀도 {fmt(base['precision'])}. 오경보·놓친 결함은 차이가 음수일수록 좋습니다.")
-    grouped_runs(shown, ["start_time"] + layout + ["threshold", "status"], config, "compare")
+        st.caption(f"기준: {base['experiment']} · {base['run_name']} — Average Precision {fmt(base['ap'])} · "
+                   f"재현율 {fmt(base['recall'])} · 정밀도 {fmt(base['precision'])} · "
+                   f"재현율 ≥{R98}% 정밀도 {fmt(base['r98_precision'])}. "
+                   "오경보·놓친 결함은 차이가 음수일수록 좋습니다.")
+    grouped_runs(shown, ["start_time"] + layout + ["r98_threshold", "r98_source", "status"], config, "compare")
     with st.expander("익스페리먼트별로 어떤 지표 이름을 읽었는지"):
         sources = (selected.groupby("experiment")[[f"{k}_source" for k in KEY]]
                    .agg(lambda s: ", ".join(sorted({v for v in s if v})) or "없음"))
@@ -463,7 +482,7 @@ if view == "run 상세":
     run = selected[selected["run_id"] == run_id].iloc[0]
     detail = recall98(run)
     boxes = st.columns(4)
-    kpi(boxes[0], "AP", fmt(run["ap"]), run["experiment"], COLOR["AP"])
+    kpi(boxes[0], "Average Precision", fmt(run["ap"]), run["experiment"], COLOR["Average Precision"])
     kpi(boxes[1], f"재현율 ≥{R98}% · 재현율", fmt(detail["r98_recall"]), detail["r98_source"], COLOR["재현율"])
     kpi(boxes[2], f"재현율 ≥{R98}% · 정밀도", fmt(detail["r98_precision"]), detail["r98_source"], COLOR["정밀도"])
     kpi(boxes[3], "오경보 / 놓친 결함",
@@ -622,7 +641,7 @@ if view == "자주 틀리는 이미지":
                                      key="hard_mode") or f"재현율 ≥{R98}% 지점"
     hard_split = h3.segmented_control("데이터", ["test", "val"], default="test", key="hard_split") or "test"
 
-    pool = best_per_experiment(selected, "AP 최고") if hard_scope == "익스페리먼트 대표 run" else selected
+    pool = best_per_experiment(selected, "Average Precision 최고") if hard_scope == "익스페리먼트 대표 run" else selected
     pool = pool[pool["split_hash"].notna()]
     collected = []
     with st.spinner("run 마다 점수 파일을 받는 중 ..."):
