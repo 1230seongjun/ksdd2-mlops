@@ -32,7 +32,6 @@ venv/
 
 # MLOps secrets
 infra/mlops/.env
-infra/mlops/seaweedfs/s3.json
 
 # Vim 임시 파일
 *.swp
