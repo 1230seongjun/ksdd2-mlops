@@ -1,0 +1,34 @@
+# 실험 대시보드 (개발용 단독 실행 · CD 배포본과 따로 띄움)
+# - 운영본은 compose.mlops.yaml 의 experiments-ui (CD 가 배포, 127.0.0.1:8502)
+# - 이 개발본은 127.0.0.1:8503 에 띄워서 app.py 를 고치며 바로 확인하고, 다 되면 PR 로 올림
+# - 이 폴더를 컨테이너의 /app 에 그대로 연결해서, app.py 를 고치면 다시 빌드·재시작 없이 바로 반영됨
+#   (STREAMLIT_SERVER_RUN_ON_SAVE: 파일이 바뀌면 열려 있는 화면도 자동으로 다시 그림)
+# - requirements.txt 나 Dockerfile 을 바꿨을 때만 --build 로 다시 빌드
+# - MLOps 스택의 네트워크(ksdd2-mlops-infra_mlops-net)에 붙어서 http://mlflow:5000 으로 MLflow 를 읽음
+#
+# 실행:  docker compose -f infra/mlops/experiments-ui/compose.yaml up -d --build
+# 중지:  docker compose -f infra/mlops/experiments-ui/compose.yaml down
+# 접속:  노트북에서 ssh -L 8503:127.0.0.1:8503 ... 후 http://localhost:8503
+name: experiments-ui
+
+services:
+  experiments-ui:
+    build: .
+    image: experiments-ui:dev
+    container_name: experiments-ui-dev
+    restart: unless-stopped
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      STREAMLIT_SERVER_RUN_ON_SAVE: "true"
+      STREAMLIT_SERVER_FILE_WATCHER_TYPE: "poll"   # 연결한 폴더의 파일 변경을 확실히 감지
+    volumes:
+      - ./:/app:ro          # 파일 하나가 아니라 폴더째 연결 (vi·git 이 파일을 새로 만들어도 반영됨)
+    ports:
+      - "127.0.0.1:8503:8501"
+    networks:
+      - mlops-net
+
+networks:
+  mlops-net:
+    external: true
+    name: ksdd2-mlops-infra_mlops-net

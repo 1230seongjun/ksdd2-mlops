@@ -12,12 +12,13 @@ SHORT_SHA="${GITHUB_SHA::7}"
 case "$STACK" in
   mlops)
     SRC="infra/mlops"; FILE="compose.mlops.yaml"; PROJECT="ksdd2-mlops-infra"
-    HEALTH_URL="http://127.0.0.1:5000/health"; HEALTH_TRIES=40
-    NCR_SERVICES="mlflow"; TAG_VARS="MLFLOW_TAG" ;;
+    # MLflow + 실험 대시보드(Streamlit) 둘 다 통과해야 성공
+    HEALTH_URLS="http://127.0.0.1:5000/health http://127.0.0.1:8502/_stcore/health"; HEALTH_TRIES=40
+    NCR_SERVICES="mlflow experiments-ui"; TAG_VARS="MLFLOW_TAG EXPERIMENTS_UI_TAG" ;;
   service)
     # API는 시작할 때 MLflow에서 모델을 받아 올리느라 약 2분 걸림 → 최대 3분(3초 × 60) 대기
     SRC="infra/service"; FILE="compose.service.yaml"; PROJECT="ksdd2-mlops"
-    HEALTH_URL="http://127.0.0.1:8080/api/health"; HEALTH_TRIES=60
+    HEALTH_URLS="http://127.0.0.1:8080/api/health"; HEALTH_TRIES=60
     NCR_SERVICES="api"; TAG_VARS="API_TAG" ;;
   *) echo "알 수 없는 스택: $STACK"; exit 2 ;;
 esac
@@ -46,8 +47,9 @@ set_env NCR_REGISTRY "$NCR_REGISTRY"
 set_env REGISTRY_PATH "$REGISTRY_PATH"
 for img in $(python3 -c 'import json,os; print(" ".join(json.loads(os.environ.get("IMAGES") or "[]")))'); do
   case "$STACK:$img" in
-    mlops:mlflow) set_env MLFLOW_TAG "$SHORT_SHA" ;;
-    service:api)  set_env API_TAG "$SHORT_SHA" ;;
+    mlops:mlflow)         set_env MLFLOW_TAG "$SHORT_SHA" ;;
+    mlops:experiments-ui) set_env EXPERIMENTS_UI_TAG "$SHORT_SHA" ;;
+    service:api)          set_env API_TAG "$SHORT_SHA" ;;
   esac
 done
 
@@ -74,11 +76,14 @@ deploy() {
 }
 
 health() {
-  for i in $(seq 1 "$HEALTH_TRIES"); do
-    if curl -fsS "$HEALTH_URL"; then echo; echo "헬스체크 통과: $HEALTH_URL"; return 0; fi
-    echo "대기 중... ($i/$HEALTH_TRIES)"; sleep 3
+  for url in $HEALTH_URLS; do
+    ok=false
+    for i in $(seq 1 "$HEALTH_TRIES"); do
+      if curl -fsS "$url"; then echo; echo "헬스체크 통과: $url"; ok=true; break; fi
+      echo "대기 중... $url ($i/$HEALTH_TRIES)"; sleep 3
+    done
+    if [ "$ok" != true ]; then echo "헬스체크 실패: $url"; return 1; fi
   done
-  echo "헬스체크 실패: $HEALTH_URL"; return 1
 }
 
 if deploy && health; then

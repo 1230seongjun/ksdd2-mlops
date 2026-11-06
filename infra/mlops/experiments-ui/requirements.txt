@@ -1,0 +1,4 @@
+streamlit==1.52.2
+altair==5.5.0
+pandas==2.2.3
+mlflow-skinny==3.6.0
