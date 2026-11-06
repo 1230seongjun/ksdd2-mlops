@@ -8,6 +8,7 @@ on:
       - "serving/web/**"
       - "infra/service/**"
       - "infra/mlops/mlflow/**"
+      - "infra/mlops/experiments-ui/**"
       - "infra/mlops/compose.mlops.yaml"
       - ".github/scripts/deploy_stack.sh"
   push:
@@ -17,15 +18,16 @@ on:
       - "serving/web/**"
       - "infra/service/**"
       - "infra/mlops/mlflow/**"
+      - "infra/mlops/experiments-ui/**"
       - "infra/mlops/compose.mlops.yaml"
       - ".github/scripts/deploy_stack.sh"
   workflow_dispatch:
     inputs:
       target:
-        description: "빌드·배포 대상 (all: api+mlflow 빌드 후 두 스택 배포 / deploy-only: 빌드 없이 재배포) — ui 는 아직 CD 대상 아님"
+        description: "빌드·배포 대상 (all: api+mlflow+experiments-ui 빌드 후 두 스택 배포 / deploy-only: 빌드 없이 재배포) — serving/ui 는 아직 CD 대상 아님"
         type: choice
         default: all
-        options: [all, api, mlflow, deploy-only]
+        options: [all, api, mlflow, experiments-ui, deploy-only]
 
 permissions:
   contents: read
@@ -54,12 +56,15 @@ jobs:
               - "serving/api/**"
             mlflow:
               - "infra/mlops/mlflow/**"
+            experiments_ui:
+              - "infra/mlops/experiments-ui/**"
             service:
               - "serving/api/**"
               - "serving/web/**"
               - "infra/service/**"
             mlops:
               - "infra/mlops/mlflow/**"
+              - "infra/mlops/experiments-ui/**"
               - "infra/mlops/compose.mlops.yaml"
             script:
               - ".github/scripts/deploy_stack.sh"
@@ -71,6 +76,7 @@ jobs:
           TARGET: ${{ inputs.target }}
           F_API: ${{ steps.filter.outputs.api }}
           F_MLFLOW: ${{ steps.filter.outputs.mlflow }}
+          F_UI: ${{ steps.filter.outputs.experiments_ui }}
           F_SERVICE: ${{ steps.filter.outputs.service }}
           F_MLOPS: ${{ steps.filter.outputs.mlops }}
           F_SCRIPT: ${{ steps.filter.outputs.script }}
@@ -78,14 +84,16 @@ jobs:
           imgs=""; svc=false; mlo=false
           if [ "$EVENT" = "workflow_dispatch" ]; then
             case "$TARGET" in
-              all)         imgs="api mlflow"; svc=true; mlo=true ;;
-              api)         imgs="api";        svc=true ;;
-              mlflow)      imgs="mlflow";     mlo=true ;;
-              deploy-only) svc=true; mlo=true ;;
+              all)            imgs="api mlflow experiments-ui"; svc=true; mlo=true ;;
+              api)            imgs="api";            svc=true ;;
+              mlflow)         imgs="mlflow";         mlo=true ;;
+              experiments-ui) imgs="experiments-ui"; mlo=true ;;
+              deploy-only)    svc=true; mlo=true ;;
             esac
           else
             if [ "$F_API" = "true" ];    then imgs="$imgs api"; fi
             if [ "$F_MLFLOW" = "true" ]; then imgs="$imgs mlflow"; fi
+            if [ "$F_UI" = "true" ];     then imgs="$imgs experiments-ui"; fi
             if [ "$F_SERVICE" = "true" ] || [ "$F_SCRIPT" = "true" ]; then svc=true; fi
             if [ "$F_MLOPS" = "true" ]   || [ "$F_SCRIPT" = "true" ]; then mlo=true; fi
           fi
@@ -109,8 +117,9 @@ jobs:
       - name: Set build context and tag
         run: |
           case "${{ matrix.image }}" in
-            mlflow) echo "CONTEXT=infra/mlops/mlflow" >> "$GITHUB_ENV" ;;
-            api)    echo "CONTEXT=serving/api"        >> "$GITHUB_ENV" ;;
+            mlflow)         echo "CONTEXT=infra/mlops/mlflow"         >> "$GITHUB_ENV" ;;
+            api)            echo "CONTEXT=serving/api"                >> "$GITHUB_ENV" ;;
+            experiments-ui) echo "CONTEXT=infra/mlops/experiments-ui" >> "$GITHUB_ENV" ;;
           esac
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
@@ -161,7 +170,7 @@ jobs:
           password: ${{ secrets.NCR_SECRET_KEY }}
 
       # 서비스 스택이 MLOps 네트워크에 붙으므로 MLOps 먼저
-      - name: Deploy MLOps stack (PostgreSQL · MLflow)
+      - name: Deploy MLOps stack (PostgreSQL · MLflow · 실험 대시보드)
         if: needs.changes.outputs.mlops == 'true'
         run: bash .github/scripts/deploy_stack.sh mlops
 
