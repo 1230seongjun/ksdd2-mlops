@@ -7,7 +7,7 @@ services:
 
     environment:
       MLFLOW_TRACKING_URI: "http://mlflow:5000"
-      MODEL_URI: "models:/m-6d9557f919414136907325ae8ca4e37a"
+      MODEL_URI: "${MODEL_URI:?MODEL_URI is not set in .env}"
 
     networks:
       - default
