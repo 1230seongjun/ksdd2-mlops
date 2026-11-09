@@ -1,6 +1,8 @@
+name: ksdd2-mlops
+
 services:
   api:
-    build: ./serving/api
+    image: ${NCR_REGISTRY}/${REGISTRY_PATH}/api:${API_TAG:?API_TAG is not set in .env}
     restart: unless-stopped
 
     environment:
@@ -17,8 +19,8 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./infra/service/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./serving/web:/usr/share/nginx/html:ro
+      - ./nginx:/etc/nginx/conf.d:ro
+      - ./web:/usr/share/nginx/html:ro
     depends_on:
       - api
 
@@ -27,10 +29,12 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:9090:9090"
+    command:
+      - --config.file=/etc/prometheus/conf/prometheus.yml
+      - --storage.tsdb.path=/prometheus
     volumes:
-      - ./infra/service/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus:/etc/prometheus/conf:ro
       - prometheus-data:/prometheus
-
   grafana:
     image: grafana/grafana:latest
     restart: unless-stopped

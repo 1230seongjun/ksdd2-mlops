@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} 
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -22,9 +22,7 @@ services:
       - mlops-net
 
   mlflow:
-    build:
-      context: ./mlflow
-      dockerfile: Dockerfile
+    image: ${NCR_REGISTRY}/${REGISTRY_PATH}/mlflow:${MLFLOW_TAG:?MLFLOW_TAG is not set in .env}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -53,10 +51,25 @@ services:
     networks:
       - mlops-net
 
+  # 실험 대시보드 (Streamlit). MLflow API 로 run·artifact 를 읽기만 함
+  experiments-ui:
+    image: ${NCR_REGISTRY}/${REGISTRY_PATH}/experiments-ui:${EXPERIMENTS_UI_TAG:?EXPERIMENTS_UI_TAG is not set in .env}
+    restart: unless-stopped
+    depends_on:
+      - mlflow
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    ports:
+      - "127.0.0.1:8502:8501"
+    networks:
+      - mlops-net
+
 networks:
   mlops-net:
+    name: ksdd2-mlops-infra_mlops-net
     driver: bridge
+
+
 
 volumes:
   postgres_data:
-

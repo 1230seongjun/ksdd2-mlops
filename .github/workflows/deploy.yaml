@@ -4,23 +4,30 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "infra/mlops/mlflow/**"
       - "serving/api/**"
-      - "serving/ui/**"
+      - "serving/web/**"
       - "infra/service/**"
+      - "infra/mlops/mlflow/**"
+      - "infra/mlops/experiments-ui/**"
+      - "infra/mlops/compose.mlops.yaml"
+      - ".github/scripts/deploy_stack.sh"
   push:
     branches: [main]
     paths:
-      - "infra/mlops/mlflow/**"
       - "serving/api/**"
-      - "serving/ui/**"
+      - "serving/web/**"
       - "infra/service/**"
+      - "infra/mlops/mlflow/**"
+      - "infra/mlops/experiments-ui/**"
+      - "infra/mlops/compose.mlops.yaml"
+      - ".github/scripts/deploy_stack.sh"
   workflow_dispatch:
     inputs:
-      image:
-        description: "빌드·배포할 이미지"
+      target:
+        description: "빌드·배포 대상 (all: api+mlflow+experiments-ui 빌드 후 두 스택 배포 / deploy-only: 빌드 없이 재배포) — serving/ui 는 아직 CD 대상 아님"
         type: choice
-        options: [api, ui, mlflow]
+        default: all
+        options: [all, api, mlflow, experiments-ui, deploy-only]
 
 permissions:
   contents: read
@@ -28,45 +35,85 @@ permissions:
 
 env:
   REGISTRY_PATH: ksdd2-registry
+<<<<<<< HEAD
   DEPLOY_DIR: /opt/bulryangzero
   COMPOSE_FILE_NAME: compose.service.yaml
   COMPOSE_PROJECT: service
   # 서비스 스택 담당과 맞출 값: Nginx를 통해 API 헬스체크를 받는 주소
   HEALTH_URL: http://localhost:8080/api/ready
+=======
+>>>>>>> 784e3bee9a58eaa165cac01067a4914a774f5e74
 
 jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
       images: ${{ steps.pick.outputs.images }}
+      service: ${{ steps.pick.outputs.service }}
+      mlops: ${{ steps.pick.outputs.mlops }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect changed images
+      - name: Detect changes
         id: filter
         if: github.event_name != 'workflow_dispatch'
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            mlflow:
-              - "infra/mlops/mlflow/**"
             api:
               - "serving/api/**"
-            ui:
-              - "serving/ui/**"
+            mlflow:
+              - "infra/mlops/mlflow/**"
+            experiments_ui:
+              - "infra/mlops/experiments-ui/**"
+            service:
+              - "serving/api/**"
+              - "serving/web/**"
+              - "infra/service/**"
+            mlops:
+              - "infra/mlops/mlflow/**"
+              - "infra/mlops/experiments-ui/**"
+              - "infra/mlops/compose.mlops.yaml"
+            script:
+              - ".github/scripts/deploy_stack.sh"
 
-      - name: Pick images to build
+      - name: Pick images and stacks
         id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          TARGET: ${{ inputs.target }}
+          F_API: ${{ steps.filter.outputs.api }}
+          F_MLFLOW: ${{ steps.filter.outputs.mlflow }}
+          F_UI: ${{ steps.filter.outputs.experiments_ui }}
+          F_SERVICE: ${{ steps.filter.outputs.service }}
+          F_MLOPS: ${{ steps.filter.outputs.mlops }}
+          F_SCRIPT: ${{ steps.filter.outputs.script }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo 'images=["${{ inputs.image }}"]' >> "$GITHUB_OUTPUT"
+          imgs=""; svc=false; mlo=false
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            case "$TARGET" in
+              all)            imgs="api mlflow experiments-ui"; svc=true; mlo=true ;;
+              api)            imgs="api";            svc=true ;;
+              mlflow)         imgs="mlflow";         mlo=true ;;
+              experiments-ui) imgs="experiments-ui"; mlo=true ;;
+              deploy-only)    svc=true; mlo=true ;;
+            esac
           else
-            echo 'images=${{ steps.filter.outputs.changes }}' >> "$GITHUB_OUTPUT"
+            if [ "$F_API" = "true" ];    then imgs="$imgs api"; fi
+            if [ "$F_MLFLOW" = "true" ]; then imgs="$imgs mlflow"; fi
+            if [ "$F_UI" = "true" ];     then imgs="$imgs experiments-ui"; fi
+            if [ "$F_SERVICE" = "true" ] || [ "$F_SCRIPT" = "true" ]; then svc=true; fi
+            if [ "$F_MLOPS" = "true" ]   || [ "$F_SCRIPT" = "true" ]; then mlo=true; fi
           fi
+          images=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' $imgs)
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+          echo "service=$svc"   >> "$GITHUB_OUTPUT"
+          echo "mlops=$mlo"     >> "$GITHUB_OUTPUT"
+          echo "빌드: $images / 배포: service=$svc mlops=$mlo"
 
   build:
     needs: changes
-    if: needs.changes.outputs.images != '' && needs.changes.outputs.images != '[]'
+    if: needs.changes.outputs.images != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -78,9 +125,9 @@ jobs:
       - name: Set build context and tag
         run: |
           case "${{ matrix.image }}" in
-            mlflow) echo "CONTEXT=infra/mlops/mlflow" >> "$GITHUB_ENV" ;;
-            api)    echo "CONTEXT=serving/api"        >> "$GITHUB_ENV" ;;
-            ui)     echo "CONTEXT=serving/ui"         >> "$GITHUB_ENV" ;;
+            mlflow)         echo "CONTEXT=infra/mlops/mlflow"         >> "$GITHUB_ENV" ;;
+            api)            echo "CONTEXT=serving/api"                >> "$GITHUB_ENV" ;;
+            experiments-ui) echo "CONTEXT=infra/mlops/experiments-ui" >> "$GITHUB_ENV" ;;
           esac
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
@@ -106,103 +153,35 @@ jobs:
   deploy:
     needs: [changes, build]
     # PR에서는 절대 실행하지 않음 (셀프 호스티드 러너 보호)
-    # 이미지 변경 없이 infra/service 설정만 바뀐 경우(build=skipped)에도 배포
+    # 이미지 변경 없이 설정만 바뀐 경우(build=skipped)에도 배포
     if: >-
       always() &&
       github.event_name != 'pull_request' &&
       needs.changes.result == 'success' &&
-      (needs.build.result == 'success' || needs.build.result == 'skipped')
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (needs.changes.outputs.service == 'true' || needs.changes.outputs.mlops == 'true')
     runs-on: [self-hosted, main-instance]
     concurrency:
       group: deploy-main-instance
       cancel-in-progress: false
     env:
       IMAGES: ${{ needs.changes.outputs.images }}
+      NCR_REGISTRY: ${{ secrets.NCR_REGISTRY }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check service stack exists
-        id: ready
-        run: |
-          if [ -f "infra/service/${COMPOSE_FILE_NAME}" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "infra/service/${COMPOSE_FILE_NAME} 이 아직 없어 배포를 건너뜁니다."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Login to NCR
-        if: steps.ready.outputs.ready == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.NCR_REGISTRY }}
           username: ${{ secrets.NCR_ACCESS_KEY }}
           password: ${{ secrets.NCR_SECRET_KEY }}
 
-      - name: Sync deploy files
-        if: steps.ready.outputs.ready == 'true'
-        run: |
-          rsync -a --delete \
-            --exclude ".env" --exclude ".env.prev" \
-            infra/service/ "${DEPLOY_DIR}/"
+      # 서비스 스택이 MLOps 네트워크에 붙으므로 MLOps 먼저
+      - name: Deploy MLOps stack (PostgreSQL · MLflow · 실험 대시보드)
+        if: needs.changes.outputs.mlops == 'true'
+        run: bash .github/scripts/deploy_stack.sh mlops
 
-      - name: Update image tags in .env
-        if: steps.ready.outputs.ready == 'true'
-        env:
-          NCR_REGISTRY: ${{ secrets.NCR_REGISTRY }}
-        run: |
-          cd "${DEPLOY_DIR}"
-          cp .env .env.prev
-
-          set_env() {
-            if grep -q "^$1=" .env; then
-              sed -i "s|^$1=.*|$1=$2|" .env
-            else
-              echo "$1=$2" >> .env
-            fi
-          }
-
-          set_env NCR_REGISTRY "${NCR_REGISTRY}"
-          set_env REGISTRY_PATH "${REGISTRY_PATH}"
-
-          SHORT_SHA="${GITHUB_SHA::7}"
-          for img in $(python3 -c 'import json,os; print(" ".join(json.loads(os.environ.get("IMAGES") or "[]")))'); do
-            case "$img" in
-              api) set_env API_TAG "${SHORT_SHA}" ;;
-              ui)  set_env UI_TAG  "${SHORT_SHA}" ;;
-              *)   echo "$img 은 서비스 스택 배포 대상이 아님 (건너뜀)" ;;
-            esac
-          done
-
-          echo "--- 배포할 태그 ---"
-          grep -E '^(API_TAG|UI_TAG)=' .env || true
-
-      - name: Deploy
-        id: deploy
-        if: steps.ready.outputs.ready == 'true'
-        run: |
-          cd "${DEPLOY_DIR}"
-          docker compose -f "${COMPOSE_FILE_NAME}" -p "${COMPOSE_PROJECT}" --env-file .env pull
-          docker compose -f "${COMPOSE_FILE_NAME}" -p "${COMPOSE_PROJECT}" --env-file .env up -d --remove-orphans
-          docker compose -f "${COMPOSE_FILE_NAME}" -p "${COMPOSE_PROJECT}" ps
-
-      - name: Health check
-        if: steps.ready.outputs.ready == 'true'
-        run: |
-          for i in $(seq 1 20); do
-            if curl -fsS "${HEALTH_URL}"; then
-              echo; echo "헬스체크 통과"; exit 0
-            fi
-            echo "대기 중... ($i/20)"; sleep 3
-          done
-          echo "헬스체크 실패"; exit 1
-
-      - name: Rollback on failure
-        if: failure() && steps.ready.outputs.ready == 'true'
-        run: |
-          cd "${DEPLOY_DIR}"
-          if [ -f .env.prev ]; then
-            echo "이전 버전으로 롤백합니다."
-            cp .env.prev .env
-            docker compose -f "${COMPOSE_FILE_NAME}" -p "${COMPOSE_PROJECT}" --env-file .env up -d --remove-orphans
-          fi
+      - name: Deploy service stack (API · Nginx · Prometheus · Grafana)
+        if: needs.changes.outputs.service == 'true'
+        run: bash .github/scripts/deploy_stack.sh service
