@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 셀프 호스티드 러너에서 스택 하나를 배포한다 (deploy.yaml 이 호출)
 #   사용법: bash .github/scripts/deploy_stack.sh <mlops|service>
+#   순서: 배포 파일 백업 → 파일 동기화 → 이미지 태그 갱신 → pull → up → 헬스체크 → 실패 시 파일·컨테이너 복원
 #   필요한 환경변수: GITHUB_SHA, NCR_REGISTRY, REGISTRY_PATH, IMAGES(이번에 빌드한 이미지 JSON)
-# 순서: 파일 동기화 → .env 태그 갱신(.env.prev 백업) → 우리 이미지 pull → up → 헬스체크 → 실패하면 롤백
 set -euo pipefail
 
 STACK="${1:?mlops 또는 service 를 지정하세요}"
@@ -16,19 +16,47 @@ case "$STACK" in
     HEALTH_URLS="http://127.0.0.1:5000/health http://127.0.0.1:8502/_stcore/health"; HEALTH_TRIES=40
     NCR_SERVICES="mlflow experiments-ui"; TAG_VARS="MLFLOW_TAG EXPERIMENTS_UI_TAG" ;;
   service)
-    # API는 시작할 때 MLflow에서 모델을 받아 올리느라 약 2분 걸림 → 최대 3분(3초 × 60) 대기
+    # API 시작 시 MLflow 모델 로딩을 기다리며 /api/ready를 최대 60회 확인
+    # 실패한 요청 사이에 3초 대기하며, 총 소요 시간에는 HTTP 요청 시간도 포함됨
     SRC="infra/service"; FILE="compose.service.yaml"; PROJECT="ksdd2-mlops"
-    HEALTH_URLS="http://127.0.0.1:8080/api/health"; HEALTH_TRIES=60
+    HEALTH_URLS="http://127.0.0.1:8080/api/ready"; HEALTH_TRIES=60
     NCR_SERVICES="api"; TAG_VARS="API_TAG" ;;
   *) echo "알 수 없는 스택: $STACK"; exit 2 ;;
 esac
 DIR="$DEPLOY_ROOT/$STACK"
-WORKSPACE="$PWD"
 
 if [ ! -f "$DIR/.env" ]; then
   echo "::error::$DIR/.env 가 없습니다. 서버 초기 설정(.env 배치)을 먼저 하세요."
   exit 1
 fi
+
+# 동기화 대상 밖에 백업 저장
+BACKUP_ROOT="$DEPLOY_ROOT/.deploy-backups/$STACK"
+install -d -m 700 "$BACKUP_ROOT"
+BACKUP_DIR=$(mktemp -d "$BACKUP_ROOT/deploy.XXXXXXXX")
+
+# .env, Compose, 설정 파일, 웹 파일 백업
+mkdir -m 700 "$BACKUP_DIR/files"
+cp -a "$DIR/." "$BACKUP_DIR/files/"
+
+echo "배포 전 파일 백업 완료: $BACKUP_DIR"
+
+# 파일 동기화 또는 환경변수 수정 실패 시 파일 복원
+restore_files_on_exit() {
+  local status=$?
+  trap - EXIT
+
+  if [ "$status" -ne 0 ]; then
+    echo "::error::배포 준비 실패 → 이전 파일 복원"
+    if ! rsync -a --delete "$BACKUP_DIR/files/" "$DIR/"; then
+      echo "::error::파일 복원 실패. 백업 위치: $BACKUP_DIR"
+    fi
+  fi
+
+  exit "$status"
+}
+
+trap restore_files_on_exit EXIT
 
 # 1) 배포 파일 동기화 (.env, .env.prev, web/ 은 보존)
 rsync -a --delete --exclude ".env" --exclude ".env.prev" --exclude "web/" "$SRC/" "$DIR/"
@@ -39,7 +67,6 @@ fi
 cd "$DIR"
 
 # 2) 이미지 태그 갱신
-cp .env .env.prev
 set_env() {
   if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >> .env; fi
 }
@@ -55,10 +82,11 @@ done
 
 for v in $TAG_VARS; do
   if ! grep -qE "^$v=.+" .env; then
-    echo "::warning::$v 가 아직 없어 $STACK 배포를 건너뜁니다. Actions → Build and deploy → Run workflow 로 이미지를 먼저 빌드하세요."
-    exit 0
+    echo "::error::$v 가 없습니다. 이미지를 먼저 빌드하고 태그를 설정하세요."
+    exit 1
   fi
 done
+
 echo "--- $STACK 배포 태그 ---"; grep -E "^($(echo "$TAG_VARS" | tr ' ' '|'))=" .env
 
 # 3) 배포
@@ -79,21 +107,43 @@ health() {
   for url in $HEALTH_URLS; do
     ok=false
     for i in $(seq 1 "$HEALTH_TRIES"); do
-      if curl -fsS "$url"; then echo; echo "헬스체크 통과: $url"; ok=true; break; fi
+      # 연결 대기는 최대 2초, 요청 전체는 최대 5초로 제한
+      if curl -fsS --connect-timeout 2 --max-time 5 "$url"; then echo; echo "헬스체크 통과: $url"; ok=true; break; fi
       echo "대기 중... $url ($i/$HEALTH_TRIES)"; sleep 3
     done
     if [ "$ok" != true ]; then echo "헬스체크 실패: $url"; return 1; fi
   done
 }
 
+# 이제부터는 아래에서 파일과 컨테이너를 함께 복구한다.
+trap - EXIT
+
 if deploy && health; then
+  echo "배포 성공: $STACK"
   exit 0
 fi
 
-# 4) 롤백
-echo "::error::$STACK 배포 실패 → 이전 태그로 롤백합니다."
+echo "::error::$STACK 배포 실패 → 이전 배포 복원"
 compose logs --tail 50 || true
-cp .env.prev .env
-compose up -d || true
-cd "$WORKSPACE"
+
+# 먼저 이전 Compose, 환경변수, 설정, 웹 파일 복원
+if ! rsync -a --delete "$BACKUP_DIR/files/" "$DIR/"; then
+  echo "::error::파일 복원 실패. 백업 위치: $BACKUP_DIR"
+  exit 1
+fi
+
+# 복원한 설정과 로컬의 이전 이미지로 컨테이너 재생성
+if ! compose up -d --force-recreate --pull never; then
+  echo "::error::컨테이너 복원 실패. 수동 복구가 필요합니다."
+  exit 1
+fi
+
+if health; then
+  echo "::warning::이전 배포 복원 후 헬스체크 통과"
+else
+  echo "::error::복원 후에도 헬스체크 실패"
+  compose logs --tail 50 || true
+fi
+
+# 복구 성공 여부와 별개로 이번 배포는 실패 처리
 exit 1

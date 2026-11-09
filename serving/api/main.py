@@ -44,11 +44,8 @@ MLFLOW_TRACKING_URI = os.getenv(
     "http://mlflow:5000"
 )
 
-# MLflow에 저장된 학습 모델 ID
-MODEL_URI = os.getenv(
-    "MODEL_URI",
-    "models:/m-6d9557f919414136907325ae8ca4e37a"
-)
+# 모델 선택은 배포 환경변수로 지정한다.
+MODEL_URI = os.getenv("MODEL_URI", "").strip()
 
 # 이미지 업로드 최대 크기: 5MB
 MAX_FILE_SIZE = 5 * 1024 * 1024

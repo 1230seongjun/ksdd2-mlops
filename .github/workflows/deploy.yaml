@@ -35,6 +35,11 @@ permissions:
 
 env:
   REGISTRY_PATH: ksdd2-registry
+  DEPLOY_DIR: /opt/bulryangzero
+  COMPOSE_FILE_NAME: compose.service.yaml
+  COMPOSE_PROJECT: service
+  # 서비스 스택 담당과 맞출 값: Nginx를 통해 API 헬스체크를 받는 주소
+  HEALTH_URL: http://localhost:8080/api/ready
 
 jobs:
   changes:
