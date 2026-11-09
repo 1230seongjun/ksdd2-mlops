@@ -1,11 +1,11 @@
 """불량제로 실험 비교 대시보드 (Streamlit)
 
-MLflow 에 기록된 모든 익스페리먼트의 run 을 읽어서 핵심 지표(AP·재현율·정밀도)를 비교한다.
-  - 시드는 42 로 고정: seed 가 42 가 아닌 run(43, 44 등)은 모두 뺀다. seed 기록이 없는 초반 run 은 42 로 본다.
-  - 익스페리먼트마다 지표 이름이 달라도(test_average_precision / ap / auprc ...) 같은 칸으로 모아서 보여 준다.
-  - 재현율 98% 지점: 이미지별 점수 파일(*_scores.csv)로 test 에서 재현율이 98% 이상이 되는 가장 높은 임계값을 찾고,
-    그 지점의 재현율·정밀도·오경보·놓친 결함을 계산한다 (baseline.py 의 'recall>=98% 지점의 precision' 과 같은 값).
-    학습 때 val 로 정한 임계값의 결과는 '기록' 칸에 따로 보여 준다.
+MLflow 에 기록된 모든 익스페리먼트의 run 을 읽어서 팀 성능지표(val 기준)를 비교한다.
+  - 성능지표 8개 (MLflow 이름 그대로 읽음, 다른 이름은 섞어 읽지 않음):
+    val_average_precision, val_auroc, val_recall, val_precision,
+    val_false_positives(오검출), val_false_negatives(놓친 결함), val_false_positive_rate(오검출률), threshold
+  - 시드는 42 로 고정: seed(또는 model_seed) 가 42 가 아닌 run 은 뺀다. 기록이 없는 run 은 42 로 본다.
+  - 이미지별 점수 파일은 두 형식을 모두 읽는다: <split>/scores.csv (팀 baseline) 와 *_scores.csv (예전 코드).
 
 실행 (노트북, SSH 터널로 MLflow 가 127.0.0.1:5000 에 열려 있을 때):
   $env:MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"   # PowerShell
@@ -32,7 +32,8 @@ st.set_page_config(page_title="불량제로 실험 비교", page_icon="🔍", la
 
 # 화면 색: 지표마다 같은 색을 모든 그래프에서 쓴다
 INK, MUTED, LINE, PANEL = "#1d2731", "#66727e", "#dfe4e8", "#f6f8f9"
-COLOR = {"Average Precision": "#2b5d78", "재현율": "#3c8a68", "정밀도": "#c27a2c"}
+COLOR = {"Average Precision": "#2b5d78", "AUROC": "#5d6fa8", "재현율": "#3c8a68", "정밀도": "#c27a2c",
+         "오검출률": "#b4553b"}
 NORMAL_COLOR, DEFECT_COLOR = "#5b8db8", "#d0603a"
 
 st.markdown(f"""
@@ -59,35 +60,19 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 화면에 쓰는 지표: (보여 줄 이름, 정확히 같은 이름 후보, 이름 패턴, 제외 패턴)
-# 익스페리먼트마다 지표 이름이 달라서, 위에서부터 먼저 찾은 값을 쓴다. 패턴으로 찾을 때는 test_ 가 붙은 것을 먼저 쓴다.
+# 팀 성능지표 (11/09 확정): (보여 줄 이름, MLflow 지표 이름, 이름 패턴, 제외 패턴)
+# 모두 val 기준이라 이름을 정확히 그대로 읽는다. 이름이 다른 지표(test_*, ap, auprc 등)는 섞어 읽지 않는다.
 METRIC_RULES = {
-    "ap": ("Average Precision",
-           ["test_average_precision", "average_precision", "test_ap", "ap", "test_auprc", "auprc", "pr_auc"],
-           r"average_precision|auprc|pr_auc|^(test_|val_)?ap$", r"train"),
-    "recall": ("재현율",
-               ["test_recall", "recall", "image_recall"],
-               r"recall", r"small|medium|large|train|target|at_|@"),
-    "precision": ("정밀도",
-                  ["test_precision", "precision", "image_precision"],
-                  r"precision", r"average|at_|target|train|@"),
-    "precision_at_target": ("목표 재현율 지점 정밀도",
-                            ["test_precision_at_target_recall"],
-                            r"precision_at|precision@", r"train"),
-    "fp": ("오경보",
-           ["test_false_positives", "false_positives", "fp"],
-           r"false_pos|^(test_)?fp$", r"train"),
-    "fn": ("놓친 결함",
-           ["test_false_negatives", "false_negatives", "fn"],
-           r"false_neg|^(test_)?fn$", r"train"),
-    "recall_small": ("재현율(작은 결함)", ["test_recall_small"], None, None),
-    "recall_medium": ("재현율(중간 결함)", ["test_recall_medium"], None, None),
-    "recall_large": ("재현율(큰 결함)", ["test_recall_large"], None, None),
+    "ap": ("Average Precision", ["val_average_precision"], None, None),
+    "auroc": ("AUROC", ["val_auroc"], None, None),
+    "recall": ("재현율", ["val_recall"], None, None),
+    "precision": ("정밀도", ["val_precision"], None, None),
+    "fp": ("오검출", ["val_false_positives"], None, None),
+    "fn": ("놓친 결함", ["val_false_negatives"], None, None),
+    "fpr": ("오검출률", ["val_false_positive_rate"], None, None),
 }
 LABEL = {key: rule[0] for key, rule in METRIC_RULES.items()}
-LABEL.update({"r98_recall": "재현율", "r98_precision": "정밀도", "r98_fp": "오경보", "r98_fn": "놓친 결함"})
 KEY = ["ap", "recall", "precision"]
-COUNT = ["fp", "fn"]
 R98 = int(round(FIXED_RECALL * 100))
 
 
@@ -141,8 +126,9 @@ def prepare(raw: pd.DataFrame) -> pd.DataFrame:
     df["split_hash"] = column(raw, "params.split_hash")
     df["target_recall"] = pd.to_numeric(column(raw, "params.target_recall"), errors="coerce")
 
-    # 시드: params.seed → 없으면 run 이름의 seed숫자 → 그래도 없으면 42 로 본다
+    # 시드: params.seed → params.model_seed(팀 baseline) → run 이름의 seed숫자 → 그래도 없으면 42 로 본다
     seed = pd.to_numeric(column(raw, "params.seed"), errors="coerce")
+    seed = seed.fillna(pd.to_numeric(column(raw, "params.model_seed"), errors="coerce"))
     from_name = pd.to_numeric(df["run_name"].str.extract(r"seed[_-]?(\d+)", flags=re.I)[0], errors="coerce")
     df["seed"] = seed.fillna(from_name).fillna(FIXED_SEED).astype(int)
 
@@ -152,20 +138,37 @@ def prepare(raw: pd.DataFrame) -> pd.DataFrame:
     threshold = pd.to_numeric(column(raw, "metrics.threshold"), errors="coerce")
     df["threshold"] = threshold.fillna(pd.to_numeric(column(raw, "params.threshold"), errors="coerce"))
 
-    keep = (df["seed"] == FIXED_SEED) & (df["kind"] != "seed_summary") & (df["status"] != "RUNNING")
+    # 과거 실험(test 기준으로 기록해 val 지표가 없는 run)은 보여주지 않는다
+    has_val_metrics = df["ap"].notna()
+    keep = (df["seed"] == FIXED_SEED) & (df["kind"] != "seed_summary") & (df["status"] != "RUNNING") & has_val_metrics
     return df[keep].copy()
 
 
 @st.cache_data(ttl=600, show_spinner=False)
 def load_scores(run_id: str) -> pd.DataFrame:
-    """run 의 *_scores.csv artifact (split, file, label, score, mask_area) 를 읽는다. 없으면 빈 표."""
+    """run 의 이미지별 점수를 (split, file, label, score, mask_area) 표로 읽는다. 없으면 빈 표.
+    - 팀 baseline: val/scores.csv, test/scores.csv (file, label, score) → split 칸을 붙여 합침
+    - 예전 코드: 맨 위의 *_scores.csv (split, file, label, score, mask_area)"""
     client = MlflowClient()
-    paths = [a.path for a in client.list_artifacts(run_id) if a.path.endswith("_scores.csv")]
-    if not paths:
-        return pd.DataFrame()
+    top = client.list_artifacts(run_id)
+    parts = []
     with tempfile.TemporaryDirectory() as folder:
-        local = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=paths[0], dst_path=folder)
-        scores = pd.read_csv(local, encoding="utf-8-sig")
+        for split in ("val", "test"):
+            if any(a.is_dir and a.path == split for a in top):
+                if any(a.path == f"{split}/scores.csv" for a in client.list_artifacts(run_id, split)):
+                    local = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=f"{split}/scores.csv",
+                                                                dst_path=folder)
+                    parts.append(pd.read_csv(local, encoding="utf-8-sig").assign(split=split))
+        if not parts:
+            old = [a.path for a in top if a.path.endswith("_scores.csv")]
+            if old:
+                local = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=old[0], dst_path=folder)
+                parts.append(pd.read_csv(local, encoding="utf-8-sig"))
+    if not parts:
+        return pd.DataFrame()
+    scores = pd.concat(parts, ignore_index=True)
+    if "mask_area" not in scores.columns:
+        scores["mask_area"] = np.nan        # 팀 baseline 은 결함 면적을 기록하지 않음
     scores["label"] = scores["label"].astype(int)
     return scores
 
@@ -188,34 +191,6 @@ def threshold_for_recall(scores: pd.DataFrame, target: float) -> float:
     return float(values[last][best])
 
 
-def evaluate(scores: pd.DataFrame, threshold: float) -> dict:
-    predicted = scores["score"] >= threshold
-    truth = scores["label"] == 1
-    tp, fp, fn = int((predicted & truth).sum()), int((predicted & ~truth).sum()), int((~predicted & truth).sum())
-    return {"r98_recall": tp / (tp + fn) if tp + fn else np.nan,
-            "r98_precision": tp / (tp + fp) if tp + fp else np.nan,
-            "r98_fp": fp, "r98_fn": fn, "r98_threshold": threshold}
-
-
-def recall98(run: pd.Series) -> dict:
-    """test 에서 재현율이 98% 이상이 되는 지점의 재현율·정밀도. 점수 파일 → 기록된 지점 정밀도 순서로 찾는다."""
-    try:
-        scores = load_scores(run["run_id"])
-    except Exception:
-        scores = pd.DataFrame()
-    if not scores.empty and {"split", "score", "label"} <= set(scores.columns):
-        test = scores[scores["split"] == "test"]
-        if (test["label"] == 1).any():
-            result = evaluate(test, threshold_for_recall(test, FIXED_RECALL))
-            result["r98_source"] = "점수 파일로 계산"
-            return result
-    if abs((run["target_recall"] or 0) - FIXED_RECALL) < 1e-6 and pd.notna(run["precision_at_target"]):
-        return {"r98_recall": np.nan, "r98_precision": run["precision_at_target"], "r98_fp": np.nan,
-                "r98_fn": np.nan, "r98_threshold": np.nan, "r98_source": "기록된 지점 정밀도 (정밀도만)"}
-    return {"r98_recall": np.nan, "r98_precision": np.nan, "r98_fp": np.nan, "r98_fn": np.nan,
-            "r98_threshold": np.nan, "r98_source": "계산 불가 (점수 파일 없음)"}
-
-
 def best_per_experiment(df: pd.DataFrame, rule: str) -> pd.DataFrame:
     """익스페리먼트마다 대표 run 하나 (AP 최고 또는 가장 최근)."""
     if rule == "Average Precision 최고":
@@ -226,14 +201,14 @@ def best_per_experiment(df: pd.DataFrame, rule: str) -> pd.DataFrame:
 
 
 def judge(scores: pd.DataFrame, threshold: float) -> pd.DataFrame:
-    """임계값으로 판정하고 결과 유형(정상 통과/오경보/결함 검출/놓침)을 붙인다."""
+    """임계값으로 판정하고 결과 유형(정상 통과/오검출/결함 검출/놓침)을 붙인다."""
     judged = scores.copy()
     judged["판정"] = np.where(judged["score"] >= threshold, "불량", "정상")
     judged["임계값 대비"] = judged["score"] / threshold
     judged["결과"] = np.select(
         [(judged["label"] == 1) & (judged["판정"] == "불량"), (judged["label"] == 1) & (judged["판정"] == "정상"),
          (judged["label"] == 0) & (judged["판정"] == "불량")],
-        ["결함 검출", "놓침", "오경보"], default="정상 통과")
+        ["결함 검출", "놓침", "오검출"], default="정상 통과")
     return judged
 
 
@@ -254,7 +229,7 @@ def kpi(box, label, value, who, color):
 
 
 def ratio(label, help_text=None, color=None):
-    """0~1 값을 막대로 보여 주는 칸. color 는 지표 색 (AP 파랑 · 재현율 초록 · 정밀도 주황)."""
+    """0~1 값을 막대로 보여 주는 칸. color 는 지표 색 (AP 파랑 · AUROC 남색 · 재현율 초록 · 정밀도 주황 · 오검출률 빨강)."""
     return st.column_config.ProgressColumn(label, format="%.3f", min_value=0.0, max_value=1.0, help=help_text,
                                            color=color or COLOR["Average Precision"])
 
@@ -263,49 +238,49 @@ def number(label, fmt_text="%.3f", help_text=None):
     return st.column_config.NumberColumn(label, format=fmt_text, help=help_text)
 
 
+def show_table(data: pd.DataFrame, column_config: dict | None = None, **kwargs) -> None:
+    """st.dataframe 과 같지만, 값이 없는 숫자 칸을 'None' 대신 공란으로 보여 준다.
+    Streamlit 은 빈 숫자 칸에 'None' 을 표시하고 이를 바꾸는 옵션이 없어서, 숫자 칸(NumberColumn)을
+    정해 둔 형식의 글자로 바꾸고 빈 값은 빈 글자로 둔다. 막대 칸(ProgressColumn)은 빈 값이 원래 공란이라 그대로 둔다."""
+    data = data.copy()
+    config = dict(column_config or {})
+    for name, setting in list(config.items()):
+        if name not in data.columns or not isinstance(setting, dict):
+            continue
+        type_config = setting.get("type_config") or {}
+        if type_config.get("type") != "number":
+            continue
+        printf = type_config.get("format") or "%.3f"
+        python_format = re.sub(r"%(\+?)(\.\d+)?[df]", lambda m: "{:" + m[1] + (m[2] or ".0") + "f}", printf)
+        data[name] = [("" if pd.isna(value) else python_format.format(value)) for value in data[name]]
+        config[name] = st.column_config.TextColumn(setting.get("label"), help=setting.get("help"))
+    st.dataframe(data, column_config=config, **kwargs)
+
+
 BASE_CONFIG = {
     "experiment": st.column_config.TextColumn("익스페리먼트", width="medium"),
     "run_name": st.column_config.TextColumn("run", width="medium"),
     "start_time": st.column_config.DatetimeColumn("시작", format="MM-DD HH:mm"),
-    "threshold": number("임계값", "%.4f"),
+    "threshold": number("임계값", "%.4f", f"val 에서 재현율 {int(round(FIXED_RECALL * 100))}% 이상이 되도록 정한 판정 기준"),
     "status": st.column_config.TextColumn("상태"),
-    "ap": ratio("Average Precision", "임계값과 상관없이 결함을 정상보다 높은 점수로 줄 세운 정도 (PR 곡선 아래 넓이)",
+    "ap": ratio("Average Precision", "val. 임계값과 상관없이 결함을 정상보다 높은 점수로 줄 세운 정도 (PR 곡선 아래 넓이)",
                 COLOR["Average Precision"]),
-    "recall": ratio("재현율", color=COLOR["재현율"]),
-    "precision": ratio("정밀도", color=COLOR["정밀도"]),
-    "precision_at_target": number("목표 재현율 지점 정밀도"),
-    "fp": number("오경보", "%d"),
-    "fn": number("놓친 결함", "%d"),
+    "auroc": ratio("AUROC", "val. 임계값과 상관없이 결함과 정상을 가르는 정도 (ROC 곡선 아래 넓이)", COLOR["AUROC"]),
+    "recall": ratio("재현율", "val. 정한 임계값으로 판정했을 때 결함 중 잡아낸 비율", COLOR["재현율"]),
+    "precision": ratio("정밀도", "val. 불량이라고 판정한 것 중 진짜 결함의 비율", COLOR["정밀도"]),
+    "fp": number("오검출", "%d", "val. 정상인데 불량으로 판정한 장수"),
+    "fn": number("놓친 결함", "%d", "val. 결함인데 정상으로 판정한 장수"),
+    "fpr": ratio("오검출률", "val. 오검출 ÷ 정상 장수. 낮을수록 좋습니다.", COLOR["오검출률"]),
 }
 
 
-KEY_COLUMNS = ["ap", "recall", "precision", "r98_recall", "r98_precision", "r98_fp", "r98_fn"]
+KEY_COLUMNS = ["ap", "auroc", "recall", "precision", "fp", "fn", "fpr", "threshold"]   # 팀 성능지표 8개
+CHART_METRICS = ["Average Precision", "정밀도"]   # 한눈에 보기 막대그래프에 그릴 지표
 
 
 def key_metric_config() -> dict:
     """핵심 지표 표와 run 비교 표가 같이 쓰는 칸 설정."""
-    config = dict(BASE_CONFIG)
-    config.update({
-        "recall": ratio("재현율", "학습 때 val 로 정한 임계값을 test 에 적용한 결과", COLOR["재현율"]),
-        "precision": ratio("정밀도", "학습 때 val 로 정한 임계값을 test 에 적용한 결과", COLOR["정밀도"]),
-        "r98_recall": ratio(f"재현율 ≥{R98}% · 재현율", f"test 에서 재현율이 {R98}% 이상이 되는 지점", COLOR["재현율"]),
-        "r98_precision": ratio(f"재현율 ≥{R98}% · 정밀도", "불량이라고 판정한 것 중 진짜 결함의 비율. 높을수록 오경보가 적습니다.",
-                               COLOR["정밀도"]),
-        "r98_fp": number(f"재현율 ≥{R98}% · 오경보", "%d"),
-        "r98_fn": number(f"재현율 ≥{R98}% · 놓친 결함", "%d"),
-        "r98_threshold": number(f"재현율 ≥{R98}% · 임계값", "%.4f"),
-        "r98_source": st.column_config.TextColumn("계산 방법"),
-    })
-    return config
-
-
-def add_recall98(df: pd.DataFrame) -> pd.DataFrame:
-    """run 마다 재현율 ≥98% 지점의 재현율·정밀도·오경보·놓친 결함을 붙인다 (점수 파일은 10분 캐시)."""
-    extra = pd.DataFrame([recall98(row) for _, row in df.iterrows()], index=df.index)
-    out = df.join(extra)
-    for key in ["r98_recall", "r98_precision", "r98_fp", "r98_fn", "r98_threshold"]:
-        out[key] = pd.to_numeric(out[key], errors="coerce").astype(float)
-    return out
+    return dict(BASE_CONFIG)
 
 
 def grouped_runs(df: pd.DataFrame, columns: list, config: dict, key: str) -> None:
@@ -317,10 +292,12 @@ def grouped_runs(df: pd.DataFrame, columns: list, config: dict, key: str) -> Non
     order = df.groupby("experiment")["start_time"].max().sort_values(ascending=False).index
     for experiment in order:
         group = df[df["experiment"] == experiment].sort_values("start_time", ascending=False)
-        label = (f"**{experiment}**  ·  run {len(group)}개  ·  최고 Average Precision {fmt(group['ap'].max())}  ·  "
-                 f"최근 {group['start_time'].max():%m-%d %H:%M}")
+        best_ap = group["ap"].max()
+        label = (f"**{experiment}**  ·  run {len(group)}개  ·  "
+                 + ("" if pd.isna(best_ap) else f"최고 Average Precision {fmt(best_ap)}  ·  ")
+                 + f"최근 {group['start_time'].max():%m-%d %H:%M}")
         with st.expander(label, expanded=expand_all):
-            st.dataframe(group[columns], column_config=config, hide_index=True, use_container_width=True,
+            show_table(group[columns], column_config=config, hide_index=True, use_container_width=True,
                          height=min(460, 36 * (len(group) + 1) + 4))
 
 
@@ -343,23 +320,22 @@ with st.sidebar:
     st.markdown("### 보기 설정")
     all_experiments = runs.groupby("experiment")["start_time"].max().sort_values(ascending=False).index.tolist()
     chosen = st.multiselect("익스페리먼트", all_experiments, default=all_experiments)
-    only_metrics = st.toggle("지표가 있는 run 만", value=True, help="Average Precision·재현율·정밀도 중 하나라도 기록된 run 만 봅니다.")
+    st.caption("팀 성능지표(val)가 기록되지 않은 예전 run 도 모두 보여 주고, 없는 지표 칸은 비워 둡니다.")
     st.divider()
     if st.button("MLflow 에서 다시 읽기", use_container_width=True):
-        st.cache_data.clear()
+        load_raw_runs.clear()
         st.rerun()
     st.caption(f"MLflow {TRACKING_URI}\n\n1분마다 자동으로 새로 읽습니다.")
 
 selected = runs[runs["experiment"].isin(chosen)]
-if only_metrics:
-    selected = selected[selected[KEY].notna().any(axis=1)]
 
 st.markdown('<p class="page-title">불량제로 실험 비교</p>', unsafe_allow_html=True)
 st.markdown('<p class="page-sub">KolektorSDD2 표면 결함 검출 · PatchCore 실험을 같은 기준으로 비교합니다.</p>',
             unsafe_allow_html=True)
 st.markdown(
     f'<div class="chips"><span class="chip">시드 <b>{FIXED_SEED}</b> 고정</span>'
-    f'<span class="chip">비교 기준 재현율 <b>≥ {R98}%</b></span>'
+    f'<span class="chip">평가 데이터 <b>val</b></span>'
+    f'<span class="chip">임계값 <b>val 재현율 ≥ {R98}%</b></span>'
     f'<span class="chip">익스페리먼트 <b>{selected["experiment"].nunique()}</b>개</span>'
     f'<span class="chip">run <b>{len(selected)}</b>개</span></div>', unsafe_allow_html=True)
 
@@ -368,7 +344,7 @@ if selected.empty:
     st.stop()
 
 # 화면 전환: st.tabs 는 위젯을 바꿀 때마다 첫 탭으로 돌아가는 경우가 있어서, 선택값을 세션에 저장하는 버튼으로 바꿈
-VIEWS = ["핵심 지표", "run 비교", "run 상세", "자주 틀리는 이미지", "추론 결과"]
+VIEWS = ["핵심 지표", "run 비교", "지표 관계", "run 상세", "자주 틀리는 이미지", "추론 결과"]
 st.session_state.setdefault("view", VIEWS[0])
 st.session_state.setdefault("last_view", VIEWS[0])
 
@@ -389,49 +365,51 @@ if view == "핵심 지표":
     rule = left.segmented_control("익스페리먼트 대표 run", ["Average Precision 최고", "가장 최근"], default="Average Precision 최고")
     rule = rule or "Average Precision 최고"
     best = best_per_experiment(selected, rule).copy()
-    with st.spinner("재현율 98% 기준 지표를 계산하는 중 ..."):
-        best = add_recall98(best)
 
     cards = st.columns(4)
+    # 정밀도·오검출 카드는 임계값에 따라 달라지므로 재현율·놓친 결함을 함께 표시
     candidates = [("Average Precision 최고", "ap", COLOR["Average Precision"]),
-                  (f"재현율 ≥ {R98}% 에서 정밀도 최고", "r98_precision", COLOR["정밀도"])]
+                  ("정밀도 최고", "precision", COLOR["정밀도"])]
     for box, (label, key, color) in zip(cards[:2], candidates):
         have = best.dropna(subset=[key])
         if have.empty:
             kpi(box, label, "–", "값이 있는 익스페리먼트가 없습니다", color)
         else:
             top = have.sort_values(key, ascending=False).iloc[0]
-            kpi(box, label, fmt(top[key]), f"{top['experiment']}<br>{top['run_name']}", color)
-    have = best.dropna(subset=["r98_fp"])
+            note = f" · 재현율 {fmt(top['recall'])}" if key == "precision" else ""
+            kpi(box, label, fmt(top[key]), f"{top['experiment']}{note}<br>{top['run_name']}", color)
+    have = best.dropna(subset=["fp"])
     if have.empty:
-        kpi(cards[2], f"재현율 ≥ {R98}% 에서 오경보 최소", "–", "값이 있는 익스페리먼트가 없습니다", INK)
+        kpi(cards[2], "오검출 최소", "–", "값이 있는 익스페리먼트가 없습니다", INK)
     else:
-        top = have.sort_values("r98_fp").iloc[0]
-        kpi(cards[2], f"재현율 ≥ {R98}% 에서 오경보 최소", f"{int(top['r98_fp'])}장",
-            f"{top['experiment']}<br>{top['run_name']}", INK)
+        top = have.sort_values("fp").iloc[0]
+        missed = "" if pd.isna(top["fn"]) else f" · 놓친 결함 {int(top['fn'])}장"
+        rate = "" if pd.isna(top["fpr"]) else f" ({top['fpr']:.1%})"
+        kpi(cards[2], "오검출 최소", f"{int(top['fp'])}장{rate}",
+            f"{top['experiment']}{missed}<br>{top['run_name']}", INK)
     kpi(cards[3], "비교한 익스페리먼트", f"{len(best)}개",
         "대표 run: " + ("익스페리먼트마다 Average Precision 이 가장 높은 run" if rule == "Average Precision 최고" else "익스페리먼트마다 가장 최근 run"), MUTED)
 
     section("익스페리먼트별 핵심 지표",
-            f"'재현율'·'정밀도' 는 학습 때 val 로 정한 임계값을 test 에 적용한 결과라서 test 재현율이 {R98}% 아래로 내려갈 수 있습니다. "
-            f"'재현율 ≥{R98}%' 칸은 test 에서 재현율이 {R98}% 이상이 되는 지점의 값으로, 모든 익스페리먼트를 같은 기준으로 비교합니다.")
-    table = best[["experiment"] + KEY_COLUMNS + ["r98_source", "run_name"]]
+            f"모두 val 기준입니다. Average Precision·AUROC 는 임계값과 상관없는 값이고, 재현율·정밀도·오검출·놓친 결함·오검출률은 "
+            f"val 에서 재현율 {R98}% 이상이 되도록 정한 임계값으로 판정한 결과입니다.")
+    table = best[["experiment"] + KEY_COLUMNS + ["run_name"]]
     config = key_metric_config()
-    st.dataframe(table, column_config=config, hide_index=True, use_container_width=True)
+    show_table(table, column_config=config, hide_index=True, use_container_width=True)
 
-    section("한눈에 보기", f"Average Precision 과 재현율 ≥ {R98}% 기준 재현율·정밀도입니다. 막대 끝 숫자가 값입니다.")
-    chart_source = best.rename(columns={"ap": "Average Precision", "r98_recall": "재현율", "r98_precision": "정밀도"})
-    long = chart_source.melt(id_vars=["experiment", "run_name"], value_vars=list(COLOR),
+    section("한눈에 보기", "val Average Precision 과 val 정밀도입니다. 막대 끝 숫자가 값입니다.")
+    chart_source = best.rename(columns={"ap": "Average Precision", "precision": "정밀도"})
+    long = chart_source.melt(id_vars=["experiment", "run_name"], value_vars=CHART_METRICS,
                              var_name="지표", value_name="value").dropna(subset=["value"])
     order = best["experiment"].tolist()
     bars = alt.Chart(long).mark_bar(cornerRadiusEnd=3).encode(
         y=alt.Y("experiment:N", sort=order, title=None, scale=alt.Scale(paddingInner=0.35),
                 axis=alt.Axis(labelLimit=260, labelFontSize=12, labelColor=INK)),
-        yOffset=alt.YOffset("지표:N", sort=list(COLOR)),
+        yOffset=alt.YOffset("지표:N", sort=CHART_METRICS),
         x=alt.X("value:Q", title=None, scale=alt.Scale(domain=[0, 1.08]),
                 axis=alt.Axis(values=[0, 0.2, 0.4, 0.6, 0.8, 1.0], format=".1f", grid=True, gridColor=LINE)),
-        color=alt.Color("지표:N", sort=list(COLOR),
-                        scale=alt.Scale(domain=list(COLOR), range=list(COLOR.values())),
+        color=alt.Color("지표:N", sort=CHART_METRICS,
+                        scale=alt.Scale(domain=CHART_METRICS, range=[COLOR[m] for m in CHART_METRICS]),
                         legend=alt.Legend(orient="top", title=None, labelFontSize=12)),
         tooltip=["experiment", "run_name", "지표", alt.Tooltip("value:Q", format=".3f")])
     labels = bars.mark_text(align="left", dx=4, fontSize=11, color=MUTED).encode(
@@ -444,15 +422,14 @@ if view == "핵심 지표":
 if view == "run 비교":
     section("run 비교", f"시드 {FIXED_SEED} run 전체입니다. 칸 구성은 핵심 지표와 같습니다. "
                         "익스페리먼트를 누르면 그 안의 run 이 최신순으로 펼쳐지고, 기준 run 을 고르면 기준과의 차이가 붙습니다.")
-    with st.spinner(f"run 마다 재현율 ≥{R98}% 지점을 계산하는 중 ..."):
-        ordered = add_recall98(selected)
+    ordered = selected
     latest_first = ordered.sort_values("start_time", ascending=False)   # 고르는 목록은 최신순
     names = {row.run_id: f"{row.start_time:%m-%d %H:%M} · {row.experiment} · {row.run_name}"
              for row in latest_first.itertuples()}
     baseline_id = st.selectbox("기준 run", ["(없음)"] + list(names),
                                format_func=lambda r: r if r == "(없음)" else names[r], key="compare_base")
     columns = ["experiment", "run_name"] + KEY_COLUMNS
-    shown = ordered[columns + ["r98_threshold", "r98_source", "status", "start_time"]].copy()
+    shown = ordered[columns + ["status", "start_time"]].copy()
     layout = columns[1:]
     config = key_metric_config()
     if baseline_id != "(없음)":
@@ -460,19 +437,110 @@ if view == "run 비교":
         layout = ["run_name"]
         for key in columns[2:]:
             shown[f"{key}_delta"] = ordered[key] - base[key]
-            config[f"{key}_delta"] = number("차이", "%+d" if key in ["r98_fp", "r98_fn"] else "%+.3f")
+            config[f"{key}_delta"] = number("차이", "%+d" if key in ["fp", "fn"] else
+                                            "%+.4f" if key == "threshold" else "%+.3f")
             layout += [key, f"{key}_delta"]
         st.caption(f"기준: {base['experiment']} · {base['run_name']} — Average Precision {fmt(base['ap'])} · "
-                   f"재현율 {fmt(base['recall'])} · 정밀도 {fmt(base['precision'])} · "
-                   f"재현율 ≥{R98}% 정밀도 {fmt(base['r98_precision'])}. "
-                   "오경보·놓친 결함은 차이가 음수일수록 좋습니다.")
-    grouped_runs(shown, ["start_time"] + layout + ["r98_threshold", "r98_source", "status"], config, "compare")
-    with st.expander("익스페리먼트별로 어떤 지표 이름을 읽었는지"):
-        sources = (selected.groupby("experiment")[[f"{k}_source" for k in KEY]]
+                   f"AUROC {fmt(base['auroc'])} · 재현율 {fmt(base['recall'])} · 정밀도 {fmt(base['precision'])}. "
+                   "오검출·놓친 결함·오검출률은 차이가 음수일수록 좋습니다.")
+    grouped_runs(shown, ["start_time"] + layout + ["status"], config, "compare")
+    with st.expander("익스페리먼트별로 팀 성능지표가 기록됐는지"):
+        metric_keys = [k for k in KEY_COLUMNS if k in METRIC_RULES]
+        sources = (selected.groupby("experiment")[[f"{k}_source" for k in metric_keys]]
                    .agg(lambda s: ", ".join(sorted({v for v in s if v})) or "없음"))
-        sources.columns = [LABEL[k] for k in KEY]
-        st.dataframe(sources, use_container_width=True)
-        st.caption("'없음'이면 그 익스페리먼트에는 해당 지표가 기록되지 않았거나 이름이 달라 찾지 못한 것입니다.")
+        sources.columns = [LABEL[k] for k in metric_keys]
+        show_table(sources, use_container_width=True)
+        st.caption("'없음'이면 그 익스페리먼트의 run 에 해당 val 지표가 기록되지 않은 것입니다.")
+
+# ----- 지표 관계 -----
+METRIC_NAME = {**LABEL, "threshold": "임계값"}
+BETTER = {"ap": "높을수록 좋음", "auroc": "높을수록 좋음", "recall": "높을수록 좋음", "precision": "높을수록 좋음",
+          "fp": "낮을수록 좋음", "fn": "낮을수록 좋음", "fpr": "낮을수록 좋음", "threshold": "좋고 나쁨 없음"}
+
+if view == "지표 관계":
+    data = selected[["experiment", "run_name"] + KEY_COLUMNS].copy()
+    for key in KEY_COLUMNS:
+        data[key] = pd.to_numeric(data[key], errors="coerce")
+
+    section("성능지표 상관관계",
+            "run 들 사이에서 두 지표가 같이 움직이는 정도입니다. +1 에 가까우면 한쪽이 오를 때 다른 쪽도 오르고(파랑), "
+            "−1 에 가까우면 반대로 움직입니다(주황). 지표가 3개 이상 run 에 기록된 경우만 계산하고, 칸에 마우스를 올리면 "
+            "계산에 쓴 run 수가 나옵니다.")
+    method = st.segmented_control("계산 방법", ["스피어만 (순위)", "피어슨 (직선)"], default="스피어만 (순위)",
+                                  key="corr_method",
+                                  help="스피어만: 순위가 같이 움직이는지 봅니다. run 수가 적고 값이 한쪽에 몰릴 때 더 안정적입니다. "
+                                       "피어슨: 값이 직선 관계인지 봅니다.") or "스피어만 (순위)"
+    usable = [key for key in KEY_COLUMNS if data[key].notna().sum() >= 3 and data[key].nunique() > 1]
+    constant = [METRIC_NAME[key] for key in KEY_COLUMNS
+                if data[key].notna().sum() >= 3 and data[key].nunique() <= 1]
+    if constant:   # 모든 run 이 같은 값이면 '같이 움직이는 정도'를 계산할 수 없음 (예: 임계값을 재현율 98% 에 맞춰 재현율이 모두 같을 때)
+        st.caption(f"모든 run 에서 값이 같아 상관관계를 계산할 수 없는 지표: {', '.join(constant)}")
+    if len(usable) < 2:
+        st.info("상관관계를 계산하려면 같은 지표가 기록된 run 이 3개 이상 필요합니다.")
+    else:
+        corr = data[usable].corr(method="spearman" if method.startswith("스피어만") else "pearson", min_periods=3)
+        present = data[usable].notna().astype(int)
+        pair_counts = present.T @ present                        # 두 지표가 모두 기록된 run 수
+        heat_data = pd.DataFrame([
+            {"x": METRIC_NAME[a], "y": METRIC_NAME[b], "상관계수": corr.loc[a, b], "run 수": int(pair_counts.loc[a, b])}
+            for a in usable for b in usable])
+        heat_data["표시"] = heat_data["상관계수"].map(lambda v: "" if pd.isna(v) else f"{v:+.2f}")
+        order = [METRIC_NAME[k] for k in usable]
+        base = alt.Chart(heat_data).encode(
+            x=alt.X("x:N", sort=order, title=None, axis=alt.Axis(labelAngle=-30, labelAlign="left", labelColor=INK,
+                                                                orient="top", labelLimit=160)),
+            y=alt.Y("y:N", sort=order, title=None, axis=alt.Axis(labelColor=INK)))
+        cells = base.mark_rect(stroke="white", strokeWidth=2).encode(
+            color=alt.Color("상관계수:Q", scale=alt.Scale(domain=[-1, 0, 1], range=[DEFECT_COLOR, "#f4f1ea", "#2b5d78"]),
+                            legend=alt.Legend(title="상관계수", orient="right")),
+            tooltip=["x", "y", alt.Tooltip("상관계수:Q", format="+.3f"), "run 수"])
+        labels = base.mark_text(fontSize=13, fontWeight="bold").encode(
+            text="표시:N",
+            color=alt.condition("abs(datum['상관계수']) > 0.6", alt.value("white"), alt.value(INK)))
+        st.altair_chart((cells + labels).properties(height=alt.Step(52), width=alt.Step(110))
+                        .configure_view(strokeWidth=0), use_container_width=False)
+        st.caption("오검출·오검출률·정밀도처럼 같은 판정 결과에서 계산되는 지표는 원래 강하게 묶여 있습니다. "
+                   "run 수가 적으면(10개 미만) 계수가 크게 흔들리니 참고용으로 보세요.")
+
+    section("두 지표 비교", "가로축과 세로축 지표를 고르면 run 마다 점 하나로 찍습니다. 색은 익스페리먼트입니다. "
+                        "두 지표 중 하나라도 기록되지 않은 run 은 빠집니다.")
+    c1, c2, c3 = st.columns([1.2, 1.2, 1])
+    x_key = c1.selectbox("가로축", KEY_COLUMNS, index=KEY_COLUMNS.index("ap"), key="pair_x",
+                         format_func=lambda k: f"{METRIC_NAME[k]} ({BETTER[k]})")
+    y_key = c2.selectbox("세로축", KEY_COLUMNS, index=KEY_COLUMNS.index("precision"), key="pair_y",
+                         format_func=lambda k: f"{METRIC_NAME[k]} ({BETTER[k]})")
+    show_names = c3.toggle("run 이름 표시", value=False, key="pair_names")
+    points = data.dropna(subset=[x_key, y_key]).copy()
+    if x_key == y_key:
+        st.info("서로 다른 지표 두 개를 골라 주세요.")
+    elif points.empty:
+        st.info("두 지표가 모두 기록된 run 이 없습니다.")
+    else:
+        points["가로"], points["세로"] = points[x_key], points[y_key]
+        axis_format = {k: (".0f" if k in ("fp", "fn") else ".4f" if k == "threshold" else ".3f") for k in KEY_COLUMNS}
+        tooltip = ["experiment", "run_name"] + [alt.Tooltip(f"{k}:Q", title=METRIC_NAME[k], format=axis_format[k])
+                                                for k in KEY_COLUMNS]
+        scatter = alt.Chart(points).mark_circle(size=110, opacity=0.85, stroke="white", strokeWidth=1).encode(
+            x=alt.X("가로:Q", title=f"{METRIC_NAME[x_key]} ({BETTER[x_key]})", scale=alt.Scale(zero=False, nice=True),
+                    axis=alt.Axis(format=axis_format[x_key])),
+            y=alt.Y("세로:Q", title=f"{METRIC_NAME[y_key]} ({BETTER[y_key]})", scale=alt.Scale(zero=False, nice=True),
+                    axis=alt.Axis(format=axis_format[y_key])),
+            color=alt.Color("experiment:N", title="익스페리먼트", scale=alt.Scale(scheme="tableau10"),
+                            legend=alt.Legend(orient="right", labelLimit=220)),
+            tooltip=tooltip)
+        layers = scatter
+        if show_names:
+            layers = layers + scatter.mark_text(align="left", dx=8, fontSize=10.5, color=MUTED).encode(
+                text="run_name:N", color=alt.value(MUTED))
+        st.altair_chart(layers.properties(height=460).configure_view(strokeWidth=0)
+                        .configure_axis(gridColor=LINE, domainColor=LINE, labelColor=MUTED, titleColor=INK,
+                                        titleFontSize=12.5),
+                        use_container_width=True)
+        dropped = len(data) - len(points)
+        pair_corr = (points[[x_key, y_key]].corr(method="spearman").iloc[0, 1] if len(points) >= 3 else np.nan)
+        st.caption(f"run {len(points)}개" + (f" · 지표가 없어 빠진 run {dropped}개" if dropped else "")
+                   + ("" if pd.isna(pair_corr) else f" · 스피어만 상관계수 {pair_corr:+.2f}")
+                   + ". 점에 마우스를 올리면 그 run 의 지표 8개가 모두 나옵니다.")
 
 # ----- run 상세 -----
 if view == "run 상세":
@@ -480,27 +548,51 @@ if view == "run 상세":
     labels = {row.run_id: f"{row.start_time:%m-%d %H:%M} · {row.experiment} · {row.run_name}" for row in options.itertuples()}
     run_id = st.selectbox("run", list(labels), format_func=labels.get, key="detail_run")
     run = selected[selected["run_id"] == run_id].iloc[0]
-    detail = recall98(run)
+    def blank(value, text):
+        """값이 없으면 공란, 있으면 text (카드 아래 설명 줄용)."""
+        return "" if pd.isna(value) else text
+
+    def card_value(value, digits=3):
+        return "&nbsp;" if pd.isna(value) else f"{value:.{digits}f}"   # 값이 없으면 공란 (카드 높이는 유지)
+
     boxes = st.columns(4)
-    kpi(boxes[0], "Average Precision", fmt(run["ap"]), run["experiment"], COLOR["Average Precision"])
-    kpi(boxes[1], f"재현율 ≥{R98}% · 재현율", fmt(detail["r98_recall"]), detail["r98_source"], COLOR["재현율"])
-    kpi(boxes[2], f"재현율 ≥{R98}% · 정밀도", fmt(detail["r98_precision"]), detail["r98_source"], COLOR["정밀도"])
-    kpi(boxes[3], "오경보 / 놓친 결함",
-        "–" if pd.isna(detail["r98_fp"]) else f"{int(detail['r98_fp'])} / {int(detail['r98_fn'])}",
-        f"재현율 ≥{R98}% 기준", INK)
-    st.caption(f"학습 때 기록: 재현율 {fmt(run['recall'])} · 정밀도 {fmt(run['precision'])} · "
-               f"크기별 재현율(작은/중간/큰) {fmt(run['recall_small'])} / {fmt(run['recall_medium'])} / {fmt(run['recall_large'])}")
+    kpi(boxes[0], "Average Precision", card_value(run["ap"]), blank(run["auroc"], f"AUROC {fmt(run['auroc'])}"),
+        COLOR["Average Precision"])
+    kpi(boxes[1], "재현율", card_value(run["recall"]), blank(run["fn"], f"놓친 결함 {fmt(run['fn'], 0)}장"),
+        COLOR["재현율"])
+    precision_note = " · ".join(part for part in [blank(run["fp"], f"오검출 {fmt(run['fp'], 0)}장"),
+                                                  blank(run["fpr"], f"오검출률 {run['fpr']:.1%}" if pd.notna(run["fpr"]) else "")]
+                                if part)
+    kpi(boxes[2], "정밀도", card_value(run["precision"]), precision_note, COLOR["정밀도"])
+    kpi(boxes[3], "임계값", card_value(run["threshold"], 4), blank(run["threshold"], f"val 재현율 ≥{R98}% 로 정한 값"), INK)
+    st.caption(f"{run['experiment']} · {run['run_name']} · 모든 값은 val 기준입니다. 기록되지 않은 지표는 공란입니다.")
     try:
         client = MlflowClient()
-        artifacts = [a for a in client.list_artifacts(run_id) if not a.is_dir]
+        artifacts = []
+        for item in client.list_artifacts(run_id):        # 맨 위 + 한 단계 아래 폴더(val/, test/)까지
+            artifacts += client.list_artifacts(run_id, item.path) if item.is_dir else [item]
+        artifacts = [a for a in artifacts if not a.is_dir]
     except Exception as error:
         artifacts = []
         st.warning(f"artifact 목록을 읽지 못했습니다: {error}")
     images = [a.path for a in artifacts if a.path.endswith(".png")]
     texts = [a.path for a in artifacts if a.path.endswith("_hard_defects.txt")]
-    if images:
-        section("그림", "히트맵이 먼저 나옵니다.")
+    error_lists = [a.path for a in artifacts if a.path.endswith("errors.csv")]
+    if images or error_lists:
         with tempfile.TemporaryDirectory() as folder:
+            for path in error_lists:        # 팀 baseline 의 틀린 이미지 목록 (<split>/errors.csv)
+                local = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=path, dst_path=folder)
+                errors = pd.read_csv(local, encoding="utf-8-sig")
+                errors["error_type"] = errors["error_type"].map({"missed_defect": "놓친 결함", "false_alarm": "오검출"})
+                section(f"틀린 이미지 ({path.split('/')[0]})",
+                        "놓친 결함은 점수가 낮은 순, 오검출은 점수가 높은 순(= 가장 심하게 틀린 순)입니다.")
+                show_table(errors, hide_index=True, use_container_width=True,
+                             column_config={"error_type": "구분", "file": "파일", "label": "라벨",
+                                            "score": number("점수", "%.4f"), "threshold": number("임계값", "%.4f"),
+                                            "score_over_threshold": number("점수/임계값", "%.3f×")},
+                             height=min(420, 36 * (len(errors) + 1) + 4))
+            if images:
+                section("그림", "히트맵이 먼저 나옵니다.")
             for path in sorted(images, key=lambda p: ("heatmap" not in p, p)):
                 local = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path=path, dst_path=folder)
                 st.image(local, caption=path, use_container_width=True)
@@ -510,7 +602,7 @@ if view == "run 상세":
                     with st.expander(path):
                         st.text(f.read())
     else:
-        st.info("이 run 에는 그림 artifact 가 없습니다.")
+        st.info("이 run 에는 그림이나 틀린 이미지 목록 artifact 가 없습니다.")
 
 # ----- 추론 결과 -----
 if view == "추론 결과":
@@ -523,9 +615,10 @@ if view == "추론 결과":
     compare_ids = ["(비교 안 함)"] + [r for r in infer_labels if r != run_a]
     run_b = c2.selectbox("비교할 run", compare_ids,
                          format_func=lambda r: r if r == "(비교 안 함)" else infer_labels[r], key="infer_b")
-    threshold_mode = c3.radio("임계값", [f"재현율 ≥{R98}% 지점", "학습 때 값"], key="infer_mode",
-                              help=f"재현율 ≥{R98}% 지점: 보고 있는 데이터에서 재현율이 {R98}% 이상이 되는 가장 높은 임계값")
-    split = st.segmented_control("데이터", ["test", "val"], default="test", key="infer_split") or "test"
+    threshold_mode = c3.radio("임계값", ["학습 때 값", f"재현율 ≥{R98}% 지점"], key="infer_mode",
+                              help=f"학습 때 값: run 에 기록된 threshold (val 재현율 ≥{R98}%). "
+                                   f"재현율 ≥{R98}% 지점: 보고 있는 데이터에서 재현율이 {R98}% 이상이 되는 가장 높은 임계값")
+    split = st.segmented_control("데이터", ["val", "test"], default="val", key="infer_split") or "val"
 
     def threshold_of(info, scores):
         if threshold_mode == "학습 때 값":
@@ -538,22 +631,27 @@ if view == "추론 결과":
     except Exception as error:
         scores_a = pd.DataFrame()
         st.warning(f"점수 파일을 읽지 못했습니다: {error}")
-    threshold_a = np.nan if scores_a.empty else threshold_of(info_a, scores_a)
-    if scores_a.empty or pd.isna(threshold_a):
-        st.info("이 run 에는 이미지별 점수 파일(*_scores.csv) 또는 임계값 기록이 없습니다.")
+    has_split = not scores_a.empty and (scores_a["split"] == split).any()
+    threshold_a = threshold_of(info_a, scores_a) if has_split else np.nan
+    if scores_a.empty:
+        st.info("이 run 에는 이미지별 점수 파일(val/scores.csv 또는 *_scores.csv)이 없습니다.")
+    elif not has_split:
+        st.info(f"이 run 에는 {split} 점수가 없습니다. 팀 baseline 은 test 를 최종 확정 때만 기록합니다.")
+    elif pd.isna(threshold_a):
+        st.info("이 run 에는 임계값 기록이 없습니다.")
     else:
         judged_a = judge(scores_a[scores_a["split"] == split], threshold_a)
         counts = judged_a["결과"].value_counts()
         boxes = st.columns(4)
         for box, (name, color) in zip(boxes, [("결함 검출", COLOR["재현율"]), ("놓침", DEFECT_COLOR),
-                                              ("오경보", COLOR["정밀도"]), ("정상 통과", MUTED)]):
+                                              ("오검출", COLOR["정밀도"]), ("정상 통과", MUTED)]):
             kpi(box, name, f"{int(counts.get(name, 0))}장", "", color)
         defects = judged_a[judged_a["label"] == 1]
         flagged = judged_a[judged_a["판정"] == "불량"]
         st.caption(f"임계값 {threshold_a:.4f} · 재현율 {(defects['판정'] == '불량').mean():.3f} · "
                    f"정밀도 {(flagged['label'] == 1).mean() if len(flagged) else 0:.3f} ({split} 기준)")
 
-        section("이상 점수 분포", "점선이 임계값입니다. 정상(파랑)이 점선 오른쪽이면 오경보, 결함(주황)이 왼쪽이면 놓친 결함입니다.")
+        section("이상 점수 분포", "점선이 임계값입니다. 정상(파랑)이 점선 오른쪽이면 오검출, 결함(주황)이 왼쪽이면 놓친 결함입니다.")
         histogram_data = judged_a.assign(구분=np.where(judged_a["label"] == 1, "결함", "정상"))
         histogram = alt.Chart(histogram_data).mark_bar(opacity=0.6).encode(
             x=alt.X("score:Q", bin=alt.Bin(maxbins=60), title="이상 점수"),
@@ -571,20 +669,21 @@ if view == "추론 결과":
                         "mask_area": number("결함 면적(px)", "%d"), "file": "파일", "결과": "결과"}
         col_fp, col_fn = st.columns(2)
         with col_fp:
-            section("오경보", "점수가 높은 순서입니다.")
-            st.dataframe(judged_a[judged_a["결과"] == "오경보"].sort_values("score", ascending=False)[wrong_columns],
+            section("오검출", "점수가 높은 순서입니다.")
+            show_table(judged_a[judged_a["결과"] == "오검출"].sort_values("score", ascending=False)[wrong_columns],
                          column_config=wrong_config, hide_index=True, use_container_width=True)
         with col_fn:
             section("놓친 결함과 아슬아슬한 결함", "임계값의 1.15배 미만인 결함까지 보여 줍니다.")
-            st.dataframe(defects[defects["임계값 대비"] < 1.15].sort_values("score")[wrong_columns],
+            show_table(defects[defects["임계값 대비"] < 1.15].sort_values("score")[wrong_columns],
                          column_config=wrong_config, hide_index=True, use_container_width=True)
 
         if run_b != "(비교 안 함)":
             info_b = selected[selected["run_id"] == run_b].iloc[0]
             scores_b = load_scores(run_b)
-            threshold_b = np.nan if scores_b.empty else threshold_of(info_b, scores_b)
-            if scores_b.empty or pd.isna(threshold_b):
-                st.info("비교할 run 에 점수 파일 또는 임계값 기록이 없습니다.")
+            has_split_b = not scores_b.empty and (scores_b["split"] == split).any()
+            threshold_b = threshold_of(info_b, scores_b) if has_split_b else np.nan
+            if not has_split_b or pd.isna(threshold_b):
+                st.info(f"비교할 run 에 {split} 점수 파일 또는 임계값 기록이 없습니다.")
             elif (pd.notna(info_a["split_hash"]) and pd.notna(info_b["split_hash"])
                   and info_a["split_hash"] != info_b["split_hash"]):
                 st.warning("두 run 의 분할(split_hash)이 달라 같은 이미지끼리 비교할 수 없습니다.")
@@ -592,8 +691,8 @@ if view == "추론 결과":
                 judged_b = judge(scores_b[scores_b["split"] == split], threshold_b)
                 merged = judged_a.merge(judged_b, on=["file", "label"], suffixes=(" A", " B"))
                 merged["변화"] = np.select(
-                    [(merged["결과 A"].isin(["놓침", "오경보"])) & (merged["결과 B"].isin(["결함 검출", "정상 통과"])),
-                     (merged["결과 A"].isin(["결함 검출", "정상 통과"])) & (merged["결과 B"].isin(["놓침", "오경보"]))],
+                    [(merged["결과 A"].isin(["놓침", "오검출"])) & (merged["결과 B"].isin(["결함 검출", "정상 통과"])),
+                     (merged["결과 A"].isin(["결함 검출", "정상 통과"])) & (merged["결과 B"].isin(["놓침", "오검출"]))],
                     ["B에서 고쳐짐", "B에서 새로 틀림"], default="같음")
                 section(f"A: {info_a['run_name']}  vs  B: {info_b['run_name']}")
                 change_counts = merged["변화"].value_counts()
@@ -616,7 +715,7 @@ if view == "추론 결과":
                                 use_container_width=True)
                 st.caption("점선(1.0)이 각 run 의 임계값입니다. 결함(주황)은 위·오른쪽, 정상(파랑)은 아래·왼쪽에 있어야 맞게 판정한 것입니다.")
                 changed = merged[merged["변화"] != "같음"].sort_values(["변화", "file"])
-                st.dataframe(changed[["file", "구분", "변화", "결과 A", "결과 B", "임계값 대비 A", "임계값 대비 B"]],
+                show_table(changed[["file", "구분", "변화", "결과 A", "결과 B", "임계값 대비 A", "임계값 대비 B"]],
                              column_config={"임계값 대비 A": number("A 임계값 대비", "%.2f×"),
                                             "임계값 대비 B": number("B 임계값 대비", "%.2f×"), "file": "파일"},
                              hide_index=True, use_container_width=True)
@@ -631,15 +730,15 @@ def size_group(area):
 if view == "자주 틀리는 이미지":
     section("자주 틀리는 이미지",
             "여러 run 의 이미지별 점수 파일을 모아서, 어떤 이미지를 몇 번 틀렸는지 셉니다. "
-            "같은 분할(split_hash)로 돌린 run 끼리만 모읍니다. 시드 42 고정이라 test 이미지 구성이 같습니다.")
+            "같은 분할(split_hash)로 돌린 run 끼리만 모읍니다.")
     h1, h2, h3 = st.columns([1.3, 1.3, 1])
     hard_scope = h1.segmented_control("모을 run", ["익스페리먼트 대표 run", "모든 run"], default="익스페리먼트 대표 run",
                                       key="hard_scope",
                                       help="대표 run: 익스페리먼트마다 AP 가 가장 높은 run 1개. run 을 많이 돌린 익스페리먼트가 결과를 끌고 가지 않게 합니다.")
     hard_scope = hard_scope or "익스페리먼트 대표 run"
-    hard_mode = h2.segmented_control("임계값", [f"재현율 ≥{R98}% 지점", "학습 때 값"], default=f"재현율 ≥{R98}% 지점",
-                                     key="hard_mode") or f"재현율 ≥{R98}% 지점"
-    hard_split = h3.segmented_control("데이터", ["test", "val"], default="test", key="hard_split") or "test"
+    hard_mode = h2.segmented_control("임계값", ["학습 때 값", f"재현율 ≥{R98}% 지점"], default="학습 때 값",
+                                     key="hard_mode") or "학습 때 값"
+    hard_split = h3.segmented_control("데이터", ["val", "test"], default="val", key="hard_split") or "val"
 
     pool = best_per_experiment(selected, "Average Precision 최고") if hard_scope == "익스페리먼트 대표 run" else selected
     pool = pool[pool["split_hash"].notna()]
@@ -662,14 +761,15 @@ if view == "자주 틀리는 이미지":
             collected.append(judged)
 
     if not collected:
-        st.info("점수 파일(*_scores.csv)이 있는 run 이 없습니다. 분할 고정 이후 baseline.py 로 돌린 run 만 모을 수 있습니다.")
+        st.info(f"{hard_split} 점수 파일이 있는 run 이 없습니다. 팀 baseline 은 val/scores.csv 를 남기고, "
+                "test 점수는 최종 확정 때만 남깁니다.")
     else:
         everything = pd.concat(collected, ignore_index=True)
         main_hash = everything.groupby("split_hash")["run"].nunique().idxmax()
         dropped = everything.loc[everything["split_hash"] != main_hash, "run"].nunique()
         everything = everything[everything["split_hash"] == main_hash]
         n_runs = everything["run"].nunique()
-        everything["틀림"] = everything["결과"].isin(["놓침", "오경보"])
+        everything["틀림"] = everything["결과"].isin(["놓침", "오검출"])
 
         stats = (everything.groupby(["file", "label"])
                  .agg(틀린_run=("틀림", "sum"), 전체_run=("run", "nunique"),
@@ -694,7 +794,7 @@ if view == "자주 틀리는 이미지":
                    + (f" · 분할이 다른 run {dropped}개는 뺐습니다" if dropped else ""))
         boxes = st.columns(4)
         kpi(boxes[0], "모든 run 에서 놓친 결함", f"{always_missed}장", f"한 번이라도 놓친 결함 {once_missed}장", DEFECT_COLOR)
-        kpi(boxes[1], "모든 run 에서 오경보", f"{always_alarm}장", f"한 번이라도 오경보 {once_alarm}장", COLOR["정밀도"])
+        kpi(boxes[1], "모든 run 에서 오검출", f"{always_alarm}장", f"한 번이라도 오검출 {once_alarm}장", COLOR["정밀도"])
         missed_any = defects[defects["틀린_run"] > 0]
         by_size = missed_any["크기"].value_counts()
         top_size = by_size.index[0] if len(by_size) else "–"
@@ -723,15 +823,15 @@ if view == "자주 틀리는 이미지":
             section("놓친 결함", "많이 놓친 순서, 같으면 점수가 낮은 순서입니다.")
             table_d = defects if show_all else defects[defects["틀린_run"] > 0]
             table_d = table_d.sort_values(["틀린_run", "평균_임계값대비"], ascending=[False, True])
-            st.dataframe(table_d[["file", "틀린_run", "전체_run", "틀린 비율", "평균_임계값대비", "최소_임계값대비",
+            show_table(table_d[["file", "틀린_run", "전체_run", "틀린 비율", "평균_임계값대비", "최소_임계값대비",
                                   "mask_area", "크기", "틀린 run"]],
                          column_config=hard_config, hide_index=True, use_container_width=True,
                          height=min(420, 36 * (len(table_d) + 1) + 4))
         with col_n:
-            section("오경보", "오경보를 많이 낸 순서, 같으면 점수가 높은 순서입니다.")
+            section("오검출", "오검출을 많이 낸 순서, 같으면 점수가 높은 순서입니다.")
             table_n = normals if show_all else normals[normals["틀린_run"] > 0]
             table_n = table_n.sort_values(["틀린_run", "평균_임계값대비"], ascending=[False, False])
-            st.dataframe(table_n[["file", "틀린_run", "전체_run", "틀린 비율", "평균_임계값대비", "최대_임계값대비", "틀린 run"]],
+            show_table(table_n[["file", "틀린_run", "전체_run", "틀린 비율", "평균_임계값대비", "최대_임계값대비", "틀린 run"]],
                          column_config=hard_config, hide_index=True, use_container_width=True,
                          height=min(420, 36 * (len(table_n) + 1) + 4))
 
