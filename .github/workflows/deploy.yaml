@@ -147,7 +147,9 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
-  deploy:
+  # 인스턴스 분리: MLOps 스택은 mlops 인스턴스, 서비스 스택은 service 인스턴스의 러너가 배포
+  # 서비스(API)가 MLflow에서 모델을 불러오므로 MLOps 먼저 → 서비스 순서
+  deploy-mlops:
     needs: [changes, build]
     # PR에서는 절대 실행하지 않음 (셀프 호스티드 러너 보호)
     # 이미지 변경 없이 설정만 바뀐 경우(build=skipped)에도 배포
@@ -156,10 +158,10 @@ jobs:
       github.event_name != 'pull_request' &&
       needs.changes.result == 'success' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped') &&
-      (needs.changes.outputs.service == 'true' || needs.changes.outputs.mlops == 'true')
-    runs-on: [self-hosted, main-instance]
+      needs.changes.outputs.mlops == 'true'
+    runs-on: [self-hosted, mlops]
     concurrency:
-      group: deploy-main-instance
+      group: deploy-mlops-instance
       cancel-in-progress: false
     env:
       IMAGES: ${{ needs.changes.outputs.images }}
@@ -174,11 +176,35 @@ jobs:
           username: ${{ secrets.NCR_ACCESS_KEY }}
           password: ${{ secrets.NCR_SECRET_KEY }}
 
-      # 서비스 스택이 MLOps 네트워크에 붙으므로 MLOps 먼저
       - name: Deploy MLOps stack (PostgreSQL · MLflow · 실험 대시보드)
-        if: needs.changes.outputs.mlops == 'true'
         run: bash .github/scripts/deploy_stack.sh mlops
 
+  deploy-service:
+    needs: [changes, build, deploy-mlops]
+    # MLOps 배포가 성공했거나 이번에 대상이 아니었을 때(skipped)만 서비스 배포
+    if: >-
+      always() &&
+      github.event_name != 'pull_request' &&
+      needs.changes.result == 'success' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (needs.deploy-mlops.result == 'success' || needs.deploy-mlops.result == 'skipped') &&
+      needs.changes.outputs.service == 'true'
+    runs-on: [self-hosted, service]
+    concurrency:
+      group: deploy-service-instance
+      cancel-in-progress: false
+    env:
+      IMAGES: ${{ needs.changes.outputs.images }}
+      NCR_REGISTRY: ${{ secrets.NCR_REGISTRY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to NCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.NCR_REGISTRY }}
+          username: ${{ secrets.NCR_ACCESS_KEY }}
+          password: ${{ secrets.NCR_SECRET_KEY }}
+
       - name: Deploy service stack (API · Nginx · Prometheus · Grafana)
-        if: needs.changes.outputs.service == 'true'
         run: bash .github/scripts/deploy_stack.sh service
