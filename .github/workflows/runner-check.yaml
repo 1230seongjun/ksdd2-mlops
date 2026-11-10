@@ -9,12 +9,19 @@ on:
 
 jobs:
   check:
-    runs-on: [self-hosted, main-instance]
+    # 인스턴스 분리 후 두 러너(mlops, service)를 각각 확인
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [mlops, service]
+    runs-on: [self-hosted, "${{ matrix.label }}"]
     steps:
       - name: Show runner environment
         run: |
+          echo "label: ${{ matrix.label }}"
           echo "user: $(whoami)"
           echo "host: $(hostname)"
           echo "docker: $(docker version --format '{{.Server.Version}}')"
           docker ps --format 'table {{.Names}}\t{{.Status}}'
           df -h /
+          ls -la /opt/bulryangzero
