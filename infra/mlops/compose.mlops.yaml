@@ -45,8 +45,9 @@ services:
       - s3://${MLFLOW_ARTIFACT_BUCKET}
       - --serve-artifacts
       - --allowed-hosts
-      - "localhost:5000,127.0.0.1:5000,mlflow:5000"
+      - "localhost:5000,127.0.0.1:5000,mlflow:5000,10.0.2.11:5000"
     ports:
+      - "10.0.2.11:5000:5000"
       - "127.0.0.1:5000:5000"
     networks:
       - mlops-net
