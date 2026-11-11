@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
 
     environment:
-      MLFLOW_TRACKING_URI: "http://10.0.2.11:5000"
+      MLFLOW_TRACKING_URI: "${MLFLOW_TRACKING_URI:?MLFLOW_TRACKING_URI is not set in .env}"
       MODEL_URI: "${MODEL_URI:?MODEL_URI is not set in .env}"
 
     networks:
