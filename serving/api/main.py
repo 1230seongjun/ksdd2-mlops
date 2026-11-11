@@ -11,6 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from fastapi import (
     FastAPI,
     File,
+    Form,
     HTTPException,
     Request,
     UploadFile,
@@ -27,8 +28,13 @@ from prometheus_client import (
 from starlette.concurrency import run_in_threadpool
 
 # 별도 파일에서 MLflow 모델 관련 함수 가져오기
-from model_service import load_model, predict_image
-
+from model_service import (
+    get_model_candidates,
+    load_model,
+    predict_image,
+    select_best_recall_candidate,
+    select_latest_candidate,
+)
 
 # ==========================================
 # 1. 기본 설정
@@ -194,9 +200,47 @@ def ready():
 # ==========================================
 # 7. 이미지 예측 API
 # ==========================================
+@app.get("/models")
+async def list_models():
+    try:
+        candidates = await run_in_threadpool(
+            get_model_candidates,
+            MLFLOW_TRACKING_URI,
+            "Zero-Defects",
+        )
+
+        latest = select_latest_candidate(candidates)
+        best = select_best_recall_candidate(candidates)
+
+        return {
+            "model_name": "Zero-Defects",
+            "latest": latest,
+            "best_recall": best,
+        }
+
+    except Exception:
+        logger.exception("Model candidate lookup failed")
+        raise HTTPException(
+            status_code=503,
+            detail="모델 후보를 조회할 수 없습니다."
+        )
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(
+    file: UploadFile = File(...),
+    model_choice: str = Form("current"),
+):
+    if model_choice not in ("current", "latest", "best_recall"):
+        raise HTTPException(
+            status_code=422,
+            detail="지원하지 않는 모델 선택값입니다."
+        )
+
+    if model_choice != "current":
+        raise HTTPException(
+            status_code=503,
+            detail="선택한 모델은 아직 사용할 수 없습니다."
+        )
 
     # 1. 모델 로딩 상태 확인
     if app.state.model is None:
@@ -204,6 +248,10 @@ async def predict(file: UploadFile = File(...)):
             status_code=503,
             detail="모델이 로드되지 않았습니다."
         )
+
+    # 이 요청에서 사용할 모델과 모델 이름
+    selected_model = app.state.model
+    selected_model_name = MODEL_URI
 
     # 2. 이미지 파일 형식 확인
     if file.content_type not in (
@@ -244,6 +292,19 @@ async def predict(file: UploadFile = File(...)):
             # 이미지 데이터 유효성 검사
             image.verify()
 
+            # image.size 순서는 (가로, 세로)
+            if image.size != (184, 597):
+                width, height = image.size
+
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "이미지 크기가 맞지 않습니다. "
+                        "필요 크기: 가로 184px × 세로 597px, "
+                        f"입력 크기: 가로 {width}px × 세로 {height}px"
+                    ),
+                )
+
     except (
         UnidentifiedImageError,
         OSError,
@@ -261,7 +322,7 @@ async def predict(file: UploadFile = File(...)):
         # 모델 객체와 이미지 바이트 전달
         result = await run_in_threadpool(
             predict_image,
-            app.state.model,
+            selected_model,
             data
         )
 
@@ -284,7 +345,7 @@ async def predict(file: UploadFile = File(...)):
     # 7. 검사 결과를 JSON으로 웹에 반환
     return {
         "filename": file.filename,
-        "model_name": MODEL_URI,
+        "model_name": selected_model_name,
         "prediction": prediction,
         "anomaly_score": result["anomaly_score"],
         "threshold": result["threshold"],
