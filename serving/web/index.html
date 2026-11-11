@@ -374,11 +374,16 @@
         if (data.prediction === "not_evaluated") {
           setStatus("요청 완료: 현재 모델은 실제 판정을 수행하지 않습니다.");
           log("더미 모델 응답을 받았습니다.");
+        } else if (data.is_anomaly === true) {
+          setStatus("검사 완료: 불량 의심");
+          log("모델 판정: 이상이 감지되었습니다.");
+        } else if (data.is_anomaly === false) {
+          setStatus("검사 완료: 정상");
+          log("모델 판정: 정상입니다.");
         } else {
-          setStatus("검사 요청이 완료되었습니다.");
-          log("API 응답을 받았습니다.");
+          throw new Error("API 응답에 정상·불량 판정값이 없습니다.");
         }
-      } catch (error) {
+	}catch (error) {
         result.textContent = "결과를 가져오지 못했습니다.";
         setStatus(`요청 실패: ${error.message}`, true);
         log(`요청 실패: ${error.message}`);
