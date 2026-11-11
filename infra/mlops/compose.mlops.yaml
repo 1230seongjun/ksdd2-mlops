@@ -32,6 +32,8 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
       MLFLOW_S3_ENDPOINT_URL: ${MLFLOW_S3_ENDPOINT_URL}
+    extra_hosts:
+      - "kr1-api-object-storage.nhncloudservice.com:10.0.2.63"
     command:
       - mlflow
       - server
@@ -45,9 +47,9 @@ services:
       - s3://${MLFLOW_ARTIFACT_BUCKET}
       - --serve-artifacts
       - --allowed-hosts
-      - "localhost:5000,127.0.0.1:5000,mlflow:5000,10.0.2.11:5000"
+      - "localhost:5000,127.0.0.1:5000,mlflow:5000,${MLFLOW_PRIVATE_IP:?MLFLOW_PRIVATE_IP is not set in .env}:5000"
     ports:
-      - "10.0.2.11:5000:5000"
+      - "${MLFLOW_PRIVATE_IP:?MLFLOW_PRIVATE_IP is not set in .env}:5000:5000"
       - "127.0.0.1:5000:5000"
     networks:
       - mlops-net
@@ -61,6 +63,7 @@ services:
     environment:
       MLFLOW_TRACKING_URI: "http://mlflow:5000"
     ports:
+      - "${MLFLOW_PRIVATE_IP:?MLFLOW_PRIVATE_IP is not set in .env}:8502:8501"
       - "127.0.0.1:8502:8501"
     networks:
       - mlops-net
