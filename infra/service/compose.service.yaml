@@ -39,6 +39,8 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_SERVER_ROOT_URL: "http://133.186.218.8:8080/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     ports:
       - "127.0.0.1:3000:3000"
     volumes:

@@ -6,184 +6,282 @@
   <title>DefectCatch | 품질 검사</title>
 
   <style>
+    :root {
+      color-scheme: light;
+      --ink: #293f3b;
+      --muted: #788d86;
+      --line: #e5eee9;
+      --accent: #4b8e78;
+    }
+
     * {
       box-sizing: border-box;
     }
 
     body {
       margin: 0;
-      font-family: Arial, "Malgun Gothic", sans-serif;
-      background: #f1f5f9;
-      color: #17253a;
+      color: var(--ink);
+      background: #f4f9f5;
+      font-family: "Malgun Gothic", Arial, sans-serif;
+      font-size: 14px;
     }
 
     header {
-      padding: 20px 6%;
-      background: #10243a;
-      color: white;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      padding: 13px max(24px, calc((100% - 1500px) / 2));
     }
 
     header strong {
-      font-size: 21px;
-      letter-spacing: 1px;
+      font-size: 17px;
+      letter-spacing: .07em;
     }
 
     header span {
-      color: #42d5c0;
+      color: var(--accent);
     }
 
     main {
-      max-width: 1200px;
+      max-width: 1500px;
       margin: auto;
-      padding: 32px 20px 50px;
+      padding: 18px 24px 24px;
     }
 
     h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
+      font-size: 23px;
+      letter-spacing: -.04em;
+      margin: 0 0 3px;
     }
 
     h2 {
-      margin: 0 0 8px;
-      font-size: 19px;
+      font-size: 16px;
+      margin: 0 0 10px;
     }
 
     h3 {
-      margin: 0 0 10px;
-      font-size: 15px;
+      font-size: 13px;
+      margin: 0 0 6px;
     }
 
     p {
-      color: #687b8e;
-      line-height: 1.5;
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 6px 0 10px;
     }
 
-    .layout,
-    .monitor-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
+    /* 이미지, 결과, 모니터링을 가로 3열로 배치 */
     .layout {
-      margin-top: 24px;
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 14px;
+      align-items: stretch;
     }
 
     .card {
       min-width: 0;
-      padding: 24px;
-      background: white;
-      border: 1px solid #dce5ed;
-      border-radius: 12px;
+      padding: 17px 20px;
+      background: #fff;
+      border: 1px solid #e6f0e8;
+      border-radius: 20px;
+      box-shadow: 0 6px 22px rgba(69, 110, 86, .06);
     }
 
     .upload {
       display: block;
-      padding: 22px;
-      border: 2px dashed #bfd0dc;
-      border-radius: 8px;
-      background: #f8fbfd;
-      text-align: center;
+      padding: 10px 14px;
+      border: 1.5px dashed #bddbca;
+      border-radius: 14px;
+      background: #f8fcf8;
     }
 
     input[type="file"] {
+      width: 100%;
       max-width: 100%;
+      color: var(--muted);
+    }
+
+    input[type="file"]::file-selector-button {
+      padding: 7px 12px;
+      margin-right: 10px;
+      border: 0;
+      border-radius: 10px;
+      background: #e5f4e9;
+      color: #356f58;
+      cursor: pointer;
+      font-weight: 700;
     }
 
     .preview-area {
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 250px;
-      margin-top: 16px;
-      background: #edf3f7;
-      border-radius: 8px;
+      height: 150px;
+      margin-top: 10px;
+      background: #f1f8f2;
+      border-radius: 14px;
       overflow: hidden;
     }
 
     #preview {
       display: none;
       max-width: 100%;
-      max-height: 360px;
+      max-height: 100%;
       object-fit: contain;
     }
 
     #placeholder {
-      color: #8499aa;
-      font-size: 14px;
+      color: #93aa9b;
     }
 
     button {
       width: 100%;
-      margin-top: 16px;
-      padding: 13px;
+      margin-top: 10px;
+      padding: 10px;
       border: 0;
-      border-radius: 8px;
-      background: #087f77;
+      border-radius: 13px;
+      background: var(--accent);
       color: white;
-      font-size: 15px;
-      font-weight: bold;
+      font-size: 14px;
+      font-weight: 700;
       cursor: pointer;
     }
 
+    button:hover {
+      background: #397762;
+    }
+
     button:disabled {
-      background: #9bb8b5;
+      background: #aabdb5;
       cursor: not-allowed;
     }
 
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid #85b6a5;
+      outline-offset: 3px;
+    }
+
     .status {
-      padding: 12px;
-      border-radius: 8px;
-      background: #edf4f7;
-      color: #3d576d;
+      padding: 11px 14px;
+      border-radius: 13px;
+      background: #eaf7ed;
+      color: #387356;
+      font-weight: 700;
     }
 
     .status.error {
-      background: #fff0ef;
-      color: #a13a31;
+      background: #fff1ef;
+      color: #a43e35;
+    }
+
+    #prediction-summary {
+      margin: 8px 0;
+    }
+
+    #prediction-summary p:not(.hint) {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding: 5px 2px;
+      margin: 0;
+    }
+
+    #prediction-summary strong {
+      color: var(--ink);
+    }
+
+    /* API 응답과 로그는 항상 표시 */
+    .logs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .logs p {
+      margin: 0 0 5px;
     }
 
     pre {
-      min-height: 100px;
-      max-height: 220px;
-      margin: 8px 0 0;
-      padding: 15px;
+      min-height: 120px;
+      margin: 0;
+      padding: 10px 12px;
       overflow: auto;
-      border-radius: 8px;
-      background: #10243a;
-      color: #d8f7ef;
-      font-size: 12px;
-      line-height: 1.6;
+      border-radius: 12px;
+      background: #263e38;
+      color: #e7f4e9;
+      font-size: 11px;
+      line-height: 1.45;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
 
     .monitor {
-      margin-top: 18px;
+      margin-top: 0;
     }
 
     .monitor-grid {
-      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 8px;
     }
 
     iframe {
       display: block;
       width: 100%;
-      height: 220px;
+      height: 150px;
       border: 0;
-      border-radius: 8px;
+      border-radius: 12px;
       background: #18202d;
     }
 
     .hint {
       font-size: 12px;
-      color: #8193a3;
+      color: #879a90;
+    }
+
+    #model-info {
+      padding: 8px 12px;
+      margin: 4px 0 8px;
+      border-radius: 11px;
+      background: #f3f9f3;
+    }
+
+    @media (max-width: 1000px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .monitor-grid {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     @media (max-width: 760px) {
+      main {
+        padding: 18px 14px 28px;
+      }
+
       .layout,
       .monitor-grid {
         grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .logs {
+        grid-template-columns: 1fr;
+      }
+
+      iframe {
+        height: 200px;
       }
     }
   </style>
@@ -199,10 +297,20 @@
     <p>이미지를 업로드하고 검사 결과와 서비스 상태를 확인하세요.</p>
 
     <div class="layout">
-      <!-- 이미지 선택 -->
+
+      <!-- 검사 이미지 -->
       <section class="card">
         <h2>검사 이미지</h2>
-        <p>PNG 또는 JPEG 이미지를 선택하세요.</p>
+
+        <p><strong>등록된 모델 후보</strong></p>
+
+        <p id="model-info" class="hint">
+          모델 정보를 불러오는 중입니다.
+        </p>
+
+        <p>
+          PNG 또는 JPEG · 가로 184px × 세로 597px 이미지를 선택하세요.
+        </p>
 
         <label class="upload" for="image-file">
           <input
@@ -213,8 +321,14 @@
         </label>
 
         <div class="preview-area">
-          <span id="placeholder">선택한 이미지가 표시됩니다.</span>
-          <img id="preview" alt="선택한 이미지 미리보기">
+          <span id="placeholder">
+            선택한 이미지가 표시됩니다.
+          </span>
+
+          <img
+            id="preview"
+            alt="선택한 이미지 미리보기"
+          >
         </div>
 
         <button id="inspect-button" type="button">
@@ -230,64 +344,120 @@
       <section class="card">
         <h2>검사 결과</h2>
 
-        <p id="status" class="status" role="status" aria-live="polite">
+        <p
+          id="status"
+          class="status"
+          role="status"
+          aria-live="polite"
+        >
           이미지를 선택해 주세요.
         </p>
 
-        <strong>API 응답</strong>
-        <pre id="result">아직 검사 결과가 없습니다.</pre>
+        <div id="prediction-summary" hidden>
+          <p>
+            이상 점수:
+            <strong id="anomaly-score">-</strong>
+          </p>
 
-        <p><strong>검사 진행 로그</strong></p>
-        <pre id="activity-log" aria-live="polite"></pre>
+          <p>
+            판정 기준값:
+            <strong id="anomaly-threshold">-</strong>
+          </p>
+
+          <p class="hint">
+            이상 점수는 불량 확률이 아닙니다.
+          </p>
+        </div>
+
+        <div class="logs">
+          <div>
+            <strong>API 응답</strong>
+            <pre id="result">아직 검사 결과가 없습니다.</pre>
+          </div>
+
+          <div>
+            <strong>검사 진행 로그</strong>
+            <pre id="activity-log" aria-live="polite"></pre>
+          </div>
+        </div>
 
         <p class="hint">
-          진행 로그는 브라우저에서만 표시되며 새로고침하면 초기화됩니다.
+          진행 로그는 새로고침하면 초기화됩니다.
         </p>
       </section>
+
+      <!-- Grafana 모니터링 -->
+      <section class="card monitor">
+        <h2>서비스 모니터링</h2>
+
+        <p>
+          Prometheus가 수집한 API 지표를 Grafana 패널로 표시합니다.
+        </p>
+
+        <div class="monitor-grid">
+          <div>
+            <h3>검사 요청 수</h3>
+
+            <iframe
+              title="Grafana 검사 요청 수"
+              src="http://localhost:3000/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-1"
+            ></iframe>
+          </div>
+
+          <div>
+            <h3>평균 검사 요청 처리 시간</h3>
+
+            <iframe
+              title="Grafana 평균 검사 요청 처리 시간"
+              src="http://localhost:3000/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-2"
+            ></iframe>
+          </div>
+        </div>
+
+        <p class="hint">
+          Grafana의 SSH 터널과 로그인이 필요합니다.
+          표시되는 지표는 Grafana 설정에 따라 달라집니다.
+        </p>
+      </section>
+
     </div>
-
-    <!-- Grafana 모니터링 -->
-    <section class="card monitor">
-      <h2>서비스 모니터링</h2>
-      <p>Prometheus가 수집한 API 지표를 Grafana 패널로 표시합니다.</p>
-
-      <div class="monitor-grid">
-        <div>
-          <h3>검사 요청 수</h3>
-
-          <iframe
-            title="Grafana 검사 요청 수"
-            src="http://localhost:3000/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-1"
-          ></iframe>
-        </div>
-
-        <div>
-          <h3>평균 검사 요청 처리 시간</h3>
-
-          <iframe
-            title="Grafana 평균 검사 요청 처리 시간"
-            src="http://localhost:3000/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-2"
-          ></iframe>
-        </div>
-      </div>
-
-      <p class="hint">
-        Grafana의 SSH 터널과 로그인이 필요합니다.
-        현재 처리 시간은 더미 API 요청 기준입니다.
-      </p>
-    </section>
   </main>
 
   <script>
+    const modelInfo = document.getElementById("model-info");
     const input = document.getElementById("image-file");
     const preview = document.getElementById("preview");
     const placeholder = document.getElementById("placeholder");
     const button = document.getElementById("inspect-button");
     const status = document.getElementById("status");
     const result = document.getElementById("result");
+    const predictionSummary = document.getElementById("prediction-summary");
+    const anomalyScore = document.getElementById("anomaly-score");
+    const anomalyThreshold = document.getElementById("anomaly-threshold");
     const activityLog = document.getElementById("activity-log");
 
     let previewUrl = null;
+
+    function showPredictionSummary(data) {
+      if (
+        !Number.isFinite(data.anomaly_score) ||
+        !Number.isFinite(data.threshold)
+      ) {
+        throw new Error(
+          "API 응답의 점수 또는 기준값이 올바르지 않습니다."
+        );
+      }
+
+      anomalyScore.textContent = data.anomaly_score.toFixed(4);
+      anomalyThreshold.textContent = data.threshold.toFixed(4);
+      predictionSummary.hidden = false;
+    }
+
+    function clearPredictionSummary() {
+      predictionSummary.hidden = true;
+      anomalyScore.textContent = "-";
+      anomalyThreshold.textContent = "-";
+    }
 
     function setStatus(message, isError = false) {
       status.textContent = message;
@@ -303,8 +473,42 @@
 
     log("검사 화면이 준비되었습니다.");
 
+    async function loadModelInfo() {
+      try {
+        const response = await fetch("/api/models");
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (
+          !data.latest ||
+          !data.best_recall ||
+          !Number.isFinite(data.best_recall.recall)
+        ) {
+          throw new Error("모델 후보 응답이 올바르지 않습니다.");
+        }
+
+        modelInfo.textContent =
+          `최신: v${data.latest.version} / ` +
+          `최고 Recall: v${data.best_recall.version} ` +
+          `(Recall ${data.best_recall.recall.toFixed(4)}) ` +
+          `· 추론 연결 준비 중`;
+
+      } catch (error) {
+        modelInfo.textContent = "모델 후보를 불러오지 못했습니다.";
+        log(`모델 후보 조회 실패: ${error.message}`);
+      }
+    }
+
+    loadModelInfo();
+
     // 이미지를 선택하면 미리보기를 표시한다.
     input.addEventListener("change", () => {
+      clearPredictionSummary();
+
       const file = input.files[0];
 
       if (previewUrl) {
@@ -339,6 +543,8 @@
 
     // 검사 버튼을 누르면 이미지를 FastAPI로 전송한다.
     button.addEventListener("click", async () => {
+      clearPredictionSummary();
+
       const file = input.files[0];
 
       if (!file || !["image/png", "image/jpeg"].includes(file.type)) {
@@ -372,21 +578,35 @@
         result.textContent = JSON.stringify(data, null, 2);
 
         if (data.prediction === "not_evaluated") {
-          setStatus("요청 완료: 현재 모델은 실제 판정을 수행하지 않습니다.");
+          setStatus(
+            "요청 완료: 현재 모델은 실제 판정을 수행하지 않습니다."
+          );
+
           log("더미 모델 응답을 받았습니다.");
+
         } else if (data.is_anomaly === true) {
+          showPredictionSummary(data);
           setStatus("검사 완료: 불량 의심");
           log("모델 판정: 이상이 감지되었습니다.");
+
         } else if (data.is_anomaly === false) {
+          showPredictionSummary(data);
           setStatus("검사 완료: 정상");
           log("모델 판정: 정상입니다.");
+
         } else {
-          throw new Error("API 응답에 정상·불량 판정값이 없습니다.");
+          throw new Error(
+            "API 응답에 정상·불량 판정값이 없습니다."
+          );
         }
-	}catch (error) {
+
+      } catch (error) {
+        clearPredictionSummary();
+
         result.textContent = "결과를 가져오지 못했습니다.";
         setStatus(`요청 실패: ${error.message}`, true);
         log(`요청 실패: ${error.message}`);
+
       } finally {
         button.disabled = false;
         button.textContent = "검사 시작";
