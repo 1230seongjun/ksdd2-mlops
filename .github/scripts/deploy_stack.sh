@@ -2,11 +2,13 @@
 # 셀프 호스티드 러너에서 스택 하나를 배포한다 (deploy.yaml 이 호출)
 #   사용법: bash .github/scripts/deploy_stack.sh <mlops|service>
 #   순서: 배포 파일 백업 → 파일 동기화 → 이미지 태그 갱신 → pull → up → 헬스체크 → 실패 시 파일·컨테이너 복원
+#         → 성공 시 정리 (우리 이미지는 이번·직전 태그만 남김, 배포 백업은 최근 KEEP_BACKUPS 개만 남김)
 #   필요한 환경변수: GITHUB_SHA, NCR_REGISTRY, REGISTRY_PATH, IMAGES(이번에 빌드한 이미지 JSON)
 set -euo pipefail
 
 STACK="${1:?mlops 또는 service 를 지정하세요}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/bulryangzero}"
+KEEP_BACKUPS="${KEEP_BACKUPS:-5}"   # 남길 배포 백업 폴더 수
 SHORT_SHA="${GITHUB_SHA::7}"
 
 case "$STACK" in
@@ -115,11 +117,41 @@ health() {
   done
 }
 
+# 4) 정리 (배포 성공 후에만 실행)
+#   - 우리 이미지(NCR_SERVICES)는 이번 태그와 직전 태그만 남긴다. 직전 태그는 실패 시 복원(--pull never)에 필요
+#   - 사용 중인 이미지는 docker 가 지우지 않으므로 그대로 둔다
+#   - 태그 없는 이미지(dangling)와 오래된 배포 백업 폴더도 정리한다
+tag_of() { grep -E "^$1=" "$2" 2>/dev/null | tail -n 1 | cut -d= -f2- || true; }
+
+cleanup() {
+  local name var keep repo ref tag
+  for name in $NCR_SERVICES; do
+    case "$name" in
+      mlflow)         var=MLFLOW_TAG ;;
+      experiments-ui) var=EXPERIMENTS_UI_TAG ;;
+      api)            var=API_TAG ;;
+      *)              continue ;;
+    esac
+    keep="$(tag_of "$var" .env) $(tag_of "$var" "$BACKUP_DIR/files/.env") $(tag_of "$var" .env.prev)"
+    repo="$NCR_REGISTRY/$REGISTRY_PATH/$name"
+    echo "--- $name 이미지 정리 (남김: $(echo $keep | tr ' ' '\n' | sort -u | tr '\n' ' ')) ---"
+    docker images --format '{{.Repository}}:{{.Tag}}' "$repo" | while read -r ref; do
+      tag="${ref##*:}"
+      case " $keep " in *" $tag "*) continue ;; esac
+      if docker rmi "$ref" >/dev/null 2>&1; then echo "삭제: $ref"; else echo "사용 중이라 남김: $ref"; fi
+    done
+  done
+  docker image prune -f >/dev/null || true
+  ls -1dt "$BACKUP_ROOT"/deploy.* 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -rf
+  echo "배포 백업은 최근 $KEEP_BACKUPS 개만 남김: $BACKUP_ROOT"
+}
+
 # 이제부터는 아래에서 파일과 컨테이너를 함께 복구한다.
 trap - EXIT
 
 if deploy && health; then
   echo "배포 성공: $STACK"
+  cleanup || echo "::warning::이미지·백업 정리 중 오류가 있었지만 배포는 성공했습니다"
   exit 0
 fi
 
