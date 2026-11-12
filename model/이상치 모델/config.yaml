@@ -1,0 +1,35 @@
+# ---------- 데이터 ----------
+DATA_SOURCE: object_storage                # local | object_storage
+DATA_DIR: data    # DATA_SOURCE 가 local 일 때 이미지를 읽는 폴더
+NORMAL_DIR_NAME: normal
+ANOMALY_DIR_NAME: anomaly
+
+# ---------- 오브젝트 스토리지 (DATA_SOURCE 가 object_storage 일 때만 사용) ----------
+# 접근 키는 여기 쓰지 말고 환경변수/.env 의 OBJECT_STORAGE_ACCESS_KEY, OBJECT_STORAGE_SECRET_KEY 로 넣는다
+
+OBJECT_STORAGE_PREFIX: ''         # 버킷 바로 아래에 normal/, anomaly/ 가 있으면 비워 둔다
+CACHE_DIR: .cache/dataset         # 내려받은 이미지를 두는 폴더 (.gitignore 에 넣을 것)
+
+# ---------- 분할: 정상은 학습/검증/테스트, 결함은 검증/테스트 (결함은 학습에 쓰지 않음) ----------
+NORMAL_TRAIN_RATIO: 0.7
+NORMAL_VALIDATION_RATIO: 0.15     # 나머지(0.15)는 테스트
+ANOMALY_VALIDATION_RATIO: 0.5     # 나머지(0.5)는 테스트
+RANDOM_SEED: 42                   # 데이터 분할 (같은 값이면 팀 전체가 같은 분할을 쓴다)
+
+# ---------- 모델 ----------
+MAX_MEMORY_BANK_SIZE: 10000       # coreset 으로 고른 메모리 뱅크의 최종 패치 수
+CORESET_POOL_SIZE: 300000         # coreset 후보로 먼저 모을 패치 수 (이미지마다 무작위로 나눠 뽑음)
+CORESET_PROJECTION_DIM: 128       # coreset 거리 계산을 빠르게 하기 위한 무작위 투영 차원
+MODEL_SEED: 42                    # 메모리 뱅크 패치 샘플링. 값을 바꿔 여러 번 돌리면 결과가 얼마나 흔들리는지 볼 수 있다
+BATCH_SIZE: 4
+QUERY_CHUNK_SIZE: 512             # 거리 계산 시 한 번에 비교할 패치 수 (메모리 조절용)
+
+# ---------- 평가 ----------
+TARGET_RECALL: 0.98               # 프로젝트 목표 재현율. 검증 데이터에서 이 값을 만족하는 임계값을 선택
+EVALUATE_TEST: false              # 모델 비교는 val 로 한다. 최종 모델을 정한 뒤 딱 한 번만 true 로 실행
+
+# ---------- MLflow ----------
+MLFLOW_EXPERIMENT: 실험용
+RUN_NAME: best_model_save_test
+SAVE_MODEL: false                  # 학습한 모델을 MLflow 모델 레지스트리에 새 버전으로 등록한다 (실험 중에는 false)
+REGISTERED_MODEL_NAME: Zero-Defects   # 등록할 모델 이름 (같은 이름으로 등록하면 버전이 하나씩 늘어난다)

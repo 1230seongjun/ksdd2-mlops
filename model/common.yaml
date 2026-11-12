@@ -1,0 +1,11 @@
+# ---------- 오브젝트 스토리지 ----------
+# 접근 키는 여기 쓰지 말고 환경변수/.env 의 OBJECT_STORAGE_ACCESS_KEY, OBJECT_STORAGE_SECRET_KEY 로 넣는다
+OBJECT_STORAGE_ENDPOINT: 'https://kr1-api-object-storage.nhncloudservice.com'       # NHN Cloud 콘솔의 S3 API 엔드포인트 주소 (https://...)
+OBJECT_STORAGE_REGION: 'KR1'        
+OBJECT_STORAGE_BUCKET: dataset
+
+# ---------- 학습 장치 ----------
+DEVICE: auto                      # auto | cuda | cpu
+
+# ---------- MLflow ----------
+MLFLOW_TRACKING_URI: http://127.0.0.1:5000 
