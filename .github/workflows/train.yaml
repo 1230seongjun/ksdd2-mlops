@@ -1,0 +1,42 @@
+name: Train
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 학습할 모델
+        type: choice
+        options: [anomaly, classifier]
+      fold:
+        description: 분류 모델 fold (0~4)
+        default: "0"
+
+concurrency:
+  group: gpu-train
+
+jobs:
+  train:
+    runs-on: [self-hosted, windows, gpu]
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: powershell
+    env:
+      OBJECT_STORAGE_ACCESS_KEY: ${{ secrets.MODEL_STORAGE_ACCESS_KEY }}
+      OBJECT_STORAGE_SECRET_KEY: ${{ secrets.MODEL_STORAGE_SECRET_KEY }}
+      PYTHONIOENCODING: utf-8
+      PY: C:\Users\94\anaconda3\envs\defect-baseline-gpu\python.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Anomaly
+        if: inputs.model == 'anomaly'
+        working-directory: model/이상치 모델
+        run: '& $env:PY train.py'
+
+      - name: Classifier
+        if: inputs.model == 'classifier'
+        working-directory: model/분류 모델
+        run: '& $env:PY train.py --fold ${{ inputs.fold }}'
