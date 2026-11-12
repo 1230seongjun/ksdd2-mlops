@@ -1,8 +1,6 @@
 name: Train
 
 on:
-  push:
-    branches: [model/train-code]
   workflow_dispatch:
     inputs:
       model:
