@@ -32,6 +32,7 @@ from model_service import (
     get_model_candidates,
     load_model,
     predict_image,
+    predict_tensor_image,
     select_best_recall_candidate,
     select_latest_candidate,
 )
@@ -225,6 +226,25 @@ async def list_models():
             detail="모델 후보를 조회할 수 없습니다."
         )
 
+def load_selected_candidate(model_choice):
+    """선택 기준에 맞는 등록 모델 버전을 찾아 로드한다."""
+    candidates = get_model_candidates(
+        MLFLOW_TRACKING_URI,
+        "Zero-Defects",
+    )
+
+    if model_choice == "latest":
+        candidate = select_latest_candidate(candidates)
+    elif model_choice == "best_recall":
+        candidate = select_best_recall_candidate(candidates)
+    else:
+        raise ValueError("지원하지 않는 모델 선택값입니다.")
+
+    model_uri = f"models:/Zero-Defects/{candidate['version']}"
+    model = load_model(MLFLOW_TRACKING_URI, model_uri)
+
+    return model, model_uri
+
 @app.post("/predict")
 async def predict(
     file: UploadFile = File(...),
@@ -235,23 +255,6 @@ async def predict(
             status_code=422,
             detail="지원하지 않는 모델 선택값입니다."
         )
-
-    if model_choice != "current":
-        raise HTTPException(
-            status_code=503,
-            detail="선택한 모델은 아직 사용할 수 없습니다."
-        )
-
-    # 1. 모델 로딩 상태 확인
-    if app.state.model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="모델이 로드되지 않았습니다."
-        )
-
-    # 이 요청에서 사용할 모델과 모델 이름
-    selected_model = app.state.model
-    selected_model_name = MODEL_URI
 
     # 2. 이미지 파일 형식 확인
     if file.content_type not in (
@@ -316,15 +319,46 @@ async def predict(
             detail="올바른 이미지가 아닙니다."
         )
 
+    # 1. 요청에 사용할 모델 선택
+    if model_choice == "current":
+        if app.state.model is None:
+            raise HTTPException(
+                status_code=503,
+                detail="현재 모델이 로드되지 않았습니다."
+            )
+
+        selected_model = app.state.model
+        selected_model_name = MODEL_URI
+
+    else:
+        try:
+            selected_model, selected_model_name = await run_in_threadpool(
+                load_selected_candidate,
+                model_choice,
+            )
+
+        except Exception:
+            logger.exception("Selected model loading failed")
+
+            raise HTTPException(
+                status_code=503,
+                detail="선택한 모델을 불러오지 못했습니다."
+            )
+
     # 5. MLflow 모델 추론
     try:
-        # model_service.py의 predict_image() 실행
-        # 모델 객체와 이미지 바이트 전달
-        result = await run_in_threadpool(
-            predict_image,
-            selected_model,
-            data
-        )
+        if model_choice == "current":
+            result = await run_in_threadpool(
+                predict_image,
+                selected_model,
+                data,
+            )
+        else:
+            result = await run_in_threadpool(
+                predict_tensor_image,
+                selected_model,
+                data,
+            )
 
     except Exception:
         # 추론 실패 시 로그 기록

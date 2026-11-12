@@ -304,9 +304,16 @@
 
         <p><strong>등록된 모델 후보</strong></p>
 
-        <p id="model-info" class="hint">
+	<p id="model-info" class="hint">
           모델 정보를 불러오는 중입니다.
         </p>
+
+        <label for="model-choice">검사 모델</label>
+        <select id="model-choice">
+          <option value="current">현재 모델</option>
+          <option value="latest">최신 등록 모델</option>
+          <option value="best_recall">검증 Recall 최고 모델</option>
+        </select>
 
         <p>
           PNG 또는 JPEG · 가로 184px × 세로 597px 이미지를 선택하세요.
@@ -474,6 +481,7 @@
 
   <script>
     const modelInfo = document.getElementById("model-info");
+    const modelChoice = document.getElementById("model-choice");
     const input = document.getElementById("image-file");
     const preview = document.getElementById("preview");
     const placeholder = document.getElementById("placeholder");
@@ -603,6 +611,7 @@
 
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("model_choice", modelChoice.value);
 
       button.disabled = true;
       button.textContent = "요청 중...";
