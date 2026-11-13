@@ -347,19 +347,11 @@ async def predict(
 
     # 5. MLflow 모델 추론
     try:
-        if model_choice == "current":
-            result = await run_in_threadpool(
-                predict_image,
-                selected_model,
-                data,
-            )
-        else:
-            result = await run_in_threadpool(
-                predict_tensor_image,
-                selected_model,
-                data,
-            )
-
+        result = await run_in_threadpool(
+            predict_tensor_image,
+            selected_model,
+            data,
+        )
     except Exception:
         # 추론 실패 시 로그 기록
         logger.exception("Prediction failed")
