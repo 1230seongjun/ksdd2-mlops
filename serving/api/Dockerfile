@@ -1,12 +1,12 @@
-# 학습 모델의 Python 3.13 환경에 맞춤
-FROM python:3.13-slim
+# v2 학습 환경(Python 3.11)과 MLflow 서버(3.6.0)에 맞춤
+FROM python:3.11-slim
 
 # 작업 디렉터리 설정
 WORKDIR /app
 
 # PyTorch CPU 버전 설치
 RUN pip install --no-cache-dir \
-    torch==2.14.1 torchvision==0.29.1 \
+    torch==2.11.0 torchvision==0.26.0 \
     --index-url https://download.pytorch.org/whl/cpu
 
 # 라이브러리 목록 복사
