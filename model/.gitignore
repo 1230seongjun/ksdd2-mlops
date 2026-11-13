@@ -1,0 +1,10 @@
+.env
+data/
+.cache/
+mlruns/
+runs/
+__pycache__/
+*.csv
+*.zip
+*.ipynb
+.ipynb_checkpoints/
