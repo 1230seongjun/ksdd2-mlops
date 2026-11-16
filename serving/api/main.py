@@ -27,13 +27,7 @@ from prometheus_client import (
 
 from starlette.concurrency import run_in_threadpool
 
-from model_service import (
-    get_model_candidates,
-    load_model,
-    run_model,
-    select_best_recall_candidate,
-    select_latest_candidate,
-)
+from model_service import load_model, run_model
 
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -50,68 +44,118 @@ MODEL_URI = os.getenv("MODEL_URI", "").strip()
 # 결함 종류 분류 모델은 선택 사항이다. 비어 있거나 로드에 실패하면 종류 없이 동작한다.
 CLASSIFIER_MODEL_URI = os.getenv("CLASSIFIER_MODEL_URI", "").strip()
 
+# 신규 모델은 운영 모델과 나란히 올려 두고 고를 수 있게 한다. 비어 있으면 선택지에 나오지 않는다.
+CHALLENGER_MODEL_URI = os.getenv("CHALLENGER_MODEL_URI", "").strip()
+CHALLENGER_CLASSIFIER_MODEL_URI = os.getenv(
+    "CHALLENGER_CLASSIFIER_MODEL_URI",
+    ""
+).strip()
+
+# 신규 모델은 분류까지 올라와야 선택할 수 있고, 운영 모델은 분류 없이도 동작한다.
+MODEL_SETS = {
+    "champion": {
+        "label": "운영 모델",
+        "detector_uri": MODEL_URI,
+        "classifier_uri": CLASSIFIER_MODEL_URI,
+        "require_classifier": False,
+    },
+}
+
+if CHALLENGER_MODEL_URI:
+    MODEL_SETS["challenger"] = {
+        "label": "신규 모델",
+        "detector_uri": CHALLENGER_MODEL_URI,
+        "classifier_uri": CHALLENGER_CLASSIFIER_MODEL_URI,
+        "require_classifier": True,
+    }
+
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
 DETECTOR_CONTRACT = "tensor_v1"
 CLASSIFIER_CONTRACT = "classifier_v1"
 
 
-async def load_classifier(app: FastAPI):
+def set_status(app: FastAPI, key: str):
+    spec = MODEL_SETS[key]
+    state = app.state.sets[key]
+
+    if state["detector"] is not None:
+        needs_classifier = spec["require_classifier"] and spec["classifier_uri"]
+
+        if not needs_classifier or state["classifier"] is not None:
+            return "ready"
+
+    return "failed" if state["failed"] else "loading"
+
+
+async def load_part(app: FastAPI, key: str, role: str, uri: str):
     started = time.perf_counter()
 
     try:
-        app.state.classifier = await run_in_threadpool(
+        app.state.sets[key][role] = await run_in_threadpool(
             load_model,
             MLFLOW_TRACKING_URI,
-            CLASSIFIER_MODEL_URI
+            uri
         )
 
         logger.info(
-            "Classifier loaded: %s (%.0fs)",
-            CLASSIFIER_MODEL_URI,
+            "Model loaded: %s %s %s (%.0fs)",
+            key,
+            role,
+            uri,
             time.perf_counter() - started
         )
 
     except Exception:
-        logger.exception("Classifier loading failed")
+        app.state.sets[key]["failed"] = True
+        logger.exception("Model loading failed: %s %s %s", key, role, uri)
+
+
+# 한 번에 하나씩 올려 다운로드와 메모리 사용이 겹치지 않게 한다.
+async def load_in_background(app: FastAPI):
+    for key, spec in MODEL_SETS.items():
+        for role in ("detector", "classifier"):
+            uri = spec[f"{role}_uri"]
+            state = app.state.sets[key]
+
+            if uri and state[role] is None and not state["failed"]:
+                await load_part(app, key, role, uri)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    app.state.model = None
-    app.state.classifier = None
+    app.state.sets = {
+        key: {"detector": None, "classifier": None, "failed": False}
+        for key in MODEL_SETS
+    }
     started = time.perf_counter()
 
     try:
-        app.state.model = load_model(
+        app.state.sets["champion"]["detector"] = load_model(
             MLFLOW_TRACKING_URI,
             MODEL_URI
         )
 
         logger.info(
-            "Model loaded: %s (%.0fs)",
+            "Model loaded: champion detector %s (%.0fs)",
             MODEL_URI,
             time.perf_counter() - started
         )
 
     except Exception:
         # API 서버 자체는 실행 유지
+        app.state.sets["champion"]["failed"] = True
         logger.exception("Model loading failed")
 
-    # 분류 모델은 서버 시작(/ready)을 늦추지 않도록 백그라운드에서 올린다.
-    classifier_task = None
-
-    if CLASSIFIER_MODEL_URI:
-        classifier_task = asyncio.create_task(load_classifier(app))
+    # 나머지 모델은 서버 시작(/ready)을 늦추지 않도록 백그라운드에서 올린다.
+    loading_task = asyncio.create_task(load_in_background(app))
 
     yield
 
-    if classifier_task is not None:
-        classifier_task.cancel()
+    loading_task.cancel()
 
-    app.state.model = None
-    app.state.classifier = None
+    app.state.sets = {}
 
 
 app = FastAPI(
@@ -175,73 +219,48 @@ def metrics():
 @app.get("/health")
 def health():
 
-    loaded = app.state.model is not None
+    champion = app.state.sets["champion"]
+    loaded = champion["detector"] is not None
 
     return {
         "status": "ok" if loaded else "degraded",
         "model_loaded": loaded,
-        "classifier_loaded": app.state.classifier is not None
+        "classifier_loaded": champion["classifier"] is not None
     }
 
 @app.get("/ready")
 def ready():
-    if app.state.model is None:
+    if app.state.sets["champion"]["detector"] is None:
         raise HTTPException(
             status_code=503,
             detail="Model not ready"
         )
 
     return {"status": "ready"}
+
+
 @app.get("/models")
-async def list_models():
-    try:
-        candidates = await run_in_threadpool(
-            get_model_candidates,
-            MLFLOW_TRACKING_URI,
-            "Zero-Defects",
-        )
+def list_models():
+    return {
+        "models": [
+            {
+                "id": key,
+                "label": spec["label"],
+                "model_name": spec["detector_uri"],
+                "classifier_name": spec["classifier_uri"] or None,
+                "status": set_status(app, key),
+            }
+            for key, spec in MODEL_SETS.items()
+        ]
+    }
 
-        latest = select_latest_candidate(candidates)
-        best = select_best_recall_candidate(candidates)
-
-        return {
-            "model_name": "Zero-Defects",
-            "latest": latest,
-            "best_recall": best,
-        }
-
-    except Exception:
-        logger.exception("Model candidate lookup failed")
-        raise HTTPException(
-            status_code=503,
-            detail="모델 후보를 조회할 수 없습니다."
-        )
-
-def load_selected_candidate(model_choice):
-    """선택 기준에 맞는 등록 모델 버전을 찾아 로드한다."""
-    candidates = get_model_candidates(
-        MLFLOW_TRACKING_URI,
-        "Zero-Defects",
-    )
-
-    if model_choice == "latest":
-        candidate = select_latest_candidate(candidates)
-    elif model_choice == "best_recall":
-        candidate = select_best_recall_candidate(candidates)
-    else:
-        raise ValueError("지원하지 않는 모델 선택값입니다.")
-
-    model_uri = f"models:/Zero-Defects/{candidate['version']}"
-    model = load_model(MLFLOW_TRACKING_URI, model_uri)
-
-    return model, model_uri
 
 @app.post("/predict")
 async def predict(
     file: UploadFile = File(...),
-    model_choice: str = Form("current"),
+    model_choice: str = Form("champion"),
 ):
-    if model_choice not in ("current", "latest", "best_recall"):
+    if model_choice not in MODEL_SETS:
         raise HTTPException(
             status_code=422,
             detail="지원하지 않는 모델 선택값입니다."
@@ -303,30 +322,26 @@ async def predict(
             detail="올바른 이미지가 아닙니다."
         )
 
-    if model_choice == "current":
-        if app.state.model is None:
-            raise HTTPException(
-                status_code=503,
-                detail="현재 모델이 로드되지 않았습니다."
-            )
+    status = set_status(app, model_choice)
 
-        selected_model = app.state.model
-        selected_model_name = MODEL_URI
+    if status == "loading":
+        raise HTTPException(
+            status_code=503,
+            detail="모델을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+            headers={"Retry-After": "30"},
+        )
 
-    else:
-        try:
-            selected_model, selected_model_name = await run_in_threadpool(
-                load_selected_candidate,
-                model_choice,
-            )
+    if status != "ready":
+        raise HTTPException(
+            status_code=503,
+            detail="선택한 모델을 불러오지 못했습니다."
+        )
 
-        except Exception:
-            logger.exception("Selected model loading failed")
-
-            raise HTTPException(
-                status_code=503,
-                detail="선택한 모델을 불러오지 못했습니다."
-            )
+    spec = MODEL_SETS[model_choice]
+    state = app.state.sets[model_choice]
+    selected_model = state["detector"]
+    classifier = state["classifier"]
+    selected_model_name = spec["detector_uri"]
 
     try:
         result = await run_in_threadpool(
@@ -351,15 +366,17 @@ async def predict(
 
     # 분류가 실패해도 판정 결과는 그대로 반환한다.
     defect = {"defect_type": None, "defect_subtype": None}
+    classified = False
 
-    if result["is_anomaly"] and app.state.classifier is not None:
+    if result["is_anomaly"] and classifier is not None:
         try:
             defect = await run_in_threadpool(
                 run_model,
-                app.state.classifier,
+                classifier,
                 CLASSIFIER_CONTRACT,
                 data,
             )
+            classified = True
         except Exception:
             logger.exception("Defect classification failed")
 
@@ -371,5 +388,6 @@ async def predict(
         "threshold": result["threshold"],
         "is_anomaly": result["is_anomaly"],
         "defect_type": defect["defect_type"],
-        "defect_subtype": defect["defect_subtype"]
+        "defect_subtype": defect["defect_subtype"],
+        "classifier_name": spec["classifier_uri"] if classified else None
     }
