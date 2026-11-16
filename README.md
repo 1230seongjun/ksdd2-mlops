@@ -22,6 +22,11 @@ NHN Cloud AI 팩토리 MLOps 부트캠프 팀 프로젝트 (2026.10.29 – 11.25
 
 NHN Cloud VPC를 Public·Private 서브넷으로 나누고 인스턴스 2대에 역할을 나눴습니다.
 
+![인프라 구성도](docs/architecture.png)
+
+<details>
+<summary>텍스트로 보기 (Mermaid)</summary>
+
 ```mermaid
 flowchart LR
   user[사용자 브라우저] -->|:8080| nginx
@@ -44,6 +49,8 @@ flowchart LR
   api -->|검사 결과 저장| pg
   mlflow -->|Service Gateway| os[(Object Storage<br/>모델 · 데이터셋 · 백업)]
 ```
+
+</details>
 
 | 구성 | 위치 | 설명 |
 |---|---|---|
