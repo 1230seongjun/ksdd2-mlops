@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import asyncio
 import logging
 
@@ -9,6 +10,7 @@ from contextlib import asynccontextmanager
 from PIL import Image, UnidentifiedImageError
 
 from fastapi import (
+    BackgroundTasks,
     FastAPI,
     File,
     Form,
@@ -27,6 +29,7 @@ from prometheus_client import (
 
 from starlette.concurrency import run_in_threadpool
 
+import db
 from model_service import load_model, run_model
 
 
@@ -257,9 +260,12 @@ def list_models():
 
 @app.post("/predict")
 async def predict(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     model_choice: str = Form("champion"),
 ):
+    started_at = time.perf_counter()
+
     if model_choice not in MODEL_SETS:
         raise HTTPException(
             status_code=422,
@@ -343,6 +349,8 @@ async def predict(
     classifier = state["classifier"]
     selected_model_name = spec["detector_uri"]
 
+    detector_started = time.perf_counter()
+
     try:
         result = await run_in_threadpool(
             run_model,
@@ -358,6 +366,8 @@ async def predict(
             detail="모델 추론 실패"
         )
 
+    detector_ms = round((time.perf_counter() - detector_started) * 1000)
+
     prediction = (
         "defect"
         if result["is_anomaly"]
@@ -365,10 +375,18 @@ async def predict(
     )
 
     # 분류가 실패해도 판정 결과는 그대로 반환한다.
-    defect = {"defect_type": None, "defect_subtype": None}
+    defect = {
+        "defect_type": None,
+        "defect_subtype": None,
+        "confidence": None,
+        "regions": [],
+    }
     classified = False
+    classifier_ms = None
 
     if result["is_anomaly"] and classifier is not None:
+        classifier_started = time.perf_counter()
+
         try:
             defect = await run_in_threadpool(
                 run_model,
@@ -377,10 +395,44 @@ async def predict(
                 data,
             )
             classified = True
+            classifier_ms = round(
+                (time.perf_counter() - classifier_started) * 1000
+            )
         except Exception:
             logger.exception("Defect classification failed")
 
+    request_id = str(uuid.uuid4())
+
+    # 저장은 응답을 보낸 뒤에 하고, 실패해도 검사 결과에는 영향이 없다.
+    if db.ENABLED:
+        background_tasks.add_task(
+            db.save_inference,
+            {
+                "id": request_id,
+                "filename": file.filename or "",
+                "model_choice": model_choice,
+                "prediction": prediction,
+                "total_latency_ms": round(
+                    (time.perf_counter() - started_at) * 1000
+                ),
+                "detector": {
+                    "model_name": selected_model_name,
+                    "anomaly_score": result["anomaly_score"],
+                    "is_defect": result["is_anomaly"],
+                    "latency_ms": detector_ms,
+                },
+                "classifier": {
+                    "model_name": spec["classifier_uri"],
+                    "defect_type": defect["defect_type"],
+                    "confidence": defect["confidence"],
+                    "regions": defect["regions"],
+                    "latency_ms": classifier_ms,
+                } if classified else None,
+            },
+        )
+
     return {
+        "id": request_id,
         "filename": file.filename,
         "model_name": selected_model_name,
         "prediction": prediction,

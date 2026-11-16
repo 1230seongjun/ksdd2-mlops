@@ -1,3 +1,4 @@
+import json
 import math
 import re
 import sys
@@ -9,7 +10,6 @@ from numbers import Real
 from io import BytesIO
 from pathlib import Path
 from typing import Callable
-from mlflow import MlflowClient
 
 import numpy as np
 from PIL import Image
@@ -149,8 +149,43 @@ DEFECT_TYPES = {
     "흑색 결함": "black",
     "밝은 청색 결함": "blue",
     "어두운 청색 결함": "blue",
+    "청색 결함": "blue",
     "표면 결함": "surface",
 }
+
+
+def parse_confidence(result):
+    if "confidence" not in result.columns:
+        return None
+
+    value = result["confidence"].iloc[0]
+
+    if is_bool(value):
+        return None
+
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if not math.isfinite(confidence) or not 0 <= confidence <= 1:
+        return None
+
+    return confidence
+
+
+def parse_regions(result):
+    if "regions" not in result.columns:
+        return []
+
+    value = result["regions"].iloc[0]
+
+    try:
+        regions = json.loads(value) if isinstance(value, str) else value
+    except ValueError:
+        return []
+
+    return regions if isinstance(regions, list) else []
 
 
 def parse_classification(result):
@@ -166,6 +201,8 @@ def parse_classification(result):
     return {
         "defect_type": defect_type,
         "defect_subtype": color if defect_type else None,
+        "confidence": parse_confidence(result),
+        "regions": parse_regions(result),
     }
 
 
@@ -186,73 +223,3 @@ CONTRACTS = {
 def run_model(model, contract_name, image_bytes):
     contract = CONTRACTS[contract_name]
     return contract.parse(model.predict(contract.prepare(image_bytes)))
-
-
-def get_model_candidates(tracking_uri, model_name):
-    client = MlflowClient(tracking_uri=tracking_uri)
-    versions = client.search_model_versions(
-        f"name = '{model_name}'"
-    )
-
-    candidates = []
-
-    for version in versions:
-        if version.status != "READY":
-            continue
-
-        metrics = {}
-        if version.run_id:
-            run = client.get_run(version.run_id)
-            metrics = run.data.metrics
-        candidates.append({
-            "version": int(version.version),
-            "run_id": version.run_id,
-            "recall": metrics.get("val_recall"),
-            "precision": metrics.get("val_precision"),
-        })
-
-    return candidates
-
-def select_latest_candidate(candidates):
-    if not candidates:
-        raise ValueError("선택할 수 있는 모델 버전이 없습니다.")
-
-    return max(candidates, key=lambda candidate: candidate["version"])
-
-def select_best_recall_candidate(candidates):
-    eligible = []
-
-    for candidate in candidates:
-        recall = candidate.get("recall")
-
-        if (
-            is_bool(recall)
-            or not isinstance(recall, Real)
-            or not math.isfinite(recall)
-            or not 0 <= recall <= 1
-        ):
-            continue
-
-        eligible.append(candidate)
-
-    if not eligible:
-        raise ValueError("유효한 Recall이 있는 모델이 없습니다.")
-
-    def ranking(candidate):
-        precision = candidate.get("precision")
-
-        if (
-            is_bool(precision)
-            or not isinstance(precision, Real)
-            or not math.isfinite(precision)
-            or not 0 <= precision <= 1
-        ):
-            precision = -1
-
-        return (
-            candidate["recall"],
-            precision,
-            candidate["version"],
-        )
-
-    return max(eligible, key=ranking)
