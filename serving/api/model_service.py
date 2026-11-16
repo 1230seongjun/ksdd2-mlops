@@ -1,13 +1,15 @@
+import json
 import math
 import re
 import sys
 import threading
 import yaml
+from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Real
 from io import BytesIO
 from pathlib import Path
-from mlflow import MlflowClient
+from typing import Callable
 
 import numpy as np
 from PIL import Image
@@ -141,24 +143,52 @@ def validate_tensor_prediction(result):
 
     return validate_prediction(normalized)
 
-def predict_tensor_image(model, image_bytes):
-    model_input = build_tensor_input(image_bytes)
-    result = model.predict(model_input)
-    return validate_tensor_prediction(result)
-
 # 분류 모델의 색 이름을 화면의 결함 종류 id로 바꾼다. 청색은 하나로 합친다.
 DEFECT_TYPES = {
     "갈적색결함": "brown",
     "흑색 결함": "black",
     "밝은 청색 결함": "blue",
     "어두운 청색 결함": "blue",
+    "청색 결함": "blue",
     "표면 결함": "surface",
 }
 
 
-def classify_defect(model, image_bytes):
-    result = model.predict(build_tensor_input(image_bytes))
+def parse_confidence(result):
+    if "confidence" not in result.columns:
+        return None
 
+    value = result["confidence"].iloc[0]
+
+    if is_bool(value):
+        return None
+
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if not math.isfinite(confidence) or not 0 <= confidence <= 1:
+        return None
+
+    return confidence
+
+
+def parse_regions(result):
+    if "regions" not in result.columns:
+        return []
+
+    value = result["regions"].iloc[0]
+
+    try:
+        regions = json.loads(value) if isinstance(value, str) else value
+    except ValueError:
+        return []
+
+    return regions if isinstance(regions, list) else []
+
+
+def parse_classification(result):
     if not isinstance(result, pd.DataFrame) or len(result) != 1:
         raise ValueError("분류 모델 출력이 올바르지 않습니다.")
 
@@ -171,74 +201,25 @@ def classify_defect(model, image_bytes):
     return {
         "defect_type": defect_type,
         "defect_subtype": color if defect_type else None,
+        "confidence": parse_confidence(result),
+        "regions": parse_regions(result),
     }
 
 
-def get_model_candidates(tracking_uri, model_name):
-    client = MlflowClient(tracking_uri=tracking_uri)
-    versions = client.search_model_versions(
-        f"name = '{model_name}'"
-    )
+# 모델이 약속한 입력·출력 형식(계약)별로 입력 만들기와 출력 해석을 묶는다.
+@dataclass(frozen=True)
+class Contract:
+    kind: str
+    prepare: Callable
+    parse: Callable
 
-    candidates = []
 
-    for version in versions:
-        if version.status != "READY":
-            continue
+CONTRACTS = {
+    "tensor_v1": Contract("detector", build_tensor_input, validate_tensor_prediction),
+    "classifier_v1": Contract("classifier", build_tensor_input, parse_classification),
+}
 
-        metrics = {}
-        if version.run_id:
-            run = client.get_run(version.run_id)
-            metrics = run.data.metrics
-        candidates.append({
-            "version": int(version.version),
-            "run_id": version.run_id,
-            "recall": metrics.get("val_recall"),
-            "precision": metrics.get("val_precision"),
-        })
 
-    return candidates
-
-def select_latest_candidate(candidates):
-    if not candidates:
-        raise ValueError("선택할 수 있는 모델 버전이 없습니다.")
-
-    return max(candidates, key=lambda candidate: candidate["version"])
-
-def select_best_recall_candidate(candidates):
-    eligible = []
-
-    for candidate in candidates:
-        recall = candidate.get("recall")
-
-        if (
-            is_bool(recall)
-            or not isinstance(recall, Real)
-            or not math.isfinite(recall)
-            or not 0 <= recall <= 1
-        ):
-            continue
-
-        eligible.append(candidate)
-
-    if not eligible:
-        raise ValueError("유효한 Recall이 있는 모델이 없습니다.")
-
-    def ranking(candidate):
-        precision = candidate.get("precision")
-
-        if (
-            is_bool(precision)
-            or not isinstance(precision, Real)
-            or not math.isfinite(precision)
-            or not 0 <= precision <= 1
-        ):
-            precision = -1
-
-        return (
-            candidate["recall"],
-            precision,
-            candidate["version"],
-        )
-
-    return max(eligible, key=ranking)
+def run_model(model, contract_name, image_bytes):
+    contract = CONTRACTS[contract_name]
+    return contract.parse(model.predict(contract.prepare(image_bytes)))
