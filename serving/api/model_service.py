@@ -1,6 +1,7 @@
-import base64
 import math
 import re
+import sys
+import threading
 import yaml
 from functools import lru_cache
 from numbers import Real
@@ -10,16 +11,26 @@ from mlflow import MlflowClient
 
 import numpy as np
 from PIL import Image
-import mlflow
 import mlflow.pyfunc
 from mlflow.artifacts import download_artifacts
 import pandas as pd
 from pandas.api.types import is_bool
 
 
-# MLflow 서버에 연결하고 지정된 모델을 로드한다.
-# 학습 PC의 절대경로가 기록된 model_code_path는 파일명만 남기고 로드한다.
-@lru_cache(maxsize=4)
+# 모델마다 같은 이름의 코드(config, data, model)를 담고 있어,
+# 모델을 올릴 때마다 먼저 올린 모델의 모듈을 비워 서로 섞이지 않게 한다.
+SHARED_MODULES = ("config", "data", "model", "storage", "evaluation")
+load_lock = threading.Lock()
+
+
+def clear_shared_modules():
+    for name in SHARED_MODULES:
+        sys.modules.pop(name, None)
+
+
+# 학습 PC의 절대경로가 기록된 model_code_path는 파일명만 남기고,
+# artifacts 경로의 역슬래시는 슬래시로 바꿔 로드한다.
+@lru_cache(maxsize=8)
 def load_model(tracking_uri, model_uri):
     if not isinstance(model_uri, str) or not model_uri.strip():
         raise ValueError("MODEL_URI가 설정되지 않았습니다.")
@@ -46,9 +57,13 @@ def load_model(tracking_uri, model_uri):
             yaml.safe_dump(info, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
-    return mlflow.pyfunc.load_model(str(local))
+    with load_lock:
+        clear_shared_modules()
+        try:
+            return mlflow.pyfunc.load_model(str(local))
+        finally:
+            clear_shared_modules()
 
-# 숫자 문자열·불리언·NaN·무한대를 거부한다.
 def validate_number(value, name):
     if is_bool(value) or not isinstance(value, Real):
         raise ValueError(f"{name}은 숫자여야 합니다.")
@@ -61,7 +76,6 @@ def validate_number(value, name):
     return number
 
 
-# 모델 출력을 API에서 사용하는 형식으로 검증·변환한다.
 def validate_prediction(result):
     if not isinstance(result, pd.DataFrame):
         raise ValueError("모델 출력은 DataFrame이어야 합니다.")
@@ -93,19 +107,6 @@ def validate_prediction(result):
         "is_anomaly": bool(is_anomaly),
     }
 
-
-# 이미지 1장을 모델 입력 계약에 맞춰 전달한다.
-def predict_image(model, image_bytes):
-    if not isinstance(image_bytes, bytes) or not image_bytes:
-        raise ValueError("이미지는 비어 있지 않은 bytes여야 합니다.")
-
-    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-    model_input = pd.DataFrame({
-        "image_base64": [image_base64]
-    })
-
-    result = model.predict(model_input)
-    return validate_prediction(result)
 
 def build_tensor_input(image_bytes):
     if not isinstance(image_bytes, bytes) or not image_bytes:
@@ -140,11 +141,38 @@ def validate_tensor_prediction(result):
 
     return validate_prediction(normalized)
 
-# 새 모델의 입력 변환 → 추론 → 출력 검증을 연결한다.
 def predict_tensor_image(model, image_bytes):
     model_input = build_tensor_input(image_bytes)
     result = model.predict(model_input)
     return validate_tensor_prediction(result)
+
+# 분류 모델의 색 이름을 화면의 결함 종류 id로 바꾼다. 청색은 하나로 합친다.
+DEFECT_TYPES = {
+    "갈적색결함": "brown",
+    "흑색 결함": "black",
+    "밝은 청색 결함": "blue",
+    "어두운 청색 결함": "blue",
+    "표면 결함": "surface",
+}
+
+
+def classify_defect(model, image_bytes):
+    result = model.predict(build_tensor_input(image_bytes))
+
+    if not isinstance(result, pd.DataFrame) or len(result) != 1:
+        raise ValueError("분류 모델 출력이 올바르지 않습니다.")
+
+    if "color" not in result.columns:
+        raise ValueError("분류 모델 출력 필수 컬럼이 누락되었습니다.")
+
+    color = str(result["color"].iloc[0])
+    defect_type = DEFECT_TYPES.get(color)
+
+    return {
+        "defect_type": defect_type,
+        "defect_subtype": color if defect_type else None,
+    }
+
 
 def get_model_candidates(tracking_uri, model_name):
     client = MlflowClient(tracking_uri=tracking_uri)
