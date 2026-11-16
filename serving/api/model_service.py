@@ -1,25 +1,52 @@
 import base64
 import math
+import re
+import yaml
+from functools import lru_cache
 from numbers import Real
 from io import BytesIO
+from pathlib import Path
 from mlflow import MlflowClient
 
 import numpy as np
 from PIL import Image
 import mlflow
 import mlflow.pyfunc
+from mlflow.artifacts import download_artifacts
 import pandas as pd
 from pandas.api.types import is_bool
 
 
 # MLflow 서버에 연결하고 지정된 모델을 로드한다.
+# 학습 PC의 절대경로가 기록된 model_code_path는 파일명만 남기고 로드한다.
+@lru_cache(maxsize=4)
 def load_model(tracking_uri, model_uri):
     if not isinstance(model_uri, str) or not model_uri.strip():
         raise ValueError("MODEL_URI가 설정되지 않았습니다.")
 
     mlflow.set_tracking_uri(tracking_uri)
-    return mlflow.pyfunc.load_model(model_uri)
+    local = Path(download_artifacts(artifact_uri=model_uri))
+    mlmodel = local / "MLmodel"
+    info = yaml.safe_load(mlmodel.read_text(encoding="utf-8"))
+    flavor = info.get("flavors", {}).get("python_function", {})
+    changed = False
 
+    code_path = flavor.get("model_code_path")
+    if code_path:
+        flavor["model_code_path"] = re.split(r"[\\/]", code_path)[-1]
+        changed = True
+
+    for artifact in (flavor.get("artifacts") or {}).values():
+        if "path" in artifact:
+            artifact["path"] = artifact["path"].replace("\\", "/")
+            changed = True
+
+    if changed:
+        mlmodel.write_text(
+            yaml.safe_dump(info, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+    return mlflow.pyfunc.load_model(str(local))
 
 # 숫자 문자열·불리언·NaN·무한대를 거부한다.
 def validate_number(value, name):

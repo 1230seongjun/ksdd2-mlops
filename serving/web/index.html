@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DefectCatch | 품질 검사</title>
+  <title>ZeroDefect | 품질 검사</title>
 
   <style>
     :root {
@@ -14,9 +14,8 @@
       --accent: #4b8e78;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
 
     body {
       margin: 0;
@@ -32,54 +31,26 @@
       padding: 13px max(24px, calc((100% - 1500px) / 2));
     }
 
-    header strong {
-      font-size: 17px;
-      letter-spacing: .07em;
-    }
+    header strong { font-size: 17px; letter-spacing: .07em; }
+    header span { color: var(--accent); }
 
-    header span {
-      color: var(--accent);
-    }
+    main { max-width: 1500px; margin: auto; padding: 18px 24px 24px; }
 
-    main {
-      max-width: 1500px;
-      margin: auto;
-      padding: 18px 24px 24px;
-    }
+    h1 { font-size: 23px; letter-spacing: -.04em; margin: 0 0 3px; }
+    h2 { font-size: 16px; margin: 0; }
+    h3 { font-size: 13px; margin: 0 0 6px; }
 
-    h1 {
-      font-size: 23px;
-      letter-spacing: -.04em;
-      margin: 0 0 3px;
-    }
+    p { color: var(--muted); line-height: 1.45; margin: 6px 0 10px; }
 
-    h2 {
-      font-size: 16px;
-      margin: 0 0 10px;
-    }
-
-    h3 {
-      font-size: 13px;
-      margin: 0 0 6px;
-    }
-
-    p {
-      color: var(--muted);
-      line-height: 1.45;
-      margin: 6px 0 10px;
-    }
-
-    /* 이미지, 결과, 모니터링을 가로 3열로 배치 */
     .layout {
       display: grid;
-      grid-template-columns:
-        minmax(0, 1fr)
-        minmax(0, 1fr)
-        minmax(0, 1fr);
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
       gap: 16px;
       margin-top: 14px;
-      align-items: stretch;
+      align-items: start;
     }
+
+    .main-col { display: grid; gap: 16px; min-width: 0; }
 
     .card {
       min-width: 0;
@@ -90,52 +61,17 @@
       box-shadow: 0 6px 22px rgba(69, 110, 86, .06);
     }
 
-    .upload {
-      display: block;
-      padding: 10px 14px;
-      border: 1.5px dashed #bddbca;
-      border-radius: 14px;
-      background: #f8fcf8;
-    }
+    .side h2 { margin-bottom: 10px; }
 
-    input[type="file"] {
-      width: 100%;
-      max-width: 100%;
-      color: var(--muted);
-    }
-
-    input[type="file"]::file-selector-button {
-      padding: 7px 12px;
-      margin-right: 10px;
-      border: 0;
+    select {
+      padding: 8px;
+      border: 1px solid var(--line);
       border-radius: 10px;
-      background: #e5f4e9;
-      color: #356f58;
-      cursor: pointer;
-      font-weight: 700;
+      background: #f8fcf8;
+      color: var(--ink);
     }
 
-    .preview-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 150px;
-      margin-top: 10px;
-      background: #f1f8f2;
-      border-radius: 14px;
-      overflow: hidden;
-    }
-
-    #preview {
-      display: none;
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-
-    #placeholder {
-      color: #93aa9b;
-    }
+    .side select { width: 100%; margin-top: 4px; }
 
     button {
       width: 100%;
@@ -144,26 +80,28 @@
       border: 0;
       border-radius: 13px;
       background: var(--accent);
-      color: white;
+      color: #fff;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
     }
 
-    button:hover {
-      background: #397762;
-    }
+    button:hover { background: #397762; }
+    button:disabled { background: #aabdb5; cursor: not-allowed; }
 
-    button:disabled {
-      background: #aabdb5;
-      cursor: not-allowed;
-    }
+    button.secondary { background: #e5f4e9; color: #356f58; }
+    button.secondary:hover { background: #d6ecdc; }
+    button.secondary:disabled { background: #eef3ef; color: #9db1a7; }
 
-    button:focus-visible,
-    input:focus-visible {
+    button:focus-visible, select:focus-visible {
       outline: 3px solid #85b6a5;
       outline-offset: 3px;
     }
+
+    .row { display: flex; gap: 8px; }
+    .row button { margin-top: 0; }
+
+    progress { width: 100%; height: 8px; margin-top: 10px; }
 
     .status {
       padding: 11px 14px;
@@ -173,41 +111,63 @@
       font-weight: 700;
     }
 
-    .status.error {
-      background: #fff1ef;
-      color: #a43e35;
+    .status.error { background: #fff1ef; color: #a43e35; }
+
+    .hint { font-size: 12px; color: #879a90; }
+
+    #model-info {
+      padding: 8px 12px;
+      margin: 4px 0 8px;
+      border-radius: 11px;
+      background: #f3f9f3;
     }
 
-    #prediction-summary {
-      margin: 8px 0;
+    details { margin: 6px 0; font-size: 12px; color: var(--muted); }
+    details ul { margin: 6px 0 0; padding-left: 18px; }
+
+    /* 검사 결과: 제목과 결함 종류 필터 */
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
-    #prediction-summary p:not(.hint) {
+    .filter { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+
+    /* 원본 / 정보 / 박스 표시 / JSON */
+    .viewer {
+      display: grid;
+      grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .viewer canvas { display: block; max-width: 100%; height: auto; border-radius: 10px; background: #1b2523; }
+
+    .panel {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfdfb;
+    }
+
+    .panel p.row-item {
       display: flex;
       justify-content: space-between;
-      border-bottom: 1px solid var(--line);
-      padding: 5px 2px;
+      gap: 8px;
       margin: 0;
+      padding: 6px 2px;
+      border-bottom: 1px solid var(--line);
+      overflow-wrap: anywhere;
     }
 
-    #prediction-summary strong {
-      color: var(--ink);
-    }
-
-    /* API 응답과 로그는 항상 표시 */
-    .logs {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .logs p {
-      margin: 0 0 5px;
-    }
+    .panel p.row-item strong { color: var(--ink); text-align: right; }
 
     pre {
       min-height: 120px;
+      max-height: 480px;
       margin: 0;
       padding: 10px 12px;
       overflow: auto;
@@ -220,13 +180,44 @@
       overflow-wrap: anywhere;
     }
 
-    .monitor {
-      margin-top: 0;
+    /* 이미지 리스트 */
+    .list {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      padding-bottom: 8px;
+      overflow-x: auto;
     }
+
+    .thumb {
+      flex: 0 0 auto;
+      width: auto;
+      margin: 0;
+      padding: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      background: none;
+      color: var(--muted);
+      font-weight: 400;
+      line-height: 1.2;
+    }
+
+    .thumb:hover { background: #f1f8f2; border-color: var(--accent); }
+    .thumb.active { border-color: var(--ink); background: #f1f8f2; }
+    .thumb canvas { display: block; border-radius: 4px; background: #1b2523; }
+    .badge { font-size: 11px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* 모니터링은 화면 아래 전체 폭 */
+    .monitor { margin-top: 16px; }
+    .monitor h2 { margin-bottom: 10px; }
 
     .monitor-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin-top: 8px;
     }
@@ -234,79 +225,50 @@
     iframe {
       display: block;
       width: 100%;
-      height: 150px;
+      height: 200px;
       border: 0;
       border-radius: 12px;
       background: #18202d;
     }
 
-    .hint {
-      font-size: 12px;
-      color: #879a90;
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .monitor-grid { grid-template-columns: 1fr 1fr; }
     }
 
-    #model-info {
-      padding: 8px 12px;
-      margin: 4px 0 8px;
-      border-radius: 11px;
-      background: #f3f9f3;
-    }
-
-    @media (max-width: 1000px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .monitor-grid {
-        grid-template-columns: 1fr 1fr;
-      }
+    @media (max-width: 900px) {
+      .viewer { grid-template-columns: auto minmax(0, 1fr); }
     }
 
     @media (max-width: 760px) {
-      main {
-        padding: 18px 14px 28px;
-      }
-
-      .layout,
-      .monitor-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .card {
-        padding: 16px;
-      }
-
-      .logs {
-        grid-template-columns: 1fr;
-      }
-
-      iframe {
-        height: 200px;
-      }
+      main { padding: 18px 14px 28px; }
+      .card { padding: 16px; }
+      .monitor-grid { grid-template-columns: 1fr; }
+      .viewer { grid-template-columns: 1fr; }
+      .head { flex-wrap: wrap; }
     }
   </style>
 </head>
 
 <body>
   <header>
-    <strong>DEFECT<span>CATCH</span></strong>
+    <strong>ZERO<span>DEFECT</span></strong>
   </header>
 
   <main>
     <h1>제품 표면 결함 검사</h1>
     <p>이미지를 업로드하고 검사 결과와 서비스 상태를 확인하세요.</p>
+    <p id="mock-banner" class="status" hidden>
+      목업 모드입니다. API를 호출하지 않고 임의의 결과를 표시합니다.
+    </p>
 
     <div class="layout">
 
       <!-- 검사 이미지 -->
-      <section class="card">
+      <section class="card side">
         <h2>검사 이미지</h2>
 
-        <p><strong>등록된 모델 후보</strong></p>
-
-	<p id="model-info" class="hint">
-          모델 정보를 불러오는 중입니다.
-        </p>
+        <p id="model-info" class="hint">모델 정보를 불러오는 중입니다.</p>
 
         <label for="model-choice">검사 모델</label>
         <select id="model-choice">
@@ -315,361 +277,675 @@
           <option value="best_recall">검증 Recall 최고 모델</option>
         </select>
 
-        <p>
-          PNG 또는 JPEG · 가로 184px × 세로 597px 이미지를 선택하세요.
-        </p>
+        <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
 
-        <label class="upload" for="image-file">
-          <input
-            id="image-file"
-            type="file"
-            accept="image/png,image/jpeg"
-          >
-        </label>
-
-        <div class="preview-area">
-          <span id="placeholder">
-            선택한 이미지가 표시됩니다.
-          </span>
-
-          <img
-            id="preview"
-            alt="선택한 이미지 미리보기"
-          >
+        <div class="row">
+          <button id="pick-files" type="button" class="secondary">파일 선택</button>
+          <button id="pick-folder" type="button" class="secondary">이미지 폴더</button>
         </div>
 
-        <button id="inspect-button" type="button">
-          검사 시작
-        </button>
+        <input id="files" type="file" accept="image/png,image/jpeg" multiple hidden>
+        <input id="folder" type="file" webkitdirectory multiple hidden>
 
-        <p class="hint">
-          현재 더미 모델을 사용하는 경우 실제 결함 판정은 수행되지 않습니다.
-        </p>
-      </section>
+        <p id="selection-summary" class="hint">선택된 이미지가 없습니다.</p>
 
-      <!-- 검사 결과 -->
-      <section class="card">
-        <h2>검사 결과</h2>
+        <details id="skipped" hidden>
+          <summary id="skipped-summary"></summary>
+          <ul id="skipped-list"></ul>
+        </details>
 
-        <p
-          id="status"
-          class="status"
-          role="status"
-          aria-live="polite"
-        >
+        <button id="inspect-button" type="button" disabled>검사 시작</button>
+        <button id="clear-button" type="button" class="secondary">목록 비우기</button>
+        <progress id="progress" value="0" max="1" hidden></progress>
+
+        <p id="status" class="status" role="status" aria-live="polite">
           이미지를 선택해 주세요.
         </p>
-
-        <div id="prediction-summary" hidden>
-          <p>
-            이상 점수:
-            <strong id="anomaly-score">-</strong>
-          </p>
-
-          <p>
-            판정 기준값:
-            <strong id="anomaly-threshold">-</strong>
-          </p>
-
-          <p class="hint">
-            이상 점수는 불량 확률이 아닙니다.
-          </p>
-        </div>
-
-        <div class="logs">
-          <div>
-            <strong>API 응답</strong>
-            <pre id="result">아직 검사 결과가 없습니다.</pre>
-          </div>
-
-          <div>
-            <strong>검사 진행 로그</strong>
-            <pre id="activity-log" aria-live="polite"></pre>
-          </div>
-        </div>
-
-        <p class="hint">
-          진행 로그는 새로고침하면 초기화됩니다.
-        </p>
       </section>
 
-      <!-- Grafana 모니터링 -->
-      <section class="card monitor">
-        <h2>서비스 모니터링</h2>
+      <div class="main-col">
 
-        <p>
-          Prometheus가 수집한 API 지표를 Grafana 패널로 표시합니다.
-        </p>
-
-        <div class="monitor-grid">
-          <div>
-            <h3>검사 요청 수</h3>
-
-            <iframe
-              title="Grafana 검사 요청 수"
-              src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-1"
-            ></iframe>
+        <!-- 검사 결과 -->
+        <section class="card">
+          <div class="head">
+            <h2>검사 결과</h2>
+            <label class="filter">
+              결함 종류
+              <select id="type-filter"></select>
+            </label>
           </div>
 
-          <div>
-            <h3>평균 검사 요청 처리 시간</h3>
+          <p id="counts" class="hint"></p>
+          <p id="viewer-empty" class="hint">
+            이미지를 선택하면 검사 결과가 표시됩니다.
+          </p>
 
-            <iframe
-              title="Grafana 평균 검사 요청 처리 시간"
-              src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-2"
-            ></iframe>
+          <div id="viewer" class="viewer" hidden>
+            <canvas id="canvas-original" aria-label="원본 이미지"></canvas>
+
+            <div class="panel">
+              <h3>검사 결과</h3>
+              <div id="info"></div>
+              <p class="hint">이상 점수는 불량 확률이 아닙니다.</p>
+            </div>
+
+            <canvas id="canvas-boxed" aria-label="바운딩 박스가 표시된 이미지"></canvas>
+
+            <div class="panel">
+              <h3>바운딩 박스 좌표 (JSON)</h3>
+              <pre id="json"></pre>
+              <button id="save-json" type="button" class="secondary" disabled>
+                전체 결과 JSON 저장
+              </button>
+            </div>
           </div>
+        </section>
 
-	  <div>
-            <h3>API 지표 수집 상태</h3>
+        <!-- 이미지 리스트 -->
+        <section class="card">
+          <h2>이미지 리스트</h2>
+          <p class="hint">이미지를 선택하면 위에서 자세히 볼 수 있습니다.</p>
+          <p id="list-empty" class="hint">선택한 이미지가 없습니다.</p>
+          <div id="list" class="list"></div>
+        </section>
 
-            <iframe
-              title="Grafana API 지표 수집 상태"
-              src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-3"
-              width="450"
-              height="200"
-              frameborder="0"
-            ></iframe>
-          </div>
-
-          <div>
-            <h3>최근 5분 추론 요청 수</h3>
-
-            <iframe
-              title="Grafana 최근 5분 추론 요청 수"
-              src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-4"
-              width="450"
-              height="200"
-              frameborder="0"
-            ></iframe>
-          </div>
-
-          <div>
-            <h3>API 메모리 사용량</h3>
-
-            <iframe
-              title="Grafana API 메모리 사용량"
-              src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-5"
-              width="450"
-              height="200"
-              frameborder="0"
-            ></iframe>
-          </div>
-
-          <div>
-            <h3>API CPU 사용량</h3>
-
-            <iframe
-              title="Grafana API CPU 사용량"
-              src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-6"
-              width="450"
-              height="200"
-              frameborder="0"
-            ></iframe>
-          </div>
-        </div>
-        </div>
-
-        <p class="hint">
-          Grafana의 SSH 터널과 로그인이 필요합니다.
-          표시되는 지표는 Grafana 설정에 따라 달라집니다.
-        </p>
-      </section>
-
+      </div>
     </div>
+
+    <!-- Grafana 모니터링 -->
+    <section class="card monitor">
+      <h2>모니터링 데이터</h2>
+      <p>Prometheus가 수집한 API 지표를 Grafana 패널로 표시합니다.</p>
+
+      <div class="monitor-grid">
+        <div>
+          <h3>검사 요청 수</h3>
+          <iframe title="Grafana 검사 요청 수"
+            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-1"></iframe>
+        </div>
+        <div>
+          <h3>평균 검사 요청 처리 시간</h3>
+          <iframe title="Grafana 평균 검사 요청 처리 시간"
+            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-2"></iframe>
+        </div>
+        <div>
+          <h3>API 지표 수집 상태</h3>
+          <iframe title="Grafana API 지표 수집 상태"
+            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-3"></iframe>
+        </div>
+        <div>
+          <h3>최근 5분 추론 요청 수</h3>
+          <iframe title="Grafana 최근 5분 추론 요청 수"
+            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-4"></iframe>
+        </div>
+        <div>
+          <h3>API 메모리 사용량</h3>
+          <iframe title="Grafana API 메모리 사용량"
+            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-5"></iframe>
+        </div>
+        <div>
+          <h3>API CPU 사용량</h3>
+          <iframe title="Grafana API CPU 사용량"
+            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-6"></iframe>
+        </div>
+      </div>
+
+      <p class="hint">패널이 보이지 않으면 /grafana/ 에서 먼저 로그인해 주세요.</p>
+    </section>
   </main>
 
   <script>
-    const modelInfo = document.getElementById("model-info");
-    const modelChoice = document.getElementById("model-choice");
-    const input = document.getElementById("image-file");
-    const preview = document.getElementById("preview");
-    const placeholder = document.getElementById("placeholder");
-    const button = document.getElementById("inspect-button");
-    const status = document.getElementById("status");
-    const result = document.getElementById("result");
-    const predictionSummary = document.getElementById("prediction-summary");
-    const anomalyScore = document.getElementById("anomaly-score");
-    const anomalyThreshold = document.getElementById("anomaly-threshold");
-    const activityLog = document.getElementById("activity-log");
+  (() => {
+    "use strict";
 
-    let previewUrl = null;
+    const MOCK = new URLSearchParams(location.search).has("mock");
+    const WIDTH = 184;
+    const HEIGHT = 597;
+    const MAX_BYTES = 5 * 1024 * 1024;
+    const CONCURRENCY = 3;
+    const THUMB_SCALE = 0.3;
+    const IMAGE_TYPES = ["image/png", "image/jpeg"];
 
-    function showPredictionSummary(data) {
+    const TYPES = [
+      { id: "brown", label: "갈적색결함" },
+      { id: "black", label: "흑색결함" },
+      { id: "blue", label: "청색결함" },
+      { id: "surface", label: "표면결함" }
+    ];
+    const BUCKETS = [...TYPES, { id: "normal", label: "정상" }];
+    const FILTERS = [
+      { id: "all", label: "전체" },
+      ...BUCKETS,
+      { id: "pending", label: "미검사/실패" }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+
+    let items = [];      // 검사 대상: { key, file, state, reason, data, bucket, canvas, badge, btn }
+    let skipped = [];    // 제외된 파일: { key, reason }
+    let ignored = 0;     // 이미지가 아니라 무시한 파일 수
+    let running = false;
+    let selected = null;
+    let renderToken = 0;
+
+    function setStatus(message, isError = false) {
+      $("status").textContent = message;
+      $("status").classList.toggle("error", isError);
+    }
+
+    async function pool(list, limit, fn) {
+      let next = 0;
+      const worker = async () => {
+        while (next < list.length) {
+          await fn(list[next++]);
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(limit, list.length) }, worker)
+      );
+    }
+
+    const bucketLabel = (id) => BUCKETS.find((b) => b.id === id)?.label ?? "유형 없음";
+
+    // ---------- 그리기 ----------
+    function paint(canvas, bitmap, scale, boxes) {
+      canvas.width = Math.round(WIDTH * scale);
+      canvas.height = Math.round(HEIGHT * scale);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+      for (const b of boxes) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(0, 0, 0, .6)";
+        ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#ffffff";
+        ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
+      }
+    }
+
+    async function drawThumb(item) {
+      const bitmap = await createImageBitmap(item.file);
+      paint(item.canvas, bitmap, THUMB_SCALE, item.state === "done" ? item.data.boxes : []);
+      bitmap.close();
+    }
+
+    function updateBadge(item) {
+      const text = {
+        ready: "대기",
+        running: "검사 중",
+        error: "실패"
+      }[item.state];
+
+      item.badge.textContent = item.state === "done" ? bucketLabel(item.bucket) : text;
+    }
+
+    // ---------- 상세 보기 ----------
+    function infoRows(item) {
+      if (item.state === "done") {
+        const d = item.data;
+        return [
+          ["파일", item.key],
+          ["결함 여부", d.is_anomaly ? "불량 의심" : "정상"],
+          ["결함 유형", d.is_anomaly ? bucketLabel(item.bucket) : "-"],
+          ["이상 점수", d.anomaly_score.toFixed(4)],
+          ["판정 기준값", d.threshold.toFixed(4)],
+          ["박스 수", String(d.boxes.length)]
+        ];
+      }
+
+      const state = {
+        ready: "검사 전",
+        running: "검사 중",
+        error: `실패: ${item.reason}`
+      }[item.state];
+
+      return [["파일", item.key], ["결함 여부", state]];
+    }
+
+    async function renderViewer() {
+      const item = selected;
+      const token = ++renderToken;
+
+      $("viewer-empty").hidden = Boolean(item);
+      $("viewer").hidden = !item;
+      if (!item) return;
+
+      $("info").replaceChildren(
+        ...infoRows(item).map(([label, value]) => {
+          const p = document.createElement("p");
+          const strong = document.createElement("strong");
+          p.className = "row-item";
+          strong.textContent = value;
+          p.append(`${label}`, strong);
+          return p;
+        })
+      );
+
+      $("json").textContent = item.state === "done"
+        ? JSON.stringify(item.data, null, 2)
+        : item.state === "error" ? item.reason : "검사 후 표시됩니다.";
+
+      const bitmap = await createImageBitmap(item.file);
+      if (token !== renderToken) {
+        bitmap.close();
+        return;
+      }
+
+      paint($("canvas-original"), bitmap, 1, []);
+      paint($("canvas-boxed"), bitmap, 1, item.state === "done" ? item.data.boxes : []);
+      bitmap.close();
+    }
+
+    function select(item) {
+      selected?.btn.classList.remove("active");
+      selected = item;
+      item?.btn.classList.add("active");
+      renderViewer();
+    }
+
+    // ---------- 리스트와 필터 ----------
+    function matches(item, filter) {
+      if (filter === "all") return true;
+      if (filter === "pending") return item.state !== "done";
+      return item.state === "done" && item.bucket === filter;
+    }
+
+    function applyFilter() {
+      const filter = $("type-filter").value;
+      let shown = 0;
+
+      for (const item of items) {
+        const ok = matches(item, filter);
+        item.btn.hidden = !ok;
+        if (ok) shown += 1;
+      }
+
+      $("list-empty").hidden = shown > 0;
+      $("list-empty").textContent = items.length
+        ? "해당 종류의 이미지가 없습니다."
+        : "선택한 이미지가 없습니다.";
+    }
+
+    function buildFilter() {
+      for (const f of FILTERS) {
+        const option = document.createElement("option");
+        option.value = f.id;
+        option.textContent = f.label;
+        $("type-filter").append(option);
+      }
+      $("type-filter").addEventListener("change", applyFilter);
+    }
+
+    function renderCounts() {
+      const done = items.filter((i) => i.state === "done");
+      const defect = done.filter((i) => i.data.is_anomaly).length;
+      const errors = items.filter((i) => i.state === "error").length;
+
+      $("counts").textContent = done.length || errors
+        ? `완료 ${done.length}/${items.length} · 불량 ${defect} · 정상 ${done.length - defect} · 실패 ${errors}`
+        : "";
+
+      for (const option of $("type-filter").options) {
+        const n = items.filter((i) => matches(i, option.value)).length;
+        const label = FILTERS.find((f) => f.id === option.value).label;
+        option.textContent = `${label} (${n})`;
+      }
+
+      $("save-json").disabled = done.length === 0;
+    }
+
+    function renderSummary() {
+      const parts = [];
+
+      if (!items.length && !skipped.length) {
+        parts.push("선택된 이미지가 없습니다.");
+      } else {
+        parts.push(`검사 대상 ${items.length}장`);
+        if (skipped.length) parts.push(`제외 ${skipped.length}장`);
+      }
+      if (ignored) parts.push(`이미지가 아닌 파일 ${ignored}개 무시`);
+
+      $("selection-summary").textContent = parts.join(" · ");
+
+      $("skipped").hidden = skipped.length === 0;
+      $("skipped-summary").textContent = `제외된 파일 (${skipped.length})`;
+      $("skipped-list").replaceChildren(
+        ...skipped.slice(0, 30).map((s) => {
+          const li = document.createElement("li");
+          li.textContent = `${s.key} — ${s.reason}`;
+          return li;
+        })
+      );
+      if (skipped.length > 30) {
+        const li = document.createElement("li");
+        li.textContent = `외 ${skipped.length - 30}개`;
+        $("skipped-list").append(li);
+      }
+    }
+
+    function syncControls() {
+      const pending = items.some((i) => i.state === "ready" || i.state === "error");
+
+      $("inspect-button").disabled = running || !pending;
+      $("inspect-button").textContent = running ? "검사 중..." : "검사 시작";
+
+      for (const id of ["pick-files", "pick-folder", "clear-button", "model-choice"]) {
+        $(id).disabled = running;
+      }
+    }
+
+    // ---------- 파일 추가 ----------
+    function makeItem(file, key) {
+      const item = { key, file, state: "ready", reason: "", data: null, bucket: null };
+
+      item.canvas = document.createElement("canvas");
+      item.badge = document.createElement("span");
+      item.badge.className = "badge";
+      item.badge.textContent = "대기";
+
+      item.btn = document.createElement("button");
+      item.btn.type = "button";
+      item.btn.className = "thumb";
+      item.btn.title = key;
+      item.btn.setAttribute("aria-label", `${key} 보기`);
+      item.btn.append(item.canvas, item.badge);
+      item.btn.addEventListener("click", () => select(item));
+
+      return item;
+    }
+
+    async function checkImage(item) {
+      if (item.file.size > MAX_BYTES) throw new Error("5MB 초과");
+
+      let bitmap;
+      try {
+        bitmap = await createImageBitmap(item.file);
+      } catch {
+        throw new Error("읽을 수 없는 이미지");
+      }
+
+      try {
+        if (bitmap.width !== WIDTH || bitmap.height !== HEIGHT) {
+          throw new Error(`크기 ${bitmap.width}×${bitmap.height} (184×597만 가능)`);
+        }
+        paint(item.canvas, bitmap, THUMB_SCALE, []);
+      } finally {
+        bitmap.close();
+      }
+    }
+
+    async function addFiles(files) {
+      if (running) {
+        setStatus("검사 중에는 파일을 추가할 수 없습니다.", true);
+        return;
+      }
+
+      const known = new Set([...items, ...skipped].map((i) => i.key));
+      const fresh = [];
+
+      for (const file of files) {
+        if (!IMAGE_TYPES.includes(file.type)) {
+          ignored += 1;
+          continue;
+        }
+
+        const key = file.webkitRelativePath || file.name;
+        if (known.has(key)) continue;
+
+        known.add(key);
+        fresh.push(makeItem(file, key));
+      }
+
+      setStatus("이미지를 확인하고 있습니다.");
+
+      await pool(fresh, 8, async (item) => {
+        try {
+          await checkImage(item);
+          items.push(item);
+        } catch (error) {
+          skipped.push({ key: item.key, reason: error.message });
+        }
+      });
+
+      items.sort((a, b) => a.key.localeCompare(b.key));
+      $("list").replaceChildren(...items.map((i) => i.btn));
+
+      renderSummary();
+      renderCounts();
+      applyFilter();
+      syncControls();
+
+      if (!selected && items.length) select(items[0]);
+
+      if (items.length) {
+        setStatus("이미지를 선택했습니다. 검사 시작을 눌러주세요.");
+      } else {
+        setStatus("검사할 수 있는 이미지가 없습니다.", true);
+      }
+    }
+
+    function clearAll() {
+      if (running) return;
+
+      items = [];
+      skipped = [];
+      ignored = 0;
+
+      $("list").replaceChildren();
+      $("progress").hidden = true;
+      $("type-filter").value = "all";
+
+      select(null);
+      renderSummary();
+      renderCounts();
+      applyFilter();
+      syncControls();
+      setStatus("이미지를 선택해 주세요.");
+    }
+
+    // ---------- 검사 ----------
+    function normalize(data) {
       if (
+        typeof data.is_anomaly !== "boolean" ||
         !Number.isFinite(data.anomaly_score) ||
         !Number.isFinite(data.threshold)
       ) {
-        throw new Error(
-          "API 응답의 점수 또는 기준값이 올바르지 않습니다."
-        );
+        throw new Error("API 응답 형식이 올바르지 않습니다.");
       }
 
-      anomalyScore.textContent = data.anomaly_score.toFixed(4);
-      anomalyThreshold.textContent = data.threshold.toFixed(4);
-      predictionSummary.hidden = false;
+      const boxes = (Array.isArray(data.boxes) ? data.boxes : []).filter(
+        (b) => [b.x, b.y, b.w, b.h].every(Number.isFinite)
+      );
+
+      return { ...data, boxes };
     }
 
-    function clearPredictionSummary() {
-      predictionSummary.hidden = true;
-      anomalyScore.textContent = "-";
-      anomalyThreshold.textContent = "-";
+    function bucketOf(data) {
+      if (!data.is_anomaly) return "normal";
+      return TYPES.some((t) => t.id === data.defect_type) ? data.defect_type : "untyped";
     }
 
-    function setStatus(message, isError = false) {
-      status.textContent = message;
-      status.classList.toggle("error", isError);
+    // 목업: 모델이 위치와 유형을 반환하기 전까지 화면 개발에 사용
+    function mockPredict(file) {
+      const rand = (n) => Math.floor(Math.random() * n);
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const threshold = 0.62;
+          const anomaly = Math.random() < 0.7;
+          const score = anomaly
+            ? threshold + Math.random() * 0.35
+            : Math.random() * threshold;
+          const type = anomaly ? TYPES[rand(TYPES.length)].id : null;
+
+          const boxes = [];
+          for (let n = anomaly ? 1 + rand(3) : 0; n > 0; n -= 1) {
+            const w = 10 + rand(100);
+            const h = 10 + rand(200);
+            boxes.push({
+              x: rand(WIDTH - w),
+              y: rand(HEIGHT - h),
+              w,
+              h,
+              score: Number((0.5 + Math.random() * 0.5).toFixed(3))
+            });
+          }
+
+          resolve({
+            filename: file.name,
+            model_name: "mock",
+            prediction: anomaly ? "defect" : "normal",
+            anomaly_score: score,
+            threshold,
+            is_anomaly: anomaly,
+            defect_type: type,
+            boxes
+          });
+        }, 150 + Math.random() * 250);
+      });
     }
 
-    function log(message) {
-      const time = new Date().toLocaleTimeString("ko-KR");
+    async function predict(file, choice) {
+      if (MOCK) return normalize(await mockPredict(file));
 
-      activityLog.textContent += `[${time}] ${message}\n`;
-      activityLog.scrollTop = activityLog.scrollHeight;
+      const form = new FormData();
+      form.append("file", file);
+      form.append("model_choice", choice);
+
+      const response = await fetch("/api/predict", { method: "POST", body: form });
+      const body = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${body.slice(0, 200)}`);
+      }
+      return normalize(JSON.parse(body));
     }
 
-    log("검사 화면이 준비되었습니다.");
+    async function inspectAll() {
+      const targets = items.filter((i) => i.state === "ready" || i.state === "error");
+      if (running || !targets.length) return;
 
-    async function loadModelInfo() {
-      try {
-        const response = await fetch("/api/models");
+      const choice = $("model-choice").value;
+      let finished = 0;
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+      running = true;
+      syncControls();
+
+      $("progress").max = targets.length;
+      $("progress").value = 0;
+      $("progress").hidden = false;
+      setStatus(`검사 중입니다. (0/${targets.length})`);
+
+      await pool(targets, CONCURRENCY, async (item) => {
+        item.state = "running";
+        updateBadge(item);
+
+        try {
+          item.data = await predict(item.file, choice);
+          item.bucket = bucketOf(item.data);
+          item.state = "done";
+        } catch (error) {
+          item.state = "error";
+          item.reason = error.message;
         }
 
-        const data = await response.json();
+        updateBadge(item);
 
-        if (
-          !data.latest ||
-          !data.best_recall ||
-          !Number.isFinite(data.best_recall.recall)
-        ) {
+        if (item.state === "done") {
+          try {
+            await drawThumb(item);
+          } catch {
+            // 썸네일 갱신 실패는 결과 표시에 영향을 주지 않는다.
+          }
+        }
+
+        if (item === selected) renderViewer();
+
+        finished += 1;
+        $("progress").value = finished;
+        setStatus(`검사 중입니다. (${finished}/${targets.length})`);
+        renderCounts();
+        applyFilter();
+      });
+
+      running = false;
+      syncControls();
+
+      const failed = targets.filter((i) => i.state === "error").length;
+      if (failed) {
+        setStatus(`검사 완료: ${failed}장 실패. 검사 시작을 다시 누르면 실패한 이미지만 재시도합니다.`, true);
+      } else {
+        setStatus("검사 완료");
+      }
+    }
+
+    function saveJson() {
+      const results = items
+        .filter((i) => i.state === "done")
+        .map((i) => ({ file: i.key, ...i.data }));
+      if (!results.length) return;
+
+      const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+
+      link.href = URL.createObjectURL(blob);
+      link.download = "zerodefect_results.json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    }
+
+    // ---------- 모델 정보 ----------
+    async function loadModelInfo() {
+      if (MOCK) {
+        $("model-info").textContent = "목업 모드: 실제 모델을 호출하지 않습니다.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/models");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data.latest || !data.best_recall || !Number.isFinite(data.best_recall.recall)) {
           throw new Error("모델 후보 응답이 올바르지 않습니다.");
         }
 
-        modelInfo.textContent =
-          `최신: v${data.latest.version} / ` +
-          `최고 Recall: v${data.best_recall.version} ` +
-          `(Recall ${data.best_recall.recall.toFixed(4)}) ` +
-          `· 추론 연결 준비 중`;
-
-      } catch (error) {
-        modelInfo.textContent = "모델 후보를 불러오지 못했습니다.";
-        log(`모델 후보 조회 실패: ${error.message}`);
+        $("model-info").textContent =
+          `최신 v${data.latest.version} · ` +
+          `최고 Recall v${data.best_recall.version} ` +
+          `(Recall ${data.best_recall.recall.toFixed(4)})`;
+      } catch {
+        $("model-info").textContent = "모델 후보를 불러오지 못했습니다.";
       }
     }
 
+    // ---------- 시작 ----------
+    $("pick-files").addEventListener("click", () => $("files").click());
+    $("pick-folder").addEventListener("click", () => $("folder").click());
+
+    for (const id of ["files", "folder"]) {
+      $(id).addEventListener("change", async (event) => {
+        const list = Array.from(event.target.files);
+        event.target.value = "";
+        await addFiles(list);
+      });
+    }
+
+    $("inspect-button").addEventListener("click", inspectAll);
+    $("clear-button").addEventListener("click", clearAll);
+    $("save-json").addEventListener("click", saveJson);
+
+    $("mock-banner").hidden = !MOCK;
+    buildFilter();
+    renderSummary();
+    renderCounts();
+    applyFilter();
+    syncControls();
+    renderViewer();
     loadModelInfo();
-
-    // 이미지를 선택하면 미리보기를 표시한다.
-    input.addEventListener("change", () => {
-      clearPredictionSummary();
-
-      const file = input.files[0];
-
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-
-      previewUrl = null;
-      preview.removeAttribute("src");
-      preview.style.display = "none";
-      placeholder.style.display = "block";
-      result.textContent = "아직 검사 결과가 없습니다.";
-
-      if (!file) {
-        setStatus("이미지를 선택해 주세요.");
-        return;
-      }
-
-      if (!["image/png", "image/jpeg"].includes(file.type)) {
-        setStatus("PNG 또는 JPEG 이미지를 선택해 주세요.", true);
-        log("지원하지 않는 파일 형식입니다.");
-        return;
-      }
-
-      previewUrl = URL.createObjectURL(file);
-      preview.src = previewUrl;
-      preview.style.display = "block";
-      placeholder.style.display = "none";
-
-      setStatus("이미지를 선택했습니다. 검사 시작을 눌러주세요.");
-      log(`이미지 선택: ${file.name}`);
-    });
-
-    // 검사 버튼을 누르면 이미지를 FastAPI로 전송한다.
-    button.addEventListener("click", async () => {
-      clearPredictionSummary();
-
-      const file = input.files[0];
-
-      if (!file || !["image/png", "image/jpeg"].includes(file.type)) {
-        setStatus("PNG 또는 JPEG 이미지를 선택해 주세요.", true);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("model_choice", modelChoice.value);
-
-      button.disabled = true;
-      button.textContent = "요청 중...";
-      result.textContent = "API 응답을 기다리는 중입니다.";
-
-      setStatus("검사 요청을 처리하고 있습니다.");
-      log(`검사 요청 시작: ${file.name}`);
-
-      try {
-        const response = await fetch("/api/predict", {
-          method: "POST",
-          body: formData
-        });
-
-        const body = await response.text();
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${body}`);
-        }
-
-        const data = JSON.parse(body);
-        result.textContent = JSON.stringify(data, null, 2);
-
-        if (data.prediction === "not_evaluated") {
-          setStatus(
-            "요청 완료: 현재 모델은 실제 판정을 수행하지 않습니다."
-          );
-
-          log("더미 모델 응답을 받았습니다.");
-
-        } else if (data.is_anomaly === true) {
-          showPredictionSummary(data);
-          setStatus("검사 완료: 불량 의심");
-          log("모델 판정: 이상이 감지되었습니다.");
-
-        } else if (data.is_anomaly === false) {
-          showPredictionSummary(data);
-          setStatus("검사 완료: 정상");
-          log("모델 판정: 정상입니다.");
-
-        } else {
-          throw new Error(
-            "API 응답에 정상·불량 판정값이 없습니다."
-          );
-        }
-
-      } catch (error) {
-        clearPredictionSummary();
-
-        result.textContent = "결과를 가져오지 못했습니다.";
-        setStatus(`요청 실패: ${error.message}`, true);
-        log(`요청 실패: ${error.message}`);
-
-      } finally {
-        button.disabled = false;
-        button.textContent = "검사 시작";
-      }
-    });
+  })();
   </script>
 </body>
 </html>
