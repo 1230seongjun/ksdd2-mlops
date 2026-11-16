@@ -28,16 +28,17 @@ from prometheus_client import (
 from starlette.concurrency import run_in_threadpool
 
 from model_service import (
-    classify_defect,
     get_model_candidates,
     load_model,
-    predict_tensor_image,
+    run_model,
     select_best_recall_candidate,
     select_latest_candidate,
 )
 
 
+logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 MLFLOW_TRACKING_URI = os.getenv(
     "MLFLOW_TRACKING_URI",
@@ -51,8 +52,13 @@ CLASSIFIER_MODEL_URI = os.getenv("CLASSIFIER_MODEL_URI", "").strip()
 
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
+DETECTOR_CONTRACT = "tensor_v1"
+CLASSIFIER_CONTRACT = "classifier_v1"
+
 
 async def load_classifier(app: FastAPI):
+    started = time.perf_counter()
+
     try:
         app.state.classifier = await run_in_threadpool(
             load_model,
@@ -60,7 +66,11 @@ async def load_classifier(app: FastAPI):
             CLASSIFIER_MODEL_URI
         )
 
-        logger.info("Classifier loaded: %s", CLASSIFIER_MODEL_URI)
+        logger.info(
+            "Classifier loaded: %s (%.0fs)",
+            CLASSIFIER_MODEL_URI,
+            time.perf_counter() - started
+        )
 
     except Exception:
         logger.exception("Classifier loading failed")
@@ -71,6 +81,7 @@ async def lifespan(app: FastAPI):
 
     app.state.model = None
     app.state.classifier = None
+    started = time.perf_counter()
 
     try:
         app.state.model = load_model(
@@ -78,7 +89,11 @@ async def lifespan(app: FastAPI):
             MODEL_URI
         )
 
-        logger.info("Model loaded: %s", MODEL_URI)
+        logger.info(
+            "Model loaded: %s (%.0fs)",
+            MODEL_URI,
+            time.perf_counter() - started
+        )
 
     except Exception:
         # API 서버 자체는 실행 유지
@@ -315,8 +330,9 @@ async def predict(
 
     try:
         result = await run_in_threadpool(
-            predict_tensor_image,
+            run_model,
             selected_model,
+            DETECTOR_CONTRACT,
             data,
         )
     except Exception:
@@ -339,8 +355,9 @@ async def predict(
     if result["is_anomaly"] and app.state.classifier is not None:
         try:
             defect = await run_in_threadpool(
-                classify_defect,
+                run_model,
                 app.state.classifier,
+                CLASSIFIER_CONTRACT,
                 data,
             )
         except Exception:

@@ -3,10 +3,12 @@ import re
 import sys
 import threading
 import yaml
+from dataclasses import dataclass
 from functools import lru_cache
 from numbers import Real
 from io import BytesIO
 from pathlib import Path
+from typing import Callable
 from mlflow import MlflowClient
 
 import numpy as np
@@ -141,11 +143,6 @@ def validate_tensor_prediction(result):
 
     return validate_prediction(normalized)
 
-def predict_tensor_image(model, image_bytes):
-    model_input = build_tensor_input(image_bytes)
-    result = model.predict(model_input)
-    return validate_tensor_prediction(result)
-
 # 분류 모델의 색 이름을 화면의 결함 종류 id로 바꾼다. 청색은 하나로 합친다.
 DEFECT_TYPES = {
     "갈적색결함": "brown",
@@ -156,9 +153,7 @@ DEFECT_TYPES = {
 }
 
 
-def classify_defect(model, image_bytes):
-    result = model.predict(build_tensor_input(image_bytes))
-
+def parse_classification(result):
     if not isinstance(result, pd.DataFrame) or len(result) != 1:
         raise ValueError("분류 모델 출력이 올바르지 않습니다.")
 
@@ -172,6 +167,25 @@ def classify_defect(model, image_bytes):
         "defect_type": defect_type,
         "defect_subtype": color if defect_type else None,
     }
+
+
+# 모델이 약속한 입력·출력 형식(계약)별로 입력 만들기와 출력 해석을 묶는다.
+@dataclass(frozen=True)
+class Contract:
+    kind: str
+    prepare: Callable
+    parse: Callable
+
+
+CONTRACTS = {
+    "tensor_v1": Contract("detector", build_tensor_input, validate_tensor_prediction),
+    "classifier_v1": Contract("classifier", build_tensor_input, parse_classification),
+}
+
+
+def run_model(model, contract_name, image_bytes):
+    contract = CONTRACTS[contract_name]
+    return contract.parse(model.predict(contract.prepare(image_bytes)))
 
 
 def get_model_candidates(tracking_uri, model_name):
