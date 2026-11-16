@@ -272,9 +272,7 @@
 
         <label for="model-choice">검사 모델</label>
         <select id="model-choice">
-          <option value="current">현재 모델</option>
-          <option value="latest">최신 등록 모델</option>
-          <option value="best_recall">검증 Recall 최고 모델</option>
+          <option value="champion">운영 모델</option>
         </select>
 
         <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
@@ -897,6 +895,10 @@
     }
 
     // ---------- 모델 정보 ----------
+    function describeModel(uri) {
+      return uri.replace(/^models:\//, "").replace(/\/(\d+)$/, " v$1");
+    }
+
     async function loadModelInfo() {
       if (MOCK) {
         $("model-info").textContent = "목업 모드: 실제 모델을 호출하지 않습니다.";
@@ -908,16 +910,40 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        if (!data.latest || !data.best_recall || !Number.isFinite(data.best_recall.recall)) {
-          throw new Error("모델 후보 응답이 올바르지 않습니다.");
+        if (!Array.isArray(data.models) || !data.models.length) {
+          throw new Error("모델 목록 응답이 올바르지 않습니다.");
         }
 
-        $("model-info").textContent =
-          `최신 v${data.latest.version} · ` +
-          `최고 Recall v${data.best_recall.version} ` +
-          `(Recall ${data.best_recall.recall.toFixed(4)})`;
+        const select = $("model-choice");
+        const previous = select.value;
+        const notes = { loading: " (준비 중)", failed: " (불러오기 실패)" };
+
+        select.replaceChildren(...data.models.map((model) => {
+          const option = document.createElement("option");
+
+          option.value = model.id;
+          option.textContent = model.label + (notes[model.status] || "");
+          option.disabled = model.status !== "ready";
+          return option;
+        }));
+
+        if (data.models.some((m) => m.id === previous && m.status === "ready")) {
+          select.value = previous;
+        }
+
+        $("model-info").textContent = data.models.map((model) => {
+          const classifier = model.classifier_name
+            ? ` + ${describeModel(model.classifier_name)}`
+            : "";
+
+          return `${model.label}: ${describeModel(model.model_name)}${classifier}`;
+        }).join(" / ");
+
+        if (data.models.some((m) => m.status === "loading")) {
+          setTimeout(loadModelInfo, 5000);
+        }
       } catch {
-        $("model-info").textContent = "모델 후보를 불러오지 못했습니다.";
+        $("model-info").textContent = "모델 목록을 불러오지 못했습니다.";
       }
     }
 

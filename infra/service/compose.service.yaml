@@ -9,6 +9,8 @@ services:
       MLFLOW_TRACKING_URI: "${MLFLOW_TRACKING_URI:?MLFLOW_TRACKING_URI is not set in .env}"
       MODEL_URI: "models:/Zero-Defects/2"
       CLASSIFIER_MODEL_URI: "models:/Zero-Defects-Classifier/1"
+      CHALLENGER_MODEL_URI: ""
+      CHALLENGER_CLASSIFIER_MODEL_URI: ""
 
     networks:
       - default
