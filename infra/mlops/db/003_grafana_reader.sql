@@ -25,10 +25,17 @@ GRANT CONNECT ON DATABASE inference TO grafana_reader;
 -- public 스키마 접근 권한
 GRANT USAGE ON SCHEMA public TO grafana_reader;
 
--- 기존 테이블 조회 권한
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana_reader;
+-- 기존에 부여한 전체 테이블 조회 권한 제거
+REVOKE SELECT ON ALL TABLES IN SCHEMA public
+FROM grafana_reader;
 
--- 향후 mlflow 계정이 만드는 테이블에도 조회 권한 부여
+-- 추론 관련 테이블 3개만 조회 허용
+GRANT SELECT ON TABLE
+    public.inference_requests,
+    public.detector_results,
+    public.classifier_results
+TO grafana_reader;
+
+-- 향후 생성되는 테이블에 대한 자동 조회 권한 제거
 ALTER DEFAULT PRIVILEGES FOR ROLE mlflow IN SCHEMA public
-    GRANT SELECT ON TABLES TO grafana_reader;
-
+    REVOKE SELECT ON TABLES FROM grafana_reader;
