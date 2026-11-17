@@ -9,3 +9,4 @@ PyYAML
 cloudpickle==3.1.2
 segmentation-models-pytorch==0.6.0
 psycopg[binary]==3.2.9
+pwdlib[argon2]

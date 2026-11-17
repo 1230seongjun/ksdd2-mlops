@@ -1,398 +1,144 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZeroDefect | 품질 검사</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ZeroDefect | 품질 검사</title>
+<style>
+:root{--blue:#2563eb;--ink:#202b3c;--muted:#697586;--line:#dde3eb;--bg:#f3f5f8}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;color:var(--ink);background:var(--bg);font:14px/1.55 Arial,"Noto Sans KR","Malgun Gothic",sans-serif}header{height:64px;padding:0 28px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:20px}header strong{font-size:21px;letter-spacing:-.6px}header strong span{color:var(--blue)}header:after{content:"검사 관리 콘솔";color:var(--muted);font-size:13px;border-left:1px solid var(--line);padding-left:20px}main{max-width:1920px;margin:auto;padding:24px}h1{font-size:24px;margin:0 0 4px;letter-spacing:-.7px}h2{font-size:16px;margin:0 0 14px}h3{font-size:14px;margin:0 0 10px}p{margin:8px 0}button,input,select{font:inherit}button{border:1px solid var(--blue);border-radius:4px;background:var(--blue);color:white;padding:9px 14px;cursor:pointer;font-weight:600}button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.45;cursor:not-allowed}button.secondary,#logout-button,#clear-button{background:white;color:var(--ink);border-color:var(--line)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}input,select{max-width:100%;border:1px solid #cdd5df;border-radius:4px;padding:9px;background:white;color:var(--ink)}label{display:block;font-size:13px;font-weight:600;margin:8px 0 4px}.hint,.status,#selection-summary{color:var(--muted);font-size:12px;overflow-wrap:anywhere}.error{color:#b42318!important}.card{background:white;border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}.layout{display:grid;grid-template-columns:minmax(250px,24fr) minmax(380px,53fr) minmax(240px,23fr);gap:16px;margin-top:22px;align-items:start}.row,.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{flex:1}.side #model-choice{width:100%}.side #inspect-button{width:100%;margin-top:8px}.side #clear-button{width:100%;margin-top:8px}.side>p:not([id]){font-size:12px;color:var(--muted)}#status{padding:10px;background:#f4f7fc;border-radius:4px}progress{width:100%;height:6px;accent-color:var(--blue)}.list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow:auto;margin-top:12px}.thumb{width:100%;min-height:78px;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;background:white;color:var(--ink);border:1px solid var(--line);text-align:left;padding:8px;font-weight:400}.thumb.active{border-color:var(--blue);background:#edf3ff;box-shadow:inset 3px 0 var(--blue)}.thumb canvas{width:20px;height:65px;object-fit:contain}.filename{overflow-wrap:anywhere;font-size:12px}.badge{font-size:11px;background:#eef1f5;padding:3px 6px;border-radius:3px;white-space:nowrap}.thumb[data-result="normal"] .badge{background:#e9f7ef;color:#157347}.thumb[data-result="defect"] .badge{background:#fff0ed;color:#b42318}.filter{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}.filter select{width:100%;margin-top:5px}.viewer{height:670px;overflow:auto;background:#e9edf2;border:1px solid var(--line);display:flex;align-items:flex-start;padding:20px;margin-top:12px}.viewer canvas{display:block;margin:auto;flex-shrink:0;max-width:none;box-shadow:0 2px 8px #0002}.toolbar button{padding:6px 10px;background:white;color:var(--ink);border-color:var(--line)}.toolbar label{margin:0;font-weight:400}#viewer-empty{height:670px;display:grid;place-items:center;background:#f6f8fb;border:1px dashed #cdd5df;padding:30px;text-align:center}.row-item{display:flex;flex-direction:column;gap:3px;padding:11px 0;border-bottom:1px solid #eef1f5;color:var(--muted);font-size:12px}.row-item strong{color:var(--ink);font-size:14px;overflow-wrap:anywhere;font-weight:500}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8fb;border:1px solid var(--line);border-radius:4px;padding:12px;font-size:11px;max-height:260px;overflow:auto}.panel+.panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}#save-json{width:100%}#counts{padding:10px 0;font-size:13px;color:var(--ink)}.history{margin-top:18px;overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th{text-align:left;background:#f5f7fa;font-weight:600}td,th{padding:12px 16px;border-bottom:1px solid var(--line)}tbody tr:hover{background:#f8faff}#load-history{float:right;margin-top:-40px}.monitor{margin-top:18px}.monitor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}iframe{width:100%;height:240px;border:1px solid var(--line)}#logout-button{float:right}#logout-status{clear:right;text-align:right}#invite-form{border:1px solid var(--line);border-radius:6px;background:white;padding:16px;margin:20px 0;display:grid;grid-template-columns:160px minmax(160px,1fr) auto;gap:8px;align-items:center}#invite-form label{margin:0}#invite-link{grid-column:2/4}#invite-status{grid-column:1/-1;margin:0}#login-form,#register-form{max-width:420px;margin:90px auto;background:white;border:1px solid var(--line);padding:32px;border-radius:6px}#login-form input,#register-form input{width:100%;margin-bottom:12px}#login-form button,#register-form button{width:100%;margin-top:12px}#login-form h2,#register-form h2{font-size:23px;margin-bottom:25px}#mock-banner{background:#fff3d6;color:#805900;padding:10px}#selected-name{overflow-wrap:anywhere;color:var(--muted);font-size:12px;min-height:20px}#download-image{width:100%;margin-top:8px}.list-title{margin-top:20px}.monitor>p{color:var(--muted)}@media(min-width:1700px){.viewer,#viewer-empty{height:760px}}@media(max-width:1150px){.layout{grid-template-columns:270px minmax(0,1fr)}.result-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel+.panel{border:0;margin:0;padding:0}.monitor-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){main{padding:12px}header{padding:0 16px}.layout{grid-template-columns:1fr}.result-panel{display:block}.viewer,#viewer-empty{height:580px}.list{max-height:240px}.monitor-grid{grid-template-columns:1fr}#invite-form{display:block}#invite-form input{width:100%;margin-bottom:8px}#load-history{float:none;margin:0}#login-form,#register-form{margin:35px 16px}.panel+.panel{margin-top:20px}}
 
-  <style>
-    :root {
-      color-scheme: light;
-      --ink: #293f3b;
-      --muted: #788d86;
-      --line: #e5eee9;
-      --accent: #4b8e78;
-    }
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-top:20px;overflow:auto}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;padding:14px 3px}.tabs button[aria-pressed="true"]{color:var(--blue);border-bottom:3px solid var(--blue)}.image-row{display:flex;align-items:center;gap:8px}.image-row>.thumb{flex:1;min-width:0}.selection-tools button{font-size:11px;padding:5px 8px}.selection-tools label{font-weight:400}.selection-tools input{accent-color:var(--blue)}#drop-zone{border:1px dashed #a7b7cf;padding:14px;display:block}#drop-zone.drag-over{background:#edf3ff}#drop-zone button{width:100%}#panel-invite{margin-top:18px}
 
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-
-    body {
-      margin: 0;
-      color: var(--ink);
-      background: #f4f9f5;
-      font-family: "Malgun Gothic", Arial, sans-serif;
-      font-size: 14px;
-    }
-
-    header {
-      background: #fff;
-      border-bottom: 1px solid var(--line);
-      padding: 13px max(24px, calc((100% - 1500px) / 2));
-    }
-
-    header strong { font-size: 17px; letter-spacing: .07em; }
-    header span { color: var(--accent); }
-
-    main { max-width: 1500px; margin: auto; padding: 18px 24px 24px; }
-
-    h1 { font-size: 23px; letter-spacing: -.04em; margin: 0 0 3px; }
-    h2 { font-size: 16px; margin: 0; }
-    h3 { font-size: 13px; margin: 0 0 6px; }
-
-    p { color: var(--muted); line-height: 1.45; margin: 6px 0 10px; }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-      gap: 16px;
-      margin-top: 14px;
-      align-items: start;
-    }
-
-    .main-col { display: grid; gap: 16px; min-width: 0; }
-
-    .card {
-      min-width: 0;
-      padding: 17px 20px;
-      background: #fff;
-      border: 1px solid #e6f0e8;
-      border-radius: 20px;
-      box-shadow: 0 6px 22px rgba(69, 110, 86, .06);
-    }
-
-    .side h2 { margin-bottom: 10px; }
-
-    select {
-      padding: 8px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #f8fcf8;
-      color: var(--ink);
-    }
-
-    .side select { width: 100%; margin-top: 4px; }
-
-    button {
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      border: 0;
-      border-radius: 13px;
-      background: var(--accent);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    button:hover { background: #397762; }
-    button:disabled { background: #aabdb5; cursor: not-allowed; }
-
-    button.secondary { background: #e5f4e9; color: #356f58; }
-    button.secondary:hover { background: #d6ecdc; }
-    button.secondary:disabled { background: #eef3ef; color: #9db1a7; }
-
-    button:focus-visible, select:focus-visible {
-      outline: 3px solid #85b6a5;
-      outline-offset: 3px;
-    }
-
-    .row { display: flex; gap: 8px; }
-    .row button { margin-top: 0; }
-
-    progress { width: 100%; height: 8px; margin-top: 10px; }
-
-    .status {
-      padding: 11px 14px;
-      border-radius: 13px;
-      background: #eaf7ed;
-      color: #387356;
-      font-weight: 700;
-    }
-
-    .status.error { background: #fff1ef; color: #a43e35; }
-
-    .hint { font-size: 12px; color: #879a90; }
-
-    #model-info {
-      padding: 8px 12px;
-      margin: 4px 0 8px;
-      border-radius: 11px;
-      background: #f3f9f3;
-    }
-
-    details { margin: 6px 0; font-size: 12px; color: var(--muted); }
-    details ul { margin: 6px 0 0; padding-left: 18px; }
-
-    /* 검사 결과: 제목과 결함 종류 필터 */
-    .head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .filter { display: flex; align-items: center; gap: 8px; color: var(--muted); }
-
-    /* 원본 / 정보 / 박스 표시 / JSON */
-    .viewer {
-      display: grid;
-      grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr);
-      gap: 14px;
-      align-items: start;
-    }
-
-    .viewer canvas { display: block; max-width: 100%; height: auto; border-radius: 10px; background: #1b2523; }
-
-    .panel {
-      min-width: 0;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: #fbfdfb;
-    }
-
-    .panel p.row-item {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin: 0;
-      padding: 6px 2px;
-      border-bottom: 1px solid var(--line);
-      overflow-wrap: anywhere;
-    }
-
-    .panel p.row-item strong { color: var(--ink); text-align: right; }
-
-    pre {
-      min-height: 120px;
-      max-height: 480px;
-      margin: 0;
-      padding: 10px 12px;
-      overflow: auto;
-      border-radius: 12px;
-      background: #263e38;
-      color: #e7f4e9;
-      font-size: 11px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    /* 이미지 리스트 */
-    .list {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      padding-bottom: 8px;
-      overflow-x: auto;
-    }
-
-    .thumb {
-      flex: 0 0 auto;
-      width: auto;
-      margin: 0;
-      padding: 3px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      border: 2px solid transparent;
-      border-radius: 8px;
-      background: none;
-      color: var(--muted);
-      font-weight: 400;
-      line-height: 1.2;
-    }
-
-    .thumb:hover { background: #f1f8f2; border-color: var(--accent); }
-    .thumb.active { border-color: var(--ink); background: #f1f8f2; }
-    .thumb canvas { display: block; border-radius: 4px; background: #1b2523; }
-    .badge { font-size: 11px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* 모니터링은 화면 아래 전체 폭 */
-    .monitor { margin-top: 16px; }
-    .monitor h2 { margin-bottom: 10px; }
-
-    .monitor-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    iframe {
-      display: block;
-      width: 100%;
-      height: 200px;
-      border: 0;
-      border-radius: 12px;
-      background: #18202d;
-    }
-
-    @media (max-width: 1100px) {
-      .layout { grid-template-columns: 1fr; }
-      .monitor-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 900px) {
-      .viewer { grid-template-columns: auto minmax(0, 1fr); }
-    }
-
-    @media (max-width: 760px) {
-      main { padding: 18px 14px 28px; }
-      .card { padding: 16px; }
-      .monitor-grid { grid-template-columns: 1fr; }
-      .viewer { grid-template-columns: 1fr; }
-      .head { flex-wrap: wrap; }
-    }
-  </style>
+header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left:auto;letter-spacing:2px;font-size:12px;color:var(--muted)}#logout-button{float:none;padding:6px 12px}#logout-status:empty{display:none}main{padding:0 24px 24px}.tabs{margin:0 0 16px;min-height:48px}.layout{margin-top:0}#panel-invite{margin-top:0}#invite-form{margin:0;padding:10px 0;border:0}.categories{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.categories button{padding:5px 8px;font-size:12px;border-color:var(--line);background:white;color:var(--ink)}.categories button[aria-pressed="true"]{background:#edf3ff;border-color:var(--blue);color:var(--blue)}.image-row>.download-check{display:none}.selection-tools>#check-visible,.selection-tools>#uncheck-all,.selection-tools>#checked-summary{display:none}dialog{width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:24px;color:var(--ink)}dialog::backdrop{background:#17243b66}#download-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:48vh;overflow:auto;margin-top:16px}.download-option{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px;margin:0;overflow-wrap:anywhere;font-weight:400;font-size:12px}.download-option canvas{width:22px;height:72px;object-fit:contain}.download-option span{min-width:0}.download-option:has(input:checked){background:#edf3ff;border-color:var(--blue)}@media(max-width:720px){main{padding:0 12px 12px}.tabs{gap:14px}header{gap:12px;padding:0 12px}.console-label{font-size:10px}}
+</style>
 </head>
-
 <body>
-  <header>
-    <strong>ZERO<span>DEFECT</span></strong>
-  </header>
-
-  <main>
-    <h1>제품 표면 결함 검사</h1>
-    <p>이미지를 업로드하고 검사 결과와 서비스 상태를 확인하세요.</p>
-    <p id="mock-banner" class="status" hidden>
+<header>
+<strong>ZERO<span>DEFECT</span></strong>
+<span class="console-label">CONSOLE</span><button hidden="" id="logout-button" type="button">로그아웃</button></header><p id="logout-status" role="status"></p>
+<form hidden="" id="register-form">
+<h2>작업자 계정 만들기</h2>
+<label for="register-password">새 비밀번호</label>
+<input autocomplete="new-password" id="register-password" maxlength="128" minlength="15" name="password" required="" type="password"/>
+<button type="submit">가입하기</button>
+<p id="register-status" role="status"></p>
+<a href="/">로그인 화면으로 돌아가기</a></form>
+<form hidden="" id="login-form">
+<h2>로그인</h2>
+<label for="login-email">이메일</label>
+<input autocomplete="username" id="login-email" name="email" required="" type="email"/>
+<label for="login-password">비밀번호</label>
+<input autocomplete="current-password" id="login-password" name="password" required="" type="password"/>
+<button type="submit">로그인</button>
+<p id="login-status" role="status"></p>
+</form>
+<main id="inspection-screen" style="display: none"><nav aria-label="서비스 메뉴" class="tabs"><button aria-pressed="true" data-tab="inspect" type="button">이미지 검사</button><button aria-pressed="false" data-tab="history" type="button">검사 이력</button><button aria-pressed="false" data-tab="monitor" hidden="" type="button">모니터링</button><button aria-pressed="false" data-tab="invite" hidden="" type="button">작업자 초대</button></nav>
+<p class="status" hidden="" id="mock-banner">
       목업 모드입니다. API를 호출하지 않고 임의의 결과를 표시합니다.
     </p>
-
-    <div class="layout">
-
-      <!-- 검사 이미지 -->
-      <section class="card side">
-        <h2>검사 이미지</h2>
-
-        <p id="model-info" class="hint">모델 정보를 불러오는 중입니다.</p>
-
-        <label for="model-choice">검사 모델</label>
-        <select id="model-choice">
-          <option value="champion">운영 모델</option>
-        </select>
-
-        <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
-
-        <div class="row">
-          <button id="pick-files" type="button" class="secondary">파일 선택</button>
-          <button id="pick-folder" type="button" class="secondary">이미지 폴더</button>
-        </div>
-
-        <input id="files" type="file" accept="image/png,image/jpeg" multiple hidden>
-        <input id="folder" type="file" webkitdirectory multiple hidden>
-
-        <p id="selection-summary" class="hint">선택된 이미지가 없습니다.</p>
-
-        <details id="skipped" hidden>
-          <summary id="skipped-summary"></summary>
-          <ul id="skipped-list"></ul>
-        </details>
-
-        <button id="inspect-button" type="button" disabled>검사 시작</button>
-        <button id="clear-button" type="button" class="secondary">목록 비우기</button>
-        <progress id="progress" value="0" max="1" hidden></progress>
-
-        <p id="status" class="status" role="status" aria-live="polite">
+<div class="layout" id="panel-inspect">
+<!-- 검사 이미지 -->
+<section class="card side">
+<h2>검사 이미지</h2>
+<p class="hint" id="model-info">모델 정보를 불러오는 중입니다.</p>
+<label for="model-choice">검사 모델</label>
+<select id="model-choice">
+<option value="champion">운영 모델</option>
+</select>
+<p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
+<div class="row" id="drop-zone">
+<button class="secondary" id="pick-files" type="button">이미지 추가</button>
+<button class="secondary" hidden="" id="pick-folder" type="button">이미지 폴더</button>
+<p class="hint">클릭하여 이미지 선택 · 폴더/이미지는 여기에 끌어놓기</p></div>
+<input accept="image/png,image/jpeg" hidden="" id="files" multiple="" type="file"/>
+<input hidden="" id="folder" multiple="" type="file" webkitdirectory=""/>
+<p class="hint" id="selection-summary">선택된 이미지가 없습니다.</p>
+<details hidden="" id="skipped">
+<summary id="skipped-summary"></summary>
+<ul id="skipped-list"></ul>
+</details>
+<button disabled="" id="inspect-button" type="button">검사 시작</button>
+<button class="secondary" id="clear-button" type="button">목록 비우기</button>
+<progress hidden="" id="progress" max="1" value="0"></progress>
+<p aria-live="polite" class="status" id="status" role="status">
           이미지를 선택해 주세요.
         </p>
-      </section>
-
-      <div class="main-col">
-
-        <!-- 검사 결과 -->
-        <section class="card">
-          <div class="head">
-            <h2>검사 결과</h2>
-            <label class="filter">
+<label class="filter">
               결함 종류
               <select id="type-filter"></select>
-            </label>
-          </div>
-
-          <p id="counts" class="hint"></p>
-          <p id="viewer-empty" class="hint">
+</label><h3 class="list-title">검사 대기 목록</h3><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="selection-tools"><button class="secondary" id="check-visible" type="button">표시 결과 선택</button><button class="secondary" id="uncheck-all" type="button">선택 해제</button><label><input checked="" id="follow-progress" type="checkbox"/> 진행 목록·사진 따라가기</label><p class="hint" id="checked-summary">다운로드할 결과 0개 선택</p></div><div class="list" id="list"></div></section>
+<section class="card image-panel"><h2>이미지 상세</h2><div aria-label="결과 분류" class="categories" id="category-tabs"></div><p id="selected-name">선택된 이미지 없음</p><div class="toolbar"><button aria-label="축소" id="zoom-out" type="button">−</button><span id="zoom-label">100%</span><button aria-label="확대" id="zoom-in" type="button">+</button><button id="zoom-fit" type="button">화면 맞춤</button><label><input checked="" id="show-boxes" type="checkbox"/> 결함 위치 표시</label></div><p class="hint" id="counts"></p><p class="hint" id="viewer-empty">
             이미지를 선택하면 검사 결과가 표시됩니다.
-          </p>
-
-          <div id="viewer" class="viewer" hidden>
-            <canvas id="canvas-original" aria-label="원본 이미지"></canvas>
-
-            <div class="panel">
-              <h3>검사 결과</h3>
-              <div id="info"></div>
-              <p class="hint">이상 점수는 불량 확률이 아닙니다.</p>
-            </div>
-
-            <canvas id="canvas-boxed" aria-label="바운딩 박스가 표시된 이미지"></canvas>
-
-            <div class="panel">
-              <h3>바운딩 박스 좌표 (JSON)</h3>
-              <pre id="json"></pre>
-              <button id="save-json" type="button" class="secondary" disabled>
-                전체 결과 JSON 저장
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <!-- 이미지 리스트 -->
-        <section class="card">
-          <h2>이미지 리스트</h2>
-          <p class="hint">이미지를 선택하면 위에서 자세히 볼 수 있습니다.</p>
-          <p id="list-empty" class="hint">선택한 이미지가 없습니다.</p>
-          <div id="list" class="list"></div>
-        </section>
-
-      </div>
-    </div>
-
-    <!-- Grafana 모니터링 -->
-    <section class="card monitor">
-      <h2>모니터링 데이터</h2>
-      <p>Prometheus가 수집한 API 지표를 Grafana 패널로 표시합니다.</p>
-
-      <div class="monitor-grid">
-        <div>
-          <h3>검사 요청 수</h3>
-          <iframe title="Grafana 검사 요청 수"
-            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-1"></iframe>
-        </div>
-        <div>
-          <h3>평균 검사 요청 처리 시간</h3>
-          <iframe title="Grafana 평균 검사 요청 처리 시간"
-            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-2"></iframe>
-        </div>
-        <div>
-          <h3>API 지표 수집 상태</h3>
-          <iframe title="Grafana API 지표 수집 상태"
-            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-3"></iframe>
-        </div>
-        <div>
-          <h3>최근 5분 추론 요청 수</h3>
-          <iframe title="Grafana 최근 5분 추론 요청 수"
-            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-4"></iframe>
-        </div>
-        <div>
-          <h3>API 메모리 사용량</h3>
-          <iframe title="Grafana API 메모리 사용량"
-            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-5"></iframe>
-        </div>
-        <div>
-          <h3>API CPU 사용량</h3>
-          <iframe title="Grafana API CPU 사용량"
-            src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&to=now&timezone=browser&refresh=10s&orgId=1&panelId=panel-6"></iframe>
-        </div>
-      </div>
-
-      <p class="hint">패널이 보이지 않으면 /grafana/ 에서 먼저 로그인해 주세요.</p>
-    </section>
-  </main>
-
-  <script>
+          </p><div class="viewer" hidden="" id="viewer">
+<canvas aria-label="원본 이미지" hidden="" id="canvas-original"></canvas>
+<canvas aria-label="바운딩 박스가 표시된 이미지" id="canvas-boxed"></canvas>
+</div></section><aside aria-label="검사 판정 상세" class="card result-panel"><div class="panel">
+<h3>판정 상세</h3>
+<div id="info"></div>
+<p class="hint">이상 점수는 불량 확률이 아닙니다.</p>
+</div><div class="panel">
+<h3>선택 이미지 응답 JSON</h3>
+<pre id="json"></pre>
+<button class="secondary" disabled="" id="save-json" type="button">전체 결과 JSON 다운로드</button>
+</div><button class="secondary" disabled="" id="download-image" type="button">선택 결과 JSON 다운로드</button></aside></div>
+<!-- Grafana 모니터링 -->
+<section aria-labelledby="history-title" class="card history" hidden="" id="panel-history">
+<h2 id="history-title">검사 이력</h2>
+<button id="load-history" type="button">최근 검사 이력 불러오기</button>
+<p id="history-status" role="status"></p>
+<table hidden="" id="history-table">
+<thead>
+<tr>
+<th scope="col">파일명</th>
+<th scope="col">작업자</th>
+<th scope="col">모델</th>
+<th scope="col">판정</th>
+<th scope="col">검사 시각</th>
+</tr>
+</thead>
+<tbody id="history-rows"></tbody>
+</table>
+</section><section class="card monitor" hidden="" id="panel-monitor">
+<h2>모니터링 데이터</h2>
+<p>모니터링 연결은 후속 작업에서 확인합니다. 필요할 때 패널을 불러오세요.</p><button class="secondary" id="load-monitor" type="button">모니터링 패널 불러오기</button>
+<div class="monitor-grid" hidden="">
+<div>
+<h3>검사 요청 수</h3>
+<iframe data-src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&amp;to=now&amp;timezone=browser&amp;refresh=10s&amp;orgId=1&amp;panelId=panel-1" title="Grafana 검사 요청 수"></iframe>
+</div>
+<div>
+<h3>평균 검사 요청 처리 시간</h3>
+<iframe data-src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&amp;to=now&amp;timezone=browser&amp;refresh=10s&amp;orgId=1&amp;panelId=panel-2" title="Grafana 평균 검사 요청 처리 시간"></iframe>
+</div>
+<div>
+<h3>API 지표 수집 상태</h3>
+<iframe data-src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&amp;to=now&amp;timezone=browser&amp;refresh=10s&amp;orgId=1&amp;panelId=panel-3" title="Grafana API 지표 수집 상태"></iframe>
+</div>
+<div>
+<h3>최근 5분 추론 요청 수</h3>
+<iframe data-src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&amp;to=now&amp;timezone=browser&amp;refresh=10s&amp;orgId=1&amp;panelId=panel-4" title="Grafana 최근 5분 추론 요청 수"></iframe>
+</div>
+<div>
+<h3>API 메모리 사용량</h3>
+<iframe data-src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&amp;to=now&amp;timezone=browser&amp;refresh=10s&amp;orgId=1&amp;panelId=panel-5" title="Grafana API 메모리 사용량"></iframe>
+</div>
+<div>
+<h3>API CPU 사용량</h3>
+<iframe data-src="/grafana/d-solo/adpdnm2/new-dashboard?from=now-6h&amp;to=now&amp;timezone=browser&amp;refresh=10s&amp;orgId=1&amp;panelId=panel-6" title="Grafana API CPU 사용량"></iframe>
+</div>
+</div>
+<p class="hint">패널이 보이지 않으면 /grafana/ 에서 먼저 로그인해 주세요.</p>
+</section>
+<section class="card" hidden="" id="panel-invite"><h2>작업자 초대</h2><form hidden="" id="invite-form">
+<label for="invite-email">초대할 작업자 이메일</label>
+<input id="invite-email" name="email" required="" type="email"/>
+<button type="submit">초대 링크 발급</button>
+<label for="invite-link">발급된 초대 링크</label>
+<input id="invite-link" readonly="" type="url"/>
+<p id="invite-status" role="status"></p>
+</form></section></main>
+<dialog aria-labelledby="download-title" id="download-dialog"><h2 id="download-title">다운로드할 이미지 결과 선택</h2><p class="hint">검사가 완료된 이미지만 표시됩니다. 체크한 결과를 JSON 파일 하나로 다운로드합니다.</p><label>분류 <select id="download-filter"></select></label><div class="row"><button class="secondary" id="dialog-select" type="button">표시 결과 모두 선택</button><button class="secondary" id="dialog-clear" type="button">전체 선택 해제</button></div><div id="download-options"></div><p id="download-count" role="status"></p><div class="row"><button id="confirm-download" type="button">JSON 다운로드</button><button class="secondary" id="close-download" type="button">닫기</button></div></dialog><script>
   (() => {
     "use strict";
 
@@ -410,7 +156,7 @@
       { id: "blue", label: "청색결함" },
       { id: "surface", label: "표면결함" }
     ];
-    const BUCKETS = [...TYPES, { id: "normal", label: "정상" }];
+    const BUCKETS = [...TYPES, { id: "untyped", label: "미분류" }, { id: "normal", label: "정상" }];
     const FILTERS = [
       { id: "all", label: "전체" },
       ...BUCKETS,
@@ -425,6 +171,8 @@
     let running = false;
     let selected = null;
     let renderToken = 0;
+    let adding = false;
+    const checked = new Set();
 
     function setStatus(message, isError = false) {
       $("status").textContent = message;
@@ -476,6 +224,7 @@
         error: "실패"
       }[item.state];
 
+      item.btn.dataset.result = item.state === "done" ? (item.data.is_anomaly ? "defect" : "normal") : item.state;
       item.badge.textContent = item.state === "done" ? bucketLabel(item.bucket) : text;
     }
 
@@ -489,7 +238,8 @@
           ["결함 유형", d.is_anomaly ? bucketLabel(item.bucket) : "-"],
           ["이상 점수", d.anomaly_score.toFixed(4)],
           ["판정 기준값", d.threshold.toFixed(4)],
-          ["박스 수", String(d.boxes.length)]
+          ["세부 유형", d.defect_subtype || "제공되지 않음"],
+          ["위치 정보", d.boxes.length ? `${d.boxes.length}개` : "제공된 박스 없음"]
         ];
       }
 
@@ -508,7 +258,9 @@
 
       $("viewer-empty").hidden = Boolean(item);
       $("viewer").hidden = !item;
-      if (!item) return;
+      $("selected-name").textContent = item ? item.key : "선택된 이미지 없음";
+      syncDownloads();
+      if (!item) { $("info").textContent = "이미지를 선택하면 판정이 표시됩니다."; $("json").textContent = "검사 후 표시됩니다."; return; }
 
       $("info").replaceChildren(
         ...infoRows(item).map(([label, value]) => {
@@ -534,6 +286,7 @@
       paint($("canvas-original"), bitmap, 1, []);
       paint($("canvas-boxed"), bitmap, 1, item.state === "done" ? item.data.boxes : []);
       bitmap.close();
+      applyZoom();
     }
 
     function select(item) {
@@ -556,10 +309,12 @@
 
       for (const item of items) {
         const ok = matches(item, filter);
-        item.btn.hidden = !ok;
+        item.row.hidden = !ok;
         if (ok) shown += 1;
       }
 
+      document.querySelectorAll("[data-category]").forEach(b => b.setAttribute("aria-pressed",String(b.dataset.category===filter)));
+      if (selected && !matches(selected,filter)) select(items.find(i=>matches(i,filter)) || null);
       $("list-empty").hidden = shown > 0;
       $("list-empty").textContent = items.length
         ? "해당 종류의 이미지가 없습니다."
@@ -574,6 +329,11 @@
         $("type-filter").append(option);
       }
       $("type-filter").addEventListener("change", applyFilter);
+      for(const f of FILTERS) {
+        const button=document.createElement("button");button.type="button";button.dataset.category=f.id;
+        button.addEventListener("click",()=>{$("type-filter").value=f.id;applyFilter();});$("category-tabs").append(button);
+        const option=document.createElement("option");option.value=f.id;option.textContent=f.label;$("download-filter").append(option);
+      }
     }
 
     function renderCounts() {
@@ -591,7 +351,9 @@
         option.textContent = `${label} (${n})`;
       }
 
+      document.querySelectorAll("[data-category]").forEach(b=>{const f=FILTERS.find(f=>f.id===b.dataset.category);b.textContent=`${f.label} (${items.filter(i=>matches(i,f.id)).length})`;});
       $("save-json").disabled = done.length === 0;
+      syncDownloads();
     }
 
     function renderSummary() {
@@ -626,11 +388,11 @@
     function syncControls() {
       const pending = items.some((i) => i.state === "ready" || i.state === "error");
 
-      $("inspect-button").disabled = running || !pending;
-      $("inspect-button").textContent = running ? "검사 중..." : "검사 시작";
+      $("inspect-button").disabled = running || adding || !pending;
+      $("inspect-button").textContent = adding ? "이미지 확인 중..." : running ? "검사 중..." : !items.length ? "이미지를 먼저 추가하세요" : !pending ? "검사 완료" : "검사 시작";
 
       for (const id of ["pick-files", "pick-folder", "clear-button", "model-choice"]) {
-        $(id).disabled = running;
+        $(id).disabled = running || adding;
       }
     }
 
@@ -648,9 +410,17 @@
       item.btn.className = "thumb";
       item.btn.title = key;
       item.btn.setAttribute("aria-label", `${key} 보기`);
-      item.btn.append(item.canvas, item.badge);
-      item.btn.addEventListener("click", () => select(item));
+      const filename = document.createElement("span");
+      filename.className = "filename";
+      filename.textContent = key;
+      item.btn.append(item.canvas, filename, item.badge);
+      item.btn.addEventListener("click", () => { $("follow-progress").checked = false; select(item); });
 
+      item.row = document.createElement("div"); item.row.className = "image-row";
+      item.check = document.createElement("input"); item.check.type = "checkbox"; item.check.className = "download-check";
+      item.check.disabled = true; item.check.setAttribute("aria-label", `${key} 결과 다운로드 선택`);
+      item.check.addEventListener("change", () => { if (item.check.checked) checked.add(item); else checked.delete(item); syncDownloads(); });
+      item.row.append(item.check, item.btn);
       return item;
     }
 
@@ -675,11 +445,12 @@
     }
 
     async function addFiles(files) {
-      if (running) {
+      if (running || adding) {
         setStatus("검사 중에는 파일을 추가할 수 없습니다.", true);
         return;
       }
 
+      adding = true; syncControls();
       const known = new Set([...items, ...skipped].map((i) => i.key));
       const fresh = [];
 
@@ -689,7 +460,7 @@
           continue;
         }
 
-        const key = file.webkitRelativePath || file.name;
+        const key = file.relativePath || file.webkitRelativePath || file.name;
         if (known.has(key)) continue;
 
         known.add(key);
@@ -708,8 +479,9 @@
       });
 
       items.sort((a, b) => a.key.localeCompare(b.key));
-      $("list").replaceChildren(...items.map((i) => i.btn));
+      $("list").replaceChildren(...items.map((i) => i.row));
 
+      adding = false;
       renderSummary();
       renderCounts();
       applyFilter();
@@ -725,8 +497,8 @@
     }
 
     function clearAll() {
-      if (running) return;
-
+      if (running || adding) return;
+      checked.clear();
       items = [];
       skipped = [];
       ignored = 0;
@@ -762,7 +534,9 @@
 
     function bucketOf(data) {
       if (!data.is_anomaly) return "normal";
-      return TYPES.some((t) => t.id === data.defect_type) ? data.defect_type : "untyped";
+      const aliases={"갈적색결함":"brown","갈적색":"brown","청색결함":"blue","청색":"blue","흑색결함":"black","흑색":"black","표면결함":"surface","표면":"surface"};
+      const value=String(data.defect_type || "").trim().toLowerCase().replace(/\s+/g,"");
+      return TYPES.some(t=>t.id===value) ? value : aliases[value] || "untyped";
     }
 
     // 목업: 모델이 위치와 유형을 반환하기 전까지 화면 개발에 사용
@@ -823,7 +597,7 @@
 
     async function inspectAll() {
       const targets = items.filter((i) => i.state === "ready" || i.state === "error");
-      if (running || !targets.length) return;
+      if (running || adding || !targets.length) return;
 
       const choice = $("model-choice").value;
       let finished = 0;
@@ -839,11 +613,13 @@
       await pool(targets, CONCURRENCY, async (item) => {
         item.state = "running";
         updateBadge(item);
+        followItem(item);
 
         try {
           item.data = await predict(item.file, choice);
           item.bucket = bucketOf(item.data);
           item.state = "done";
+          item.check.disabled = false;
         } catch (error) {
           item.state = "error";
           item.reason = error.message;
@@ -859,7 +635,8 @@
           }
         }
 
-        if (item === selected) renderViewer();
+        if ($("follow-progress").checked && matches(item, $("type-filter").value)) { select(item); followItem(item); }
+        else if (item === selected) renderViewer();
 
         finished += 1;
         $("progress").value = finished;
@@ -947,6 +724,88 @@
       }
     }
 
+
+    let zoom = 1;
+    function applyZoom() {
+      const boxed = $("show-boxes").checked;
+      $("canvas-original").hidden = boxed;
+      $("canvas-boxed").hidden = !boxed;
+      for (const id of ["canvas-original", "canvas-boxed"]) {
+        $(id).style.width = `${WIDTH * zoom}px`;
+        $(id).style.height = `${HEIGHT * zoom}px`;
+      }
+      $("zoom-label").textContent = `${Math.round(zoom * 100)}%`;
+    }
+    $("zoom-in").addEventListener("click", () => { zoom = Math.min(4, zoom + .25); applyZoom(); });
+    $("zoom-out").addEventListener("click", () => { zoom = Math.max(.25, zoom - .25); applyZoom(); });
+    $("zoom-fit").addEventListener("click", () => {
+      zoom = Math.max(.25, Math.min(4, ($("viewer").clientHeight - 40) / HEIGHT, ($("viewer").clientWidth - 40) / WIDTH)); applyZoom();
+    });
+    $("show-boxes").addEventListener("change", applyZoom);
+    function syncDownloads() {
+      const n = [...checked].filter(i => i.state === "done").length;
+      $("download-image").disabled = !items.some(i=>i.state==="done");
+      $("download-image").textContent = "선택 결과 JSON 다운로드";
+      $("checked-summary").textContent = `다운로드할 결과 ${n}개 선택 (필터로 숨긴 항목 포함)`;
+    }
+    function downloadResults(results, filename) {
+      if (!results.length) return;
+      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(results.map(i=>({file:i.key,...i.data})),null,2)],{type:"application/json"}));
+      a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    }
+    let dialogItems=[];
+    function updateDownloadCount(){const n=[...checked].filter(i=>i.state==="done").length;$("download-count").textContent=`${n}개 선택 (다른 분류에서 선택한 결과 포함)`;$("confirm-download").disabled=!n;}
+    function renderDownloadOptions(){
+      const filter=$("download-filter").value;
+      $("download-options").replaceChildren(...dialogItems.filter(i=>matches(i,filter)).map(i=>{
+        const label=document.createElement("label");label.className="download-option";
+        const check=document.createElement("input");check.type="checkbox";check.checked=checked.has(i);
+        check.addEventListener("change",()=>{if(check.checked)checked.add(i);else checked.delete(i);i.check.checked=check.checked;updateDownloadCount();syncDownloads();});
+        const canvas=document.createElement("canvas");canvas.width=i.canvas.width;canvas.height=i.canvas.height;canvas.getContext("2d").drawImage(i.canvas,0,0);
+        const name=document.createElement("span");name.textContent=`${i.key} · ${bucketLabel(i.bucket)}`;
+        label.append(check,canvas,name);return label;
+      }));updateDownloadCount();
+    }
+    $("download-image").addEventListener("click",()=>{dialogItems=items.filter(i=>i.state==="done");$("download-filter").value=$("type-filter").value;renderDownloadOptions();$("download-dialog").showModal();});
+    $("download-filter").addEventListener("change",renderDownloadOptions);
+    $("dialog-select").addEventListener("click",()=>{dialogItems.filter(i=>matches(i,$("download-filter").value)).forEach(i=>checked.add(i));renderDownloadOptions();syncDownloads();});
+    $("dialog-clear").addEventListener("click",()=>{checked.clear();items.forEach(i=>i.check.checked=false);renderDownloadOptions();syncDownloads();});
+    $("close-download").addEventListener("click",()=>$("download-dialog").close());
+    $("confirm-download").addEventListener("click",()=>downloadResults(dialogItems.filter(i=>checked.has(i)),"zerodefect_selected_results.json"));
+    $("check-visible").addEventListener("click", () => { items.filter(i => !i.row.hidden && i.state === "done").forEach(i=>{checked.add(i);i.check.checked=true});syncDownloads(); });
+    $("uncheck-all").addEventListener("click", () => {checked.clear();items.forEach(i=>i.check.checked=false);syncDownloads();});
+    function followItem(item) {
+      if (!$("follow-progress").checked || item.row.hidden) return;
+      const list = $("list"), box = list.getBoundingClientRect(), row = item.row.getBoundingClientRect();
+      if (row.bottom > box.bottom) list.scrollTop += row.bottom - box.bottom;
+      else if (row.top < box.top) list.scrollTop += row.top - box.top;
+    }
+    for (const event of ["wheel","touchstart","pointerdown","keydown"]) $("list").addEventListener(event,()=>{$("follow-progress").checked=false;},{passive:true});
+    $("follow-progress").addEventListener("change",()=>{const item=items.find(i=>i.state==="running");if(item)followItem(item);});
+    const drop = $("drop-zone");
+    drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("drag-over");});
+    drop.addEventListener("dragleave",()=>drop.classList.remove("drag-over"));
+    async function readEntry(entry, prefix="") {
+      if (entry.isFile) return [await new Promise((resolve,reject)=>entry.file(file=>{Object.defineProperty(file,"relativePath",{value:prefix+file.name});resolve(file);},reject))];
+      const reader=entry.createReader(), files=[];
+      while(true){const batch=await new Promise((resolve,reject)=>reader.readEntries(resolve,reject));if(!batch.length)break;for(const child of batch)files.push(...await readEntry(child,prefix+entry.name+"/"));}
+      return files;
+    }
+    drop.addEventListener("drop",async e=>{
+      e.preventDefault();drop.classList.remove("drag-over");if(running||adding)return;
+      const entries=[...e.dataTransfer.items].filter(i=>i.kind==="file").map(i=>i.webkitGetAsEntry?.());
+      const fallback=[...e.dataTransfer.files];
+      adding=true;syncControls();
+      try { const files=[];if(entries.length && entries.every(Boolean)){for(const entry of entries)files.push(...await readEntry(entry));}else files.push(...fallback);
+        adding=false; await addFiles(files);
+      }catch(error){setStatus(`파일 읽기 실패: ${error.message}`,true);}finally{adding=false;syncControls();}
+    });
+    $("load-monitor").addEventListener("click", () => {
+      document.querySelector(".monitor-grid").hidden = false;
+      document.querySelectorAll("iframe[data-src]").forEach(frame => { if (!frame.hasAttribute("src")) frame.src = frame.dataset.src; });
+      $("load-monitor").hidden = true;
+    });
+
     // ---------- 시작 ----------
     $("pick-files").addEventListener("click", () => $("files").click());
     $("pick-folder").addEventListener("click", () => $("folder").click());
@@ -970,8 +829,232 @@
     applyFilter();
     syncControls();
     renderViewer();
-    loadModelInfo();
+    window.addEventListener("session-ready", loadModelInfo, { once: true });
   })();
+  </script>
+<script>
+    (() => {
+      const form = document.getElementById("login-form");
+      const status = document.getElementById("login-status");
+      const screen = document.getElementById("inspection-screen");
+      const inviteForm = document.getElementById("invite-form");
+      const registerForm = document.getElementById("register-form");
+      const registerStatus = document.getElementById("register-status");
+      let inviteToken = new URLSearchParams(window.location.hash.slice(1)).get("invite");
+      const submit = form.querySelector('button[type="submit"]');
+
+      let currentRole = null;
+      function showTab(name) {
+        if (!["inspect","history"].includes(name) && currentRole !== "admin") return;
+        for (const key of ["inspect","history","monitor","invite"]) {
+          document.getElementById(`panel-${key}`).hidden = key !== name;
+          document.querySelector(`[data-tab="${key}"]`).setAttribute("aria-pressed",String(key===name));
+        }
+      }
+      document.querySelectorAll("[data-tab]").forEach(button=>button.addEventListener("click",()=>showTab(button.dataset.tab)));
+      async function refreshSession() {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const user = await response.json();
+          document.getElementById("logout-button").hidden = false;
+          currentRole = user.role;
+          for(const name of ["monitor","invite"]) document.querySelector(`[data-tab="${name}"]`).hidden = user.role !== "admin";
+          document.getElementById("history-title").textContent = user.role === "admin" ? "전체 검사 이력" : "내 검사 이력";
+          showTab("inspect");
+          inviteForm.hidden = user.role !== "admin";
+          form.hidden = true;
+          registerForm.hidden = true;
+          screen.style.removeProperty("display");
+          window.dispatchEvent(new Event("session-ready"));
+          return;
+        }
+        if (response.status !== 401) {
+          throw new Error("로그인 상태를 확인할 수 없습니다.");
+        }
+        inviteForm.hidden = true;
+        form.hidden = Boolean(inviteToken);
+        registerForm.hidden = !inviteToken;
+        screen.style.display = "none";
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        status.textContent = "";
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: form.elements.email.value.trim(),
+              password: form.elements.password.value,
+            }),
+          });
+
+          if (response.status === 401) {
+            status.textContent = "이메일 또는 비밀번호가 올바르지 않습니다.";
+            return;
+          }
+          if (!response.ok) {
+            throw new Error("로그인 요청에 실패했습니다.");
+          }
+
+          form.reset();
+          await refreshSession();
+          if (!form.hidden) {
+            status.textContent = "세션을 확인할 수 없습니다. 접속 주소가 HTTPS인지 확인하세요.";
+          }
+        } catch (error) {
+          status.textContent = error.message;
+        } finally {
+          submit.disabled = false;
+        }
+      });
+      inviteForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const button = inviteForm.querySelector('button[type="submit"]');
+        const link = document.getElementById("invite-link");
+        const status = document.getElementById("invite-status");
+        button.disabled = true;
+        link.value = "";
+        status.textContent = "";
+
+        try {
+          const response = await fetch("/api/auth/invitations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: inviteForm.elements.email.value.trim() }),
+          });
+          if (response.status !== 201) {
+            throw new Error(`초대 발급 실패 (${response.status})`);
+          }
+
+          const { invite_token } = await response.json();
+          const url = new URL(window.location.pathname, window.location.origin);
+          url.hash = new URLSearchParams({ invite: invite_token }).toString();
+          link.value = url.href;
+          status.textContent = "초대 링크가 발급됐습니다.";
+        } catch (error) {
+          status.textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      });
+      const logoutButton = document.getElementById("logout-button");
+      const logoutStatus = document.getElementById("logout-status");
+
+      logoutButton.addEventListener("click", async () => {
+        logoutButton.disabled = true;
+        logoutStatus.textContent = "";
+
+        try {
+          const response = await fetch("/api/auth/logout", { method: "POST" });
+          if (!response.ok) {
+            throw new Error("로그아웃에 실패했습니다. 다시 시도하세요.");
+          }
+          window.location.reload();
+        } catch (error) {
+          logoutStatus.textContent = error.message;
+          logoutButton.disabled = false;
+        }
+      });
+      registerForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const button = registerForm.querySelector('button[type="submit"]');
+        button.disabled = true;
+        registerStatus.textContent = "";
+
+        try {
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              invite_token: inviteToken,
+              password: registerForm.elements.password.value,
+            }),
+          });
+
+          if (response.status === 400) {
+            throw new Error("유효하지 않거나 이미 사용된 초대입니다.");
+          }
+          if (response.status === 409) {
+            throw new Error("이미 등록된 계정입니다.");
+          }
+          if (response.status !== 201) {
+            throw new Error(`가입에 실패했습니다 (${response.status}).`);
+          }
+
+          inviteToken = null;
+          window.history.replaceState(
+            null, "", window.location.pathname + window.location.search,
+          );
+          registerForm.reset();
+          registerForm.hidden = true;
+          form.hidden = false;
+          status.textContent = "가입이 완료됐습니다. 초대받은 이메일로 로그인하세요.";
+        } catch (error) {
+          registerStatus.textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      });
+      const historyButton = document.getElementById("load-history");
+      const historyStatus = document.getElementById("history-status");
+      const historyTable = document.getElementById("history-table");
+      const historyRows = document.getElementById("history-rows");
+
+      historyButton.addEventListener("click", async () => {
+        historyButton.disabled = true;
+        historyRows.replaceChildren();
+        historyTable.hidden = true;
+        historyStatus.textContent = "검사 이력을 불러오는 중입니다.";
+
+        try {
+          const response = await fetch("/api/inference/history");
+          if (response.status === 401) {
+            historyStatus.textContent = "세션이 만료됐습니다. 새로고침 후 다시 로그인하세요.";
+            return;
+          }
+          if (!response.ok) {
+            throw new Error(`검사 이력을 불러오지 못했습니다 (${response.status}).`);
+          }
+
+          const { records } = await response.json();
+          for (const record of records) {
+            const row = historyRows.insertRow();
+            const prediction = {
+              normal: "정상",
+              defect: "불량",
+            }[record.prediction] ?? record.prediction;
+            const values = [
+              record.filename,
+              record.worker_email ?? "작업자 미기록",
+              record.model_choice,
+              prediction,
+              new Date(record.created_at).toLocaleString("ko-KR"),
+            ];
+            for (const value of values) {
+              row.insertCell().textContent = value;
+            }
+          }
+
+          historyTable.hidden = records.length === 0;
+          historyStatus.textContent = records.length
+            ? `최근 검사 ${records.length}건`
+            : "표시할 검사 이력이 없습니다.";
+        } catch (error) {
+          historyStatus.textContent = error.message;
+        } finally {
+          historyButton.disabled = false;
+        }
+      });
+      refreshSession().catch((error) => {
+        form.hidden = false;
+        status.textContent = error.message;
+      });
+    })();
   </script>
 </body>
 </html>
+

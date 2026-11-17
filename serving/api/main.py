@@ -31,7 +31,18 @@ from starlette.concurrency import run_in_threadpool
 
 import db
 from model_service import load_model, run_model
-
+from fastapi import Cookie, Depends, HTTPException, Response
+from pydantic import BaseModel
+from auth import (
+    authenticate_user,
+    create_invitation,
+    create_session,
+    get_session_user,
+    hash_password,
+    register_worker,
+    revoke_session
+)
+from psycopg.errors import UniqueViolation
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -166,6 +177,151 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/login")
+def login(payload: LoginRequest, response: Response):
+    with db.connect_db() as conn:
+        user_id = authenticate_user(conn, payload.email, payload.password)
+        if user_id is None:
+            raise HTTPException(
+                status_code=401,
+                detail="이메일 또는 비밀번호가 올바르지 않습니다.",
+            )
+
+        session_token = create_session(conn, user_id)
+
+    response.set_cookie(
+        key="defectcatch_session",
+        value=session_token,
+        max_age=8 * 60 * 60,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+    return {"ok": True}
+
+def get_current_user(
+    defectcatch_session: str | None = Cookie(default=None),
+) -> tuple[int, str]:
+    if defectcatch_session is None:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
+    with db.connect_db() as conn:
+        user = get_session_user(conn, defectcatch_session)
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
+    return user
+
+
+@app.get("/auth/me")
+def read_current_user(
+    user: tuple[int, str] = Depends(get_current_user),
+):
+    user_id, role = user
+    return {"id": user_id, "role": role}
+
+@app.post("/auth/logout")
+def logout(
+    response: Response,
+    defectcatch_session: str | None = Cookie(default=None),
+):
+    if defectcatch_session is not None:
+        with db.connect_db() as conn:
+            revoke_session(conn, defectcatch_session)
+
+    response.delete_cookie(
+        key="defectcatch_session",
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+    )
+    return {"ok": True}
+
+class InvitationRequest(BaseModel):
+    email: str
+
+
+@app.post("/auth/invitations", status_code=201)
+def issue_invitation(
+    payload: InvitationRequest,
+    response: Response,
+    user: tuple[int, str] = Depends(get_current_user),
+):
+    user_id, role = user
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+
+    email = payload.email.strip()
+    local_part, _, domain = email.partition("@")
+    if (
+        not local_part
+        or not domain
+        or "@" in domain
+        or len(email) > 254
+        or any(char.isspace() for char in email)
+    ):
+        raise HTTPException(status_code=422, detail="이메일 형식을 확인하세요.")
+
+    with db.connect_db() as conn:
+        token = create_invitation(conn, user_id, email)
+
+    if token is None:
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+
+    response.headers["Cache-Control"] = "no-store"
+    return {"invite_token": token}
+
+class RegisterRequest(BaseModel):
+    invite_token: str
+    password: str
+
+
+@app.post("/auth/register", status_code=201)
+def register(payload: RegisterRequest):
+    if not 15 <= len(payload.password) <= 128:
+        raise HTTPException(
+            status_code=422,
+            detail="비밀번호는 15~128자로 입력하세요.",
+        )
+
+    password_hash = hash_password(payload.password)
+
+    try:
+        with db.connect_db() as conn:
+            user_id = register_worker(conn, payload.invite_token, password_hash)
+    except UniqueViolation as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="이미 등록된 계정입니다.",
+        ) from exc
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="유효하지 않거나 이미 사용된 초대입니다.",
+        )
+
+    return {"id": user_id}
+
+@app.get("/inference/history")
+def read_inference_history(
+    response: Response,
+    user: tuple[int, str] = Depends(get_current_user),
+):
+    user_id, role = user
+    with db.connect_db() as conn:
+        records = db.list_inference_requests(conn, user_id, role)
+
+    response.headers["Cache-Control"] = "no-store"
+    return {"records": records}
 
 predict_requests = Counter(
     "defectcatch_predict_requests_total",
@@ -263,7 +419,9 @@ async def predict(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     model_choice: str = Form("champion"),
+    user: tuple[int, str] = Depends(get_current_user),
 ):
+    user_id, _ = user
     started_at = time.perf_counter()
 
     if model_choice not in MODEL_SETS:
@@ -409,6 +567,7 @@ async def predict(
             db.save_inference,
             {
                 "id": request_id,
+                "user_id": user_id,
                 "filename": file.filename or "",
                 "model_choice": model_choice,
                 "prediction": prediction,

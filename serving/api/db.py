@@ -6,6 +6,7 @@ import re
 import psycopg
 from prometheus_client import Counter
 from psycopg.types.json import Jsonb
+from psycopg.rows import dict_row
 
 logger = logging.getLogger(__name__)
 
@@ -33,26 +34,29 @@ def model_version(model_uri):
 
     return int(match.group(1))
 
+def connect_db():
+    return psycopg.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        connect_timeout=3,
+    )
 
 def save_inference(record):
     detector = record["detector"]
     classifier = record["classifier"]
 
     try:
-        with psycopg.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            connect_timeout=3,
-        ) as conn:
+        with connect_db() as conn:
             conn.execute(
                 "INSERT INTO inference_requests "
-                "(id, filename, model_choice, prediction, total_latency_ms) "
-                "VALUES (%s, %s, %s, %s, %s)",
+                "(id, user_id, filename, model_choice, prediction, total_latency_ms) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
                 (
                     record["id"],
+                    record["user_id"],
                     record["filename"],
                     record["model_choice"],
                     record["prediction"],
@@ -100,3 +104,24 @@ def save_inference(record):
     except Exception:
         save_total.labels("error").inc()
         logger.exception("Inference save failed: %s", record["id"])
+    
+def list_inference_requests(conn, user_id: int, role: str):
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT
+                r.id,
+                r.filename,
+                r.model_choice,
+                r.prediction,
+                r.created_at,
+                u.email AS worker_email
+            FROM inference_requests AS r
+            LEFT JOIN users AS u ON u.id = r.user_id
+            WHERE (%s = 'admin' OR r.user_id = %s)
+            ORDER BY r.created_at DESC, r.id DESC
+            LIMIT 50
+            """,
+            (role, user_id),
+        )
+        return cur.fetchall()
