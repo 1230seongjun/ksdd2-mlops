@@ -29,15 +29,12 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 .inspection-stat strong{display:block;color:var(--ink);font-size:19px;line-height:1.3;font-variant-numeric:tabular-nums}
 .inspection-stat[data-tone="normal"] strong{color:#146b47}
 .inspection-stat[data-tone="defect"] strong,.inspection-stat[data-tone="failed"] strong{color:#a52c24}
-#pause-button{width:100%;margin-top:6px}
 #active-count{margin:8px 0;color:var(--muted);font-variant-numeric:tabular-nums}
 #verdict-message{margin:4px 0 12px;padding:10px 12px;border-radius:8px;background:#f2f4f8;color:#334155;font-size:clamp(19px,2.2vw,30px);line-height:1.2;font-weight:750;overflow-wrap:anywhere}
-#verdict-message[data-tone="normal"]{color:#146346;background:#eaf7ef}
-#verdict-message[data-tone="blue"]{color:#174d88;background:#e8f2ff}
-#verdict-message[data-tone="brown"]{color:#923d21;background:#fff1e9}
-#verdict-message[data-tone="black"]{color:#212935;background:#e9edf2}
-#verdict-message[data-tone="surface"],#verdict-message[data-tone="untyped"]{color:#794809;background:#fff3d8}
-#verdict-message[data-tone="error"]{color:#a52c24;background:#ffeeeb}
+#verdict-message[data-tone="normal"],.thumb[data-tone="normal"] .badge,.categories button[data-category="normal"]{color:#146346;background:#eaf7ef}
+#verdict-message[data-tone="blue"],.thumb[data-tone="blue"] .badge,.categories button[data-category="blue"],#verdict-message[data-tone="brown"],.thumb[data-tone="brown"] .badge,.categories button[data-category="brown"],#verdict-message[data-tone="black"],.thumb[data-tone="black"] .badge,.categories button[data-category="black"],#verdict-message[data-tone="surface"],.thumb[data-tone="surface"] .badge,.categories button[data-category="surface"]{color:#a52c24;background:#ffeeeb}
+#verdict-message[data-tone="untyped"],.thumb[data-tone="untyped"] .badge,.categories button[data-category="untyped"]{color:#924700;background:#fff1d9}
+#verdict-message[data-tone="error"],.thumb[data-tone="error"] .badge,.categories button[data-category="error"]{color:#643398;background:#f3eaff}
 #info{margin:0;font-size:13px}
 #info div{display:grid;grid-template-columns:4em minmax(0,1fr);gap:6px;padding:3px 0}
 #info dt{color:var(--muted)}
@@ -50,6 +47,103 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 #json-panel pre{max-height:180px;overflow:auto}
 #download-image{margin-top:8px}
 @media(max-width:450px){#counts.inspection-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#json-panel pre{max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere}
+.selection-tools label,.toolbar label{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}
+.selection-tools input,.toolbar input{width:22px;height:22px}
+.image-panel,.result-panel{font-size:17px}
+.result-panel dt,.result-panel dd,#selected-name{font-size:16px}
+#inspection-progress{width:100%}
+.selection-tools label,.toolbar label{padding:6px 10px;border:1px solid var(--line);border-radius:6px;margin:0;font-weight:600}
+.selection-tools label:has(input:checked),.toolbar label:has(input:checked){background:#edf3ff;border-color:var(--blue)}
+#fit-image{font-size:12px;padding:3px 7px;flex:none}
+.image-caption{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.image-caption p{flex:1;min-width:0;overflow-wrap:anywhere}
+#counts.inspection-stats,.categories button{font-size:15px}
+#counts .inspection-stat strong{font-size:22px}
+#inspection-progress{height:10px}
+.viewer:has(canvas[data-boxes="true"][data-tone="defect"]){outline:3px solid #a52c24;outline-offset:-3px}
+.viewer:has(canvas[data-boxes="true"][data-tone="untyped"]){outline:3px solid #924700;outline-offset:-3px}
+#counts.inspection-stats{display:block}
+.inspection-gauge{display:flex;height:16px;overflow:hidden;border-radius:5px;background:#e5e9ef;margin:8px 0}
+.inspection-legend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:13px}
+.inspection-legend span{display:inline-flex;align-items:center;gap:5px}
+.inspection-legend i{width:10px;height:10px;border-radius:2px}
+.image-panel .toolbar button{font-size:12px;padding:4px 8px}
+.image-panel .toolbar label{min-height:32px;font-size:12px;padding:3px 8px;margin-left:auto}
+.image-panel .toolbar input{width:16px;height:16px}
+#status:empty{display:none}
+.side .list{max-height:530px}
+.side .selection-tools{margin-top:10px}
+#info div{grid-template-columns:max-content minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+#info dt{white-space:nowrap;word-break:keep-all;font-weight:700}
+#info dd{min-width:0;font-weight:500}
+@media(max-width:720px){.side .list{max-height:360px}}
+#inspection-center,#inspection-left{min-width:0}
+#swap-inspection-panels{width:100%;margin-top:8px}
+#inspection-left>.image-panel{margin-top:14px;padding:10px}
+#inspection-center>.inspection-list-panel{background:white;border:1px solid var(--line);border-radius:6px;padding:18px}
+.inspection-list-panel .list{max-height:530px}
+#inspection-center .thumb{grid-template-columns:48px minmax(0,1fr) auto;min-height:110px}
+#inspection-center .thumb canvas{width:38px;height:90px}
+#inspection-center .filename{font-size:15px}
+.inspection-legend,.inspection-list-panel .categories{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding:4px}
+.inspection-legend button{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.inspection-gauge button{min-width:0;padding:0;border:0;border-radius:0;flex-shrink:0}
+#download-options .download-option canvas{width:38px;height:100px}
+#inspection-center .inspection-list-panel,#inspection-left .inspection-list-panel{border:1px solid var(--line);border-radius:6px;padding:12px;margin-top:12px}
+#inspection-center .inspection-list-panel{margin-top:0;padding:18px}
+.side>h2,.image-panel>h2,.result-panel h3,.inspection-list-panel .list-title{font-size:20px;font-weight:750}
+.inspection-list-panel .categories{flex-wrap:wrap;overflow:visible;white-space:normal}
+#inspection-center #list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:720px;align-content:start}
+#inspection-center .thumb{height:100%}
+@media(max-width:480px){#inspection-center .thumb{grid-template-columns:24px minmax(0,1fr);gap:5px}#inspection-center .thumb canvas{width:22px}#inspection-center .thumb .badge{grid-column:2;white-space:normal}}
+.inspection-list-panel .selection-tools label{font-size:12px;min-height:32px;padding:3px 7px}
+.inspection-list-panel .selection-tools input{width:16px;height:16px}
+.image-panel .viewer{height:auto;overflow:clip;display:block;padding:12px}
+.image-panel .viewer canvas{width:auto;max-width:100%;height:auto;max-height:560px;object-fit:contain}
+#inspection-left .viewer canvas{max-height:330px}
+#inspection-left #viewer-empty{height:250px}
+.inspection-legend{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;overflow:visible;padding:0}
+.inspection-legend span{min-width:0;display:block;text-align:center;font-size:clamp(9px,1vw,13px);letter-spacing:-.04em;white-space:nowrap}
+.inspection-legend i{display:inline-block;margin-right:3px;width:7px;height:7px}
+#inspection-left .inspection-legend span{font-size:9px}
+#inspection-left .inspection-legend i{display:none}
+.inspection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.inspection-heading h2{font-size:20px;font-weight:750;margin:0}
+.inspection-heading .selection-tools label{min-height:30px;font-size:12px;padding:2px 7px}
+.inspection-heading .selection-tools input{width:14px;height:14px}
+.side #inspection-action{width:100%;margin-top:8px;border-radius:10px;border-color:#e5b0ad;color:#972d25}
+.side #swap-inspection-panels{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;background:#edf3ff;border-color:#b9ccf6;color:#18449d}
+#swap-inspection-panels [aria-hidden="true"]{font-size:21px;line-height:1}
+#inspection-left .inspection-list-panel,#inspection-center .inspection-list-panel{padding:18px}
+.inspection-list-panel .list-title{margin:0 0 14px}
+.inspection-legend small{display:block;font-size:inherit}
+.inspection-legend span{white-space:normal;overflow-wrap:anywhere}
+.thumb[data-tone] .badge{font-weight:650}
+.categories button[data-category="pending"]{color:#556274;background:#f2f5f8}
+.categories button[aria-pressed="true"]{outline:2px solid var(--blue);outline-offset:1px}
+.inspection-legend span{white-space:nowrap;overflow-wrap:normal}
+.inspection-legend small{display:inline;font-size:inherit}
+@media(max-width:480px){.inspection-legend span{font-size:8px}.inspection-legend i{display:none}}
+#inspection-left .inspection-legend span{font-size:8px}
+.side #clear-button{color:#972d25;border-color:#e5b0ad;border-radius:10px}
+#drop-zone{background:#f4f8ff;border:1px dashed #799ee7;border-radius:10px;padding:14px}
+#drop-zone #pick-files{background:#e8f0ff;border-color:#abc3f7;color:#18449d;border-radius:8px}
+#drop-zone #pick-files span{font-size:1.15em;margin-right:4px}
+#drop-zone:has(#pick-files:not(:disabled)):hover{background:#eaf2ff;border-color:var(--blue)}
+#drop-zone #added-image-count{flex-basis:100%;margin:0;text-align:center;color:#18449d;font-size:13px;font-weight:650}
+#inspection-left .categories,#inspection-center .categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-content:start}
+#inspection-left #list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start}
+.inspection-list-panel .categories button{min-width:0;padding-inline:3px;overflow-wrap:anywhere}
+#inspection-left .thumb{grid-template-columns:24px minmax(0,1fr);height:100%;gap:4px}
+#inspection-left .thumb .badge{grid-column:2;white-space:normal;overflow-wrap:anywhere;justify-self:start}
+.inspection-list-panel .categories button {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  font-size: 12px;
+  padding: 7px 2px;
+  letter-spacing: -0.5px;
+}
 </style>
 </head>
 <body>
@@ -79,7 +173,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <div class="layout" id="panel-inspect">
 <!-- 검사 이미지 -->
 <section class="card side">
-<h2>검사 이미지</h2>
+<div class="inspection-heading"><h2>검사 이미지</h2><div class="selection-tools"><label><input checked id="follow-progress" type="checkbox"/> 검사 진행 따라가기</label></div></div>
 <details class="model-dropdown" id="detector-dropdown">
 <summary><span>이상치 탐지 모델</span><strong id="detector-label">버전 선택</strong></summary>
 <div class="model-options" id="detector-options" role="group" aria-label="이상치 탐지 모델 버전"></div>
@@ -91,39 +185,34 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <p class="hint" id="model-info" role="status" hidden></p>
 <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
 <div class="row" id="drop-zone">
-<button class="secondary" id="pick-files" type="button">이미지 추가</button>
+<button class="secondary" id="pick-files" type="button"><span aria-hidden="true">＋</span> 이미지 추가</button>
 <button class="secondary" hidden="" id="pick-folder" type="button">이미지 폴더</button>
-<p class="hint">클릭하여 이미지 선택 · 폴더/이미지는 여기에 끌어놓기</p></div>
+<p class="hint">클릭하여 이미지 선택 · 폴더/이미지는 여기에 끌어놓기</p><p id="added-image-count" role="status" hidden></p></div>
 <input accept="image/png,image/jpeg" hidden="" id="files" multiple="" type="file"/>
 <input hidden="" id="folder" multiple="" type="file" webkitdirectory=""/>
-<p class="hint" id="selection-summary">선택된 이미지가 없습니다.</p>
 <details hidden="" id="skipped">
 <summary id="skipped-summary"></summary>
 <ul id="skipped-list"></ul>
 </details>
 <button disabled="" id="inspect-button" type="button">검사 시작</button>
-<button class="secondary" id="clear-button" type="button" disabled>선택 이미지 삭제</button>
-<button class="secondary" hidden id="pause-button" type="button">검사 중단</button>
-<p id="active-count" hidden role="status"></p>
-<p aria-live="polite" class="status" id="status" role="status">
-          검사 이미지 없음
-        </p>
-<label class="filter">
-              결함 종류
-              <select id="type-filter"></select>
-</label><h3 class="list-title">검사 이미지 목록</h3><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="selection-tools"><label><input checked id="follow-progress" type="checkbox"/> 검사 진행 따라가기</label></div><div class="list" id="list"></div></section>
-<section class="card image-panel"><h2>이미지 상세</h2><div id="counts" class="inspection-stats" aria-label="검사 현황"></div><div aria-label="결과 분류" class="categories" id="category-tabs"></div><p id="selected-name">선택된 이미지 없음</p><div class="toolbar"><button aria-label="축소" id="zoom-out" type="button">−</button><span id="zoom-label">100%</span><button aria-label="확대" id="zoom-in" type="button">+</button><label><input checked="" id="show-boxes" type="checkbox"/> 결함 위치 표시</label></div><p class="hint" id="viewer-empty">
+<button class="secondary" id="clear-button" type="button" disabled>이미지 삭제</button>
+<button class="secondary" hidden id="inspection-action" type="button">검사 중단</button>
+<p aria-live="polite" class="status" id="status" role="status" hidden></p>
+<button class="secondary" id="swap-inspection-panels" type="button" aria-pressed="false"><span aria-hidden="true">⇄</span> <span id="swap-inspection-label">목록을 가운데로</span></button>
+<div id="inspection-left">
+<section class="inspection-list-panel" aria-label="검사 이미지 목록">
+<input type="hidden" id="type-filter" value="all"/><h3 class="list-title">검사 이미지 목록</h3><div aria-label="결과 분류" class="categories" id="category-tabs"></div><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="list" id="list"></div></section></div></section>
+<div id="inspection-center"><section class="card image-panel"><h2>이미지 상세</h2><div id="counts" class="inspection-stats" aria-label="검사 현황"></div><p class="hint" id="viewer-empty">
             표시할 이미지 없음
           </p><div class="viewer" hidden="" id="viewer">
-<canvas aria-label="원본 이미지" hidden="" id="canvas-original"></canvas>
 <canvas aria-label="바운딩 박스가 표시된 이미지" id="canvas-boxed"></canvas>
-</div></section><aside aria-label="검사 판정 상세" class="card result-panel"><div class="panel">
+</div><div class="image-caption"><p id="selected-name">선택된 이미지 없음</p></div></section></div><aside aria-label="검사 판정 상세" class="card result-panel"><div class="panel">
 <h3>판정 상세</h3>
 <p id="verdict-message" role="status"></p>
 <dl id="info"></dl>
-<details id="verdict-details" hidden><summary>세부 정보</summary><div id="verdict-extra"></div></details>
-<button class="secondary" disabled id="download-image" type="button">이 이미지 JSON 저장</button>
-<details id="json-panel"><summary>응답 JSON</summary><pre id="json"></pre></details>
+<details id="verdict-details" hidden><summary>판정 근거</summary><div id="verdict-extra"></div></details>
+<button class="secondary" disabled id="download-image" type="button">이미지 JSON 저장</button>
+<details open id="json-panel"><summary>응답 JSON</summary><pre id="json"></pre></details>
 </div></aside></div>
 <!-- Grafana 모니터링 -->
 <section aria-labelledby="history-title" class="card history" hidden="" id="panel-history">
@@ -183,12 +272,24 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 </form></section></main>
 <dialog id="delete-dialog" aria-labelledby="delete-title">
   <h2 id="delete-title">삭제할 이미지 선택</h2>
+  <button id="select-all-delete" type="button" class="secondary">전체 선택</button>
+  <label for="delete-filter">분류</label><select id="delete-filter"></select>
   <div id="delete-options"></div>
   <p id="delete-count" role="status"></p>
   <div class="row">
-    <button id="confirm-delete" type="button" disabled>선택 이미지 삭제</button>
+    <button id="confirm-delete" type="button" disabled>이미지 삭제</button>
     <button id="cancel-delete" class="secondary" type="button">취소</button>
   </div>
+</dialog>
+<dialog id="export-dialog" aria-labelledby="export-title">
+  <h2 id="export-title">JSON으로 저장할 검사 이미지 선택</h2>
+  <label for="export-filter">분류</label><select id="export-filter"></select>
+  <button id="select-all-export" type="button" class="secondary">전체 선택</button>
+  <div id="download-options"></div>
+  <form method="dialog" class="row">
+    <button id="confirm-export" type="button" disabled>선택 저장</button>
+    <button class="secondary">닫기</button>
+  </form>
 </dialog>
 <script>
   (() => {
@@ -198,7 +299,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     const WIDTH = 184;
     const HEIGHT = 597;
     const MAX_BYTES = 5 * 1024 * 1024;
-    const CONCURRENCY = 3;
     const THUMB_SCALE = 0.3;
     const IMAGE_TYPES = ["image/png", "image/jpeg"];
 
@@ -208,11 +308,12 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       { id: "blue", label: "청색결함" },
       { id: "surface", label: "표면결함" }
     ];
-    const BUCKETS = [...TYPES, { id: "untyped", label: "결함 의심 · 유형 미확인" }, { id: "normal", label: "정상" }];
+    const BUCKETS = [...TYPES, { id: "untyped", label: "유형 미확인" }, { id: "normal", label: "정상" }];
     const FILTERS = [
       { id: "all", label: "전체" },
-      ...BUCKETS.filter((bucket) => bucket.id !== "untyped"),
-      { id: "pending", label: "미검사/실패" }
+      ...BUCKETS,
+      { id: "pending", label: "미검사" },
+      { id: "error", label: "실패" }
     ];
 
     const $ = (id) => document.getElementById(id);
@@ -263,10 +364,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
       for (const b of boxes) {
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(0, 0, 0, .6)";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "rgba(0, 0, 0, .95)";
         ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 3;
         ctx.strokeStyle = "#FFD166";
         ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
       }
@@ -286,6 +387,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       }[item.state];
 
       item.btn.dataset.result = item.state === "done" ? (item.data.is_anomaly ? "defect" : "normal") : item.state;
+      item.btn.dataset.tone = item.state === "done" ? item.bucket : item.state;
       item.badge.textContent = item.state === "done" ? bucketLabel(item.bucket) : text;
     }
 
@@ -295,26 +397,23 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       if (item.state === "ready") return "검사 대기";
       if (item.state === "running") return "검사 중";
       if (item.state === "error") return "검사 실패";
-      return bucketLabel(item.bucket);
+      return item.data.is_anomaly ? "불량 의심" : "정상";
     }
 
     function verdictRows(item) {
       if (item?.state !== "done") return [];
       const result = item.data;
-      const box = result.boxes[0];
-      const location = box
-        ? `x ${Math.round(box.x)}, y ${Math.round(box.y)} / ${Math.round(box.w)}×${Math.round(box.h)} px`
-          + (result.boxes.length > 1 ? ` 외 ${result.boxes.length - 1}개` : "")
-        : "—";
-      const version = (uri, label) => {
-        const match = typeof uri === "string" && uri.match(/\/(\d+)$/);
-        return match ? `${label} v${match[1]}` : uri || "";
-      };
-      return [
-        ["신뢰도", Number.isFinite(result.confidence) ? result.confidence.toFixed(2) : "—"],
-        ["위치", location],
-        ["모델", [version(result.model_name, "Detector"), version(result.classifier_name, "Classifier")].filter(Boolean).join(" / ") || "—"],
-      ];
+      const rows = [];
+      if (result.is_anomaly) {
+        rows.push(["결함 종류", item.bucket === "untyped" ? "유형 미확인 · 작업자 확인 필요" : bucketLabel(item.bucket)]);
+        rows.push(["결함 위치", result.boxes.length ? `${result.boxes.length}곳` : "표시할 위치 없음"]);
+      }
+      if (Object.hasOwn(result, "reviewed_label")) {
+        const labels = {normal: "정상", defect: "불량"};
+        const review = result.reviewed_label;
+        rows.push(["검수 상태", review ? `작업자 확인 · ${labels[review] ?? review}` : "미검수"]);
+      }
+      return rows;
     }
 
     function renderVerdict(item) {
@@ -333,7 +432,14 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
       const result = item?.state === "done" ? item.data : null;
       const extra = result
-        ? [item.key, result.defect_subtype, `이상 점수 ${result.anomaly_score.toFixed(4)} / 기준 ${result.threshold.toFixed(4)}`]
+        ? [
+          Number.isFinite(result.anomaly_score) && Number.isFinite(result.threshold)
+            ? `이상 점수 ${result.anomaly_score.toFixed(4)} / 판정 기준 ${result.threshold.toFixed(4)}` : "",
+          result.is_anomaly && Number.isFinite(result.confidence) && result.confidence >= 0 && result.confidence <= 1
+            ? `분류 신뢰도 ${Math.round(result.confidence * 100)}%` : "",
+          ...result.boxes.map((box, index) => `위치 ${index + 1} · x ${Math.round(box.x)}, y ${Math.round(box.y)} / ${Math.round(box.w)}×${Math.round(box.h)} px`),
+          [result.model_name, result.classifier_name].filter(Boolean).join(" / "),
+        ]
         : [item?.reason];
       $("verdict-extra").replaceChildren(...extra.filter(Boolean).map((text) => {
         const row = document.createElement("p");
@@ -341,7 +447,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         return row;
       }));
       $("verdict-details").hidden = !extra.some(Boolean);
-      $("download-image").disabled = !result;
       $("json").textContent = result ? JSON.stringify(result, null, 2) : "응답 없음";
     }
 
@@ -357,30 +462,33 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
       if (!item) return;
 
+      $("canvas-boxed").dataset.boxes = String(Boolean(done && item.data?.boxes.length));
+      $("canvas-boxed").dataset.tone = done && item.bucket === "untyped" ? "untyped" : done && item.data.is_anomaly ? "defect" : "";
       const bitmap = await createImageBitmap(item.file);
       if (token !== renderToken) {
         bitmap.close();
         return;
       }
 
-      paint($("canvas-original"), bitmap, 1, []);
       paint($("canvas-boxed"), bitmap, 1, item.state === "done" ? item.data.boxes : []);
       bitmap.close();
-      applyZoom();
     }
 
     function select(item) {
       selected?.btn.classList.remove("active");
       selected = item;
       item?.btn.classList.add("active");
-      renderViewer();
       syncControls();
+      return renderViewer();
     }
 
     // ---------- 리스트와 필터 ----------
     function matches(item, filter) {
       if (filter === "all") return true;
-      if (filter === "pending") return item.state !== "done";
+      if (filter === "known-defect") return item.state === "done" && item.data.is_anomaly && item.bucket !== "untyped";
+      if (filter === "incomplete") return ["ready", "running"].includes(item.state);
+      if (filter === "pending") return item.state === "ready";
+      if (filter === "error") return item.state === "error";
       return item.state === "done" && item.bucket === filter;
     }
 
@@ -408,70 +516,63 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     function buildFilter() {
-      for (const f of FILTERS) {
-        const option = document.createElement("option");
-        option.value = f.id;
-        option.textContent = f.label;
-        $("type-filter").append(option);
-      }
-      $("type-filter").addEventListener("change", applyFilter);
-      for(const f of FILTERS) {
+      for (const f of FILTERS.filter(({id}) => id !== "all")) {
         const button=document.createElement("button");button.type="button";button.dataset.category=f.id;
-        button.addEventListener("click",()=>{$("type-filter").value=f.id;applyFilter();});$("category-tabs").append(button);
+        button.addEventListener("click", () => {
+          const filter = $("type-filter");
+          filter.value = filter.value === f.id ? "all" : f.id;
+          applyFilter();
+        });$("category-tabs").append(button);
 
       }
     }
 
     function renderCounts() {
-      const done = items.filter((i) => i.state === "done");
-      const defect = done.filter((i) => i.data.is_anomaly).length;
-      const errors = items.filter((i) => i.state === "error").length;
-
-      const active = items.filter((item) => item.state === "running").length;
-      const counter = $("active-count");
-      counter.hidden = !running && !inspectionBatch;
-      counter.textContent = !running && inspectionBatch
-        ? `대기 ${inspectionBatch.targets.length - inspectionBatch.next}장`
-        : `검사 중 ${active}장`;
-
-      $("counts").replaceChildren(...[
-        ["처리", `${done.length + errors}/${items.length}`, "processed"],
-        ["정상", done.length - defect, "normal"],
-        ["불량 의심", defect, "defect"],
-        ["실패", errors, "failed"],
-      ].map(([label, count, tone]) => {
-        const card = document.createElement("div");
-        card.className = "inspection-stat";
-        card.dataset.tone = tone;
-        const value = document.createElement("strong");
-        value.textContent = count;
-        card.append(label, value);
-        return card;
-      }));
-
-      for (const option of $("type-filter").options) {
-        const n = items.filter((i) => matches(i, option.value)).length;
-        const label = FILTERS.find((f) => f.id === option.value).label;
-        option.textContent = `${label} (${n})`;
+      const total = items.length;
+      const normal = items.filter(item => item.state === "done" && !item.data.is_anomaly).length;
+      const untyped = items.filter(item => item.state === "done" && item.bucket === "untyped").length;
+      const defect = items.filter(item => item.state === "done" && item.data.is_anomaly).length - untyped;
+      const failed = items.filter(item => item.state === "error").length;
+      const processed = normal + untyped + defect + failed;
+      const share = count => total ? (100 * count / total).toFixed(1).replace(/\.0$/, "") : "0";
+      const summary = document.createElement("strong");
+      summary.textContent = `전체 처리 ${share(processed)}% (${processed}/${total})`;
+      const gauge = document.createElement("div");
+      gauge.className = "inspection-gauge";
+      gauge.setAttribute("aria-label", "검사 상태별 비율");
+      const legend = document.createElement("div");
+      legend.className = "inspection-legend";
+      for (const [label, count, color, filter] of [
+        ["정상", normal, "#237a50", "normal"],
+        ["불량 의심 · 유형 확인", defect, "#be3e36", "known-defect"],
+        ["유형 미확인", untyped, "#ad6800", "untyped"],
+        ["검사 실패", failed, "#7041a1", "error"],
+        ["처리 전·진행 중", total - processed, "#e5e9ef", "incomplete"],
+      ]) {
+        const segment = document.createElement("span");
+        const entry = document.createElement("span");
+        const caption = `${label} ${count}장 · ${share(count)}%`;
+        segment.hidden = count === 0;
+        segment.style.flexBasis = total ? `${100 * count / total}%` : "0%";
+        segment.style.backgroundColor = color;
+        gauge.append(segment);
+        const swatch = document.createElement("i");
+        swatch.style.backgroundColor = color;
+        entry.title = caption;
+        entry.setAttribute("aria-label", caption);
+        const shortLabels = {normal: "정상", "known-defect": "불량", untyped: "미확인", error: "실패", incomplete: "대기"};
+        const metric = document.createElement("small");
+        metric.textContent = ` ${share(count)}% (${count})`;
+        entry.append(swatch, shortLabels[filter], metric);
+        legend.append(entry);
       }
+      $("counts").replaceChildren(summary, gauge, legend);
 
       document.querySelectorAll("[data-category]").forEach(b=>{const f=FILTERS.find(f=>f.id===b.dataset.category);b.textContent=`${f.label} (${items.filter(i=>matches(i,f.id)).length})`;});
 
     }
 
     function renderSummary() {
-      const parts = [];
-
-      if (!items.length && !skipped.length) {
-        parts.push("선택된 이미지가 없습니다.");
-      } else {
-        parts.push(`검사 대상 ${items.length}장`);
-        if (skipped.length) parts.push(`제외 ${skipped.length}장`);
-      }
-      if (ignored) parts.push(`이미지가 아닌 파일 ${ignored}개 무시`);
-
-      $("selection-summary").textContent = parts.join(" · ");
-
       $("skipped").hidden = skipped.length === 0;
       $("skipped-summary").textContent = `제외된 파일 (${skipped.length})`;
       $("skipped-list").replaceChildren(
@@ -494,16 +595,18 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
       $("inspect-button").disabled = running || adding || (!inspectionBatch && (!pending || !choice));
       $("inspect-button").hidden = !running && !adding && !inspectionBatch && Boolean(choice) && !pending && items.length > 0;
-      const pause = $("pause-button");
-      pause.hidden = !running || !inspectionBatch || inspectionBatch.next >= inspectionBatch.targets.length;
-      pause.disabled = pauseRequested;
-      pause.textContent = pauseRequested ? "중단 처리 중" : "검사 중단";
+      const action = $("inspection-action");
+      action.hidden = !inspectionBatch;
+      action.disabled = adding || pauseRequested;
+      action.textContent = running ? (pauseRequested ? "중단 처리 중" : "검사 중단") : "검사 취소";
+      $("download-image").disabled = !items.some(item => ["done", "error"].includes(item.state));
       $("inspect-button").textContent = adding ? "이미지 확인 중" : running ? "검사 실행 중" : inspectionBatch ? "검사 재개" : !items.length ? "검사 이미지 없음" : !choice ? "모델 버전 선택" : "검사 시작";
 
       for (const id of ["pick-files", "pick-folder"]) {
-        $(id).disabled = running || adding || Boolean(inspectionBatch);
+        $(id).disabled = running || adding;
       }
-      $("clear-button").disabled = running || adding || Boolean(inspectionBatch) || !items.length;
+      $("clear-button").hidden = !action.hidden;
+      $("clear-button").disabled = adding || !items.length;
       for (const role of modelDropdowns) {
         const dropdown = $(`${role}-dropdown`);
         const locked = running || adding || Boolean(inspectionBatch);
@@ -531,7 +634,13 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       filename.className = "filename";
       filename.textContent = key;
       item.btn.append(item.canvas, filename, item.badge);
-      item.btn.addEventListener("click", () => { $("follow-progress").checked = false; rememberedSelection = item; select(item); });
+      item.btn.addEventListener("click", () => {
+        const follow = $("follow-progress");
+        follow.checked = !follow.checked && rememberedSelection === item && selected === item;
+        rememberedSelection = follow.checked ? null : item;
+        select(item);
+        if (follow.checked) follow.dispatchEvent(new Event("change"));
+      });
 
       item.row = document.createElement("div"); item.row.className = "image-row";
       item.row.append(item.btn);
@@ -559,12 +668,13 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     async function addFiles(files) {
-      if (running || adding || inspectionBatch) {
+      if (running || adding) {
         setStatus("현재 검사 재개 후 이미지 추가 가능", true);
         return;
       }
 
       adding = true; syncControls();
+      const previousCount = items.length;
       const known = new Set([...items, ...skipped].map((i) => i.key));
       const fresh = [];
 
@@ -581,17 +691,21 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         fresh.push(makeItem(file, key));
       }
 
-      setStatus("이미지를 확인하고 있습니다.");
+      setStatus("");
 
       await pool(fresh, 8, async (item) => {
         try {
           await checkImage(item);
           items.push(item);
+          inspectionBatch?.targets.push(item);
         } catch (error) {
           skipped.push({ key: item.key, reason: error.message });
         }
       });
 
+      const addedCount = $("added-image-count");
+      addedCount.hidden = false;
+      addedCount.textContent = `${items.length - previousCount}장 추가`;
       items.sort((a, b) => a.key.localeCompare(b.key));
       $("list").replaceChildren(...items.map((i) => i.row));
 
@@ -612,7 +726,39 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       const count = deleteSelection.size;
       $("delete-count").textContent = `선택 ${count}장`;
       $("confirm-delete").disabled = count === 0;
-      $("confirm-delete").textContent = count ? `선택한 ${count}장 삭제` : "선택 이미지 삭제";
+      $("confirm-delete").textContent = count ? `선택한 ${count}장 삭제` : "이미지 삭제";
+    }
+
+    function configureImageSelection(prefix, container, candidates, filters) {
+      const filter = $(`${prefix}-filter`);
+      const options = $(container);
+      const selectAll = $(`select-all-${prefix}`);
+      filter.replaceChildren(...filters.filter(({id}) => id === "all" || candidates.some(item => matches(item, id))).map(({id, label}) => new Option(label, id)));
+      function visibleChecks() {
+        return Array.from(options.querySelectorAll("label:not([hidden]) input"));
+      }
+      function updateSelectAll() {
+        const checks = visibleChecks();
+        selectAll.disabled = checks.length === 0;
+        const allChecked = checks.length > 0 && checks.every(input => input.checked);
+        selectAll.textContent = allChecked ? "전체 해제" : "전체 선택";
+      }
+      filter.onchange = () => {
+        Array.from(options.children).forEach((label, index) => {
+          label.hidden = !matches(candidates[index], filter.value);
+        });
+        updateSelectAll();
+      };
+      selectAll.onclick = () => {
+        const checks = visibleChecks();
+        const checked = checks.some(input => !input.checked);
+        for (const input of checks) {
+          input.checked = checked;
+          input.dispatchEvent(new Event("change", {bubbles: true}));
+        }
+      };
+      options.onchange = updateSelectAll;
+      filter.onchange();
     }
 
     function openDeleteDialog() {
@@ -638,6 +784,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         return label;
       }));
       updateDeleteCount();
+      configureImageSelection("delete", "delete-options", items, FILTERS);
       $("delete-dialog").showModal();
     }
 
@@ -761,7 +908,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     async function prepareRegistryModel(choice) {
       if (MOCK || !choice.startsWith("registry-")) return true;
 
-      setStatus("모델 준비 중");
       const deadline = Date.now() + 300000;
       while (!pauseRequested && Date.now() < deadline) {
         const response = await fetch(`/api/models/${encodeURIComponent(choice)}/prepare`, {
@@ -786,7 +932,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       item.reason = "";
       updateBadge(item);
       if (item === selected) renderVerdict(item);
-      followItem(item);
+      if ($("follow-progress").checked && matches(item, $("type-filter").value)) {
+        select(item);
+        followItem(item);
+      }
       renderCounts();
       syncControls();
 
@@ -806,13 +955,14 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       }
 
       if ($("follow-progress").checked && matches(item, $("type-filter").value)) {
-        select(item);
+        await select(item);
         followItem(item);
       } else if (item === selected) {
         renderViewer();
       }
       renderCounts();
       applyFilter();
+      syncControls();
     }
 
     async function inspectAll() {
@@ -823,10 +973,11 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       const targets = inspectionBatch?.targets || items.filter((item) => needsInspection(item, choice));
       if (!targets.length) return;
 
-      const batch = inspectionBatch || {choice, targets, next: 0};
+      const batch = inspectionBatch || {choice, targets, next: 0, processed: 0};
       inspectionBatch = batch;
       pauseRequested = false;
       running = true;
+      $("added-image-count").hidden = true;
       syncControls();
       renderCounts();
 
@@ -834,21 +985,23 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         const prepared = await prepareRegistryModel(choice);
         if (prepared && !pauseRequested) {
           setStatus("");
-          const worker = async () => {
-            while (!pauseRequested && batch.next < batch.targets.length) {
-              const item = batch.targets[batch.next++];
-              await runInspectionItem(item, batch.choice);
+          while (!pauseRequested && batch.next < batch.targets.length) {
+            const item = batch.targets[batch.next];
+            await runInspectionItem(item, batch.choice);
+            batch.next += 1;
+            batch.processed += 1;
+            renderCounts();
+            if (!pauseRequested && batch.next < batch.targets.length &&
+                $("follow-progress").checked && selected === item && item.state === "done") {
+              await new Promise(resolve => setTimeout(resolve, 1500));
             }
-          };
-          await Promise.all(Array.from(
-            {length: Math.min(CONCURRENCY, batch.targets.length - batch.next)}, worker
-          ));
+          }
         }
         if (batch.next >= batch.targets.length) inspectionBatch = null;
-        setStatus(inspectionBatch ? "검사 중단" : "");
+        setStatus("");
       } catch (error) {
         if (!pauseRequested) inspectionBatch = null;
-        setStatus(pauseRequested ? "검사 중단" : error.message, !pauseRequested);
+        setStatus(pauseRequested ? "" : error.message, !pauseRequested);
       } finally {
         pauseRequested = false;
         running = false;
@@ -943,29 +1096,76 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       });
     }
 
-    let zoom = 1;
-    function applyZoom() {
-      const boxed = $("show-boxes").checked;
-      $("canvas-original").hidden = boxed;
-      $("canvas-boxed").hidden = !boxed;
-      for (const id of ["canvas-original", "canvas-boxed"]) {
-        $(id).style.width = `${WIDTH * zoom}px`;
-        $(id).style.height = `${HEIGHT * zoom}px`;
+    $("inspection-action").addEventListener("click", () => {
+      if (adding || !inspectionBatch || pauseRequested) return;
+      if (running) {
+        pauseRequested = true;
+        setStatus("");
+        syncControls();
+        return;
       }
-      $("zoom-label").textContent = `${Math.round(zoom * 100)}%`;
-    }
-    $("zoom-in").addEventListener("click", () => { zoom = Math.min(4, zoom + .25); applyZoom(); });
-    $("zoom-out").addEventListener("click", () => { zoom = Math.max(.25, zoom - .25); applyZoom(); });
-    $("show-boxes").addEventListener("change", applyZoom);
+      inspectionBatch = null;
+      setStatus("");
+      renderCounts();
+      syncControls();
+    });
+    $("swap-inspection-panels").addEventListener("click", event => {
+      const left = $("inspection-left");
+      const center = $("inspection-center");
+      const leftPanel = left.firstElementChild;
+      const centerPanel = center.firstElementChild;
+      left.append(centerPanel);
+      center.append(leftPanel);
+      const listInCenter = center.contains($("list"));
+      event.currentTarget.setAttribute("aria-pressed", String(listInCenter));
+      $("swap-inspection-label").textContent = listInCenter ? "목록을 왼쪽으로" : "목록을 가운데로";
+    });
+    let exportImages = [];
     $("download-image").addEventListener("click", () => {
-      if (selected?.state !== "done") return;
-      const content = JSON.stringify({file: selected.key, ...selected.data}, null, 2);
+      exportImages = items.filter(item => ["done", "error"].includes(item.state))
+        .map(item => ({
+          item,
+          result: item.state === "error"
+            ? {file: item.key, status: "error", reason: item.reason}
+            : {file: item.key, ...item.data},
+        }));
+      if (!exportImages.length) return;
+      $("download-options").replaceChildren(...exportImages.map(({item}, index) => {
+        const label = document.createElement("label");
+        label.className = "download-option";
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.value = String(index);
+        check.checked = item === selected;
+        const thumb = document.createElement("canvas");
+        thumb.width = item.canvas.width;
+        thumb.height = item.canvas.height;
+        thumb.setAttribute("aria-hidden", "true");
+        if (thumb.width && thumb.height) thumb.getContext("2d").drawImage(item.canvas, 0, 0);
+        label.append(check, thumb, item.key);
+        return label;
+      }));
+      $("confirm-export").disabled = !$("download-options").querySelector("input:checked");
+      configureImageSelection("export", "download-options", exportImages.map(({item}) => item), FILTERS.filter(({id}) => id !== "pending"));
+      $("export-dialog").showModal();
+    });
+    $("download-options").addEventListener("change", () => {
+      $("confirm-export").disabled = !$("download-options").querySelector("input:checked");
+    });
+    $("confirm-export").addEventListener("click", () => {
+      const choices = Array.from($("download-options").querySelectorAll("input:checked"),
+        input => exportImages[Number(input.value)]);
+      if (!choices.length) return;
+      const [first] = choices;
+      const single = choices.length === 1;
+      const content = JSON.stringify(single ? first.result : choices.map(choice => choice.result), null, 2);
       const url = URL.createObjectURL(new Blob([content], {type: "application/json"}));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${selected.file.name.replace(/\.[^.]+$/, "")}.json`;
+      link.download = single ? first.item.file.name.replace(/\.[^.]+$/, "") + ".json" : "inspection-results.json";
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      $("export-dialog").close();
     });
 
     function followItem(item) {
@@ -974,8 +1174,15 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       if (row.bottom > box.bottom) list.scrollTop += row.bottom - box.bottom;
       else if (row.top < box.top) list.scrollTop += row.top - box.top;
     }
-    for (const event of ["wheel","touchstart","pointerdown","keydown"]) $("list").addEventListener(event,()=>{$("follow-progress").checked=false;},{passive:true});
-    $("follow-progress").addEventListener("change",()=>{const item=items.find(i=>i.state==="running");if(item)followItem(item);});
+    $("follow-progress").addEventListener("change", () => {
+      if (!$("follow-progress").checked) return;
+      rememberedSelection = null;
+      const current = items.find(item => item.state === "running" && matches(item, $("type-filter").value));
+      if (current) {
+        select(current);
+        followItem(current);
+      }
+    });
     const drop = $("drop-zone");
     drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("drag-over");});
     drop.addEventListener("dragleave",()=>drop.classList.remove("drag-over"));
@@ -986,7 +1193,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       return files;
     }
     drop.addEventListener("drop",async e=>{
-      e.preventDefault();drop.classList.remove("drag-over");if(running||adding||inspectionBatch)return;
+      e.preventDefault();drop.classList.remove("drag-over");if(running||adding)return;
       const entries=[...e.dataTransfer.items].filter(i=>i.kind==="file").map(i=>i.webkitGetAsEntry?.());
       const fallback=[...e.dataTransfer.files];
       adding=true;syncControls();
@@ -1019,11 +1226,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     $("delete-dialog").addEventListener("close", () => {
       deleteSelection.clear();
       updateDeleteCount();
-    });
-    $("pause-button").addEventListener("click", () => {
-      pauseRequested = true;
-      setStatus("처리 중인 요청까지만 검사");
-      syncControls();
     });
 
     $("mock-banner").hidden = !MOCK;
@@ -1269,5 +1471,3 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
   </script>
 </body>
 </html>
-
-
