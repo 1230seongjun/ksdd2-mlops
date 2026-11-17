@@ -10,9 +10,46 @@
 
 .tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-top:20px;overflow:auto}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;padding:14px 3px}.tabs button[aria-pressed="true"]{color:var(--blue);border-bottom:3px solid var(--blue)}.image-row{display:flex;align-items:center;gap:8px}.image-row>.thumb{flex:1;min-width:0}.selection-tools button{font-size:11px;padding:5px 8px}.selection-tools label{font-weight:400}.selection-tools input{accent-color:var(--blue)}#drop-zone{border:1px dashed #a7b7cf;padding:14px;display:block}#drop-zone.drag-over{background:#edf3ff}#drop-zone button{width:100%}#panel-invite{margin-top:18px}
 
-header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left:auto;letter-spacing:2px;font-size:12px;color:var(--muted)}#logout-button{float:none;padding:6px 12px}#logout-status:empty{display:none}main{padding:0 24px 24px}.tabs{margin:0 0 16px;min-height:48px}.layout{margin-top:0}#panel-invite{margin-top:0}#invite-form{margin:0;padding:10px 0;border:0}.categories{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.categories button{padding:5px 8px;font-size:12px;border-color:var(--line);background:white;color:var(--ink)}.categories button[aria-pressed="true"]{background:#edf3ff;border-color:var(--blue);color:var(--blue)}.image-row>.download-check{display:none}.selection-tools>#check-visible,.selection-tools>#uncheck-all,.selection-tools>#checked-summary{display:none}dialog{width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:24px;color:var(--ink)}dialog::backdrop{background:#17243b66}#download-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:48vh;overflow:auto;margin-top:16px}.download-option{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px;margin:0;overflow-wrap:anywhere;font-weight:400;font-size:12px}.download-option canvas{width:22px;height:72px;object-fit:contain}.download-option span{min-width:0}.download-option:has(input:checked){background:#edf3ff;border-color:var(--blue)}@media(max-width:720px){main{padding:0 12px 12px}.tabs{gap:14px}header{gap:12px;padding:0 12px}.console-label{font-size:10px}}
+header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left:auto;letter-spacing:2px;font-size:12px;color:var(--muted)}#logout-button{float:none;padding:6px 12px}#logout-status:empty{display:none}main{padding:0 24px 24px}.tabs{margin:0 0 16px;min-height:48px}.layout{margin-top:0}#panel-invite{margin-top:0}#invite-form{margin:0;padding:10px 0;border:0}.categories{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.categories button{padding:5px 8px;font-size:12px;border-color:var(--line);background:white;color:var(--ink)}.categories button[aria-pressed="true"]{background:#edf3ff;border-color:var(--blue);color:var(--blue)}.image-row>.download-check{display:none}.selection-tools>#check-visible,.selection-tools>#uncheck-all,.selection-tools>#checked-summary{display:none}dialog{width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:24px;color:var(--ink)}dialog::backdrop{background:#17243b66}#download-options,#delete-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:48vh;overflow:auto;margin-top:16px}.download-option{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px;margin:0;overflow-wrap:anywhere;font-weight:400;font-size:12px}.download-option canvas{width:22px;height:72px;object-fit:contain}.download-option span{min-width:0}.download-option:has(input:checked){background:#edf3ff;border-color:var(--blue)}@media(max-width:720px){main{padding:0 12px 12px}.tabs{gap:14px}header{gap:12px;padding:0 12px}.console-label{font-size:10px}}
 #account-name{min-width:0;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink)}
 #logout-button{flex-shrink:0}
+.model-dropdown{margin:0 0 8px;border:1px solid var(--line);border-radius:8px;background:white}
+.model-dropdown summary{display:flex;align-items:center;gap:8px;list-style:none;padding:10px 12px;cursor:pointer}
+.model-dropdown summary::-webkit-details-marker{display:none}
+.model-dropdown summary strong{margin-left:auto;white-space:nowrap}
+.model-dropdown summary::after{content:"";height:6px;width:6px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(45deg);margin-left:3px}
+.model-dropdown[open] summary::after{transform:rotate(225deg)}
+.model-dropdown[aria-disabled="true"] summary{opacity:.55;cursor:default}
+.model-options{max-height:190px;overflow:auto;border-top:1px solid var(--line);padding:6px 10px}
+.model-options label{display:flex;align-items:center;gap:8px;padding:6px;margin:0;font-weight:400}
+.model-options label:has(input:disabled){opacity:.55}
+
+#counts.inspection-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px;padding:0}
+.inspection-stat{background:#f4f7fc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.inspection-stat strong{display:block;color:var(--ink);font-size:19px;line-height:1.3;font-variant-numeric:tabular-nums}
+.inspection-stat[data-tone="normal"] strong{color:#146b47}
+.inspection-stat[data-tone="defect"] strong,.inspection-stat[data-tone="failed"] strong{color:#a52c24}
+#pause-button{width:100%;margin-top:6px}
+#active-count{margin:8px 0;color:var(--muted);font-variant-numeric:tabular-nums}
+#verdict-message{margin:4px 0 12px;padding:10px 12px;border-radius:8px;background:#f2f4f8;color:#334155;font-size:clamp(19px,2.2vw,30px);line-height:1.2;font-weight:750;overflow-wrap:anywhere}
+#verdict-message[data-tone="normal"]{color:#146346;background:#eaf7ef}
+#verdict-message[data-tone="blue"]{color:#174d88;background:#e8f2ff}
+#verdict-message[data-tone="brown"]{color:#923d21;background:#fff1e9}
+#verdict-message[data-tone="black"]{color:#212935;background:#e9edf2}
+#verdict-message[data-tone="surface"],#verdict-message[data-tone="untyped"]{color:#794809;background:#fff3d8}
+#verdict-message[data-tone="error"]{color:#a52c24;background:#ffeeeb}
+#info{margin:0;font-size:13px}
+#info div{display:grid;grid-template-columns:4em minmax(0,1fr);gap:6px;padding:3px 0}
+#info dt{color:var(--muted)}
+#info dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+#verdict-details{margin-top:12px;font-size:12px;color:var(--muted)}
+#verdict-details summary{cursor:pointer}
+#verdict-details p{margin:4px 0;overflow-wrap:anywhere}
+#json-panel{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;font-size:12px}
+#json-panel summary{cursor:pointer;font-weight:650}
+#json-panel pre{max-height:180px;overflow:auto}
+#download-image{margin-top:8px}
+@media(max-width:450px){#counts.inspection-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -43,11 +80,15 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <!-- 검사 이미지 -->
 <section class="card side">
 <h2>검사 이미지</h2>
-<p class="hint" id="model-info">모델 정보를 불러오는 중입니다.</p>
-<label for="model-choice">검사 모델</label>
-<select id="model-choice">
-<option value="champion">운영 모델</option>
-</select>
+<details class="model-dropdown" id="detector-dropdown">
+<summary><span>이상치 탐지 모델</span><strong id="detector-label">버전 선택</strong></summary>
+<div class="model-options" id="detector-options" role="group" aria-label="이상치 탐지 모델 버전"></div>
+</details>
+<details class="model-dropdown" id="classifier-dropdown">
+<summary><span>결함 분류 모델</span><strong id="classifier-label">버전 선택</strong></summary>
+<div class="model-options" id="classifier-options" role="group" aria-label="결함 분류 모델 버전"></div>
+</details>
+<p class="hint" id="model-info" role="status" hidden></p>
 <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
 <div class="row" id="drop-zone">
 <button class="secondary" id="pick-files" type="button">이미지 추가</button>
@@ -62,29 +103,28 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 </details>
 <button disabled="" id="inspect-button" type="button">검사 시작</button>
 <button class="secondary" id="clear-button" type="button" disabled>선택 이미지 삭제</button>
-<progress hidden="" id="progress" max="1" value="0"></progress>
+<button class="secondary" hidden id="pause-button" type="button">검사 중단</button>
+<p id="active-count" hidden role="status"></p>
 <p aria-live="polite" class="status" id="status" role="status">
-          이미지를 선택해 주세요.
+          검사 이미지 없음
         </p>
 <label class="filter">
               결함 종류
               <select id="type-filter"></select>
-</label><h3 class="list-title">검사 대기 목록</h3><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="selection-tools"><button class="secondary" id="check-visible" type="button">표시 결과 선택</button><button class="secondary" id="uncheck-all" type="button">선택 해제</button><label><input checked="" id="follow-progress" type="checkbox"/> 진행 목록·사진 따라가기</label><p class="hint" id="checked-summary">다운로드할 결과 0개 선택</p></div><div class="list" id="list"></div></section>
-<section class="card image-panel"><h2>이미지 상세</h2><div aria-label="결과 분류" class="categories" id="category-tabs"></div><p id="selected-name">선택된 이미지 없음</p><div class="toolbar"><button aria-label="축소" id="zoom-out" type="button">−</button><span id="zoom-label">100%</span><button aria-label="확대" id="zoom-in" type="button">+</button><button id="zoom-fit" type="button">화면 맞춤</button><label><input checked="" id="show-boxes" type="checkbox"/> 결함 위치 표시</label></div><p class="hint" id="counts"></p><p class="hint" id="viewer-empty">
-            이미지를 선택하면 검사 결과가 표시됩니다.
+</label><h3 class="list-title">검사 이미지 목록</h3><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="selection-tools"><label><input checked id="follow-progress" type="checkbox"/> 검사 진행 따라가기</label></div><div class="list" id="list"></div></section>
+<section class="card image-panel"><h2>이미지 상세</h2><div id="counts" class="inspection-stats" aria-label="검사 현황"></div><div aria-label="결과 분류" class="categories" id="category-tabs"></div><p id="selected-name">선택된 이미지 없음</p><div class="toolbar"><button aria-label="축소" id="zoom-out" type="button">−</button><span id="zoom-label">100%</span><button aria-label="확대" id="zoom-in" type="button">+</button><label><input checked="" id="show-boxes" type="checkbox"/> 결함 위치 표시</label></div><p class="hint" id="viewer-empty">
+            표시할 이미지 없음
           </p><div class="viewer" hidden="" id="viewer">
 <canvas aria-label="원본 이미지" hidden="" id="canvas-original"></canvas>
 <canvas aria-label="바운딩 박스가 표시된 이미지" id="canvas-boxed"></canvas>
 </div></section><aside aria-label="검사 판정 상세" class="card result-panel"><div class="panel">
 <h3>판정 상세</h3>
 <p id="verdict-message" role="status"></p>
-<div id="info"></div>
-<p class="hint" hidden id="score-hint">이상 점수는 판정 기준값과 비교하는 데 써요.</p>
-</div><div class="panel">
-<h3>선택 이미지 응답 JSON</h3>
-<pre id="json"></pre>
-<button class="secondary" disabled="" id="save-json" type="button">전체 결과 JSON 다운로드</button>
-</div><button class="secondary" disabled="" id="download-image" type="button">선택 결과 JSON 다운로드</button></aside></div>
+<dl id="info"></dl>
+<details id="verdict-details" hidden><summary>세부 정보</summary><div id="verdict-extra"></div></details>
+<button class="secondary" disabled id="download-image" type="button">이 이미지 JSON 저장</button>
+<details id="json-panel"><summary>응답 JSON</summary><pre id="json"></pre></details>
+</div></aside></div>
 <!-- Grafana 모니터링 -->
 <section aria-labelledby="history-title" class="card history" hidden="" id="panel-history">
 <h2 id="history-title">검사 이력</h2>
@@ -141,7 +181,16 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <input id="invite-link" readonly="" type="url"/>
 <p id="invite-status" role="status"></p>
 </form></section></main>
-<dialog aria-labelledby="download-title" id="download-dialog"><h2 id="download-title">다운로드할 이미지 결과 선택</h2><p class="hint">검사가 완료된 이미지만 표시됩니다. 체크한 결과를 JSON 파일 하나로 다운로드합니다.</p><label>분류 <select id="download-filter"></select></label><div class="row"><button class="secondary" id="dialog-select" type="button">표시 결과 모두 선택</button><button class="secondary" id="dialog-clear" type="button">전체 선택 해제</button></div><div id="download-options"></div><p id="download-count" role="status"></p><div class="row"><button id="confirm-download" type="button">JSON 다운로드</button><button class="secondary" id="close-download" type="button">닫기</button></div></dialog><script>
+<dialog id="delete-dialog" aria-labelledby="delete-title">
+  <h2 id="delete-title">삭제할 이미지 선택</h2>
+  <div id="delete-options"></div>
+  <p id="delete-count" role="status"></p>
+  <div class="row">
+    <button id="confirm-delete" type="button" disabled>선택 이미지 삭제</button>
+    <button id="cancel-delete" class="secondary" type="button">취소</button>
+  </div>
+</dialog>
+<script>
   (() => {
     "use strict";
 
@@ -159,10 +208,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       { id: "blue", label: "청색결함" },
       { id: "surface", label: "표면결함" }
     ];
-    const BUCKETS = [...TYPES, { id: "untyped", label: "미분류" }, { id: "normal", label: "정상" }];
+    const BUCKETS = [...TYPES, { id: "untyped", label: "결함 의심 · 유형 미확인" }, { id: "normal", label: "정상" }];
     const FILTERS = [
       { id: "all", label: "전체" },
-      ...BUCKETS,
+      ...BUCKETS.filter((bucket) => bucket.id !== "untyped"),
       { id: "pending", label: "미검사/실패" }
     ];
 
@@ -173,12 +222,21 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     let ignored = 0;     // 이미지가 아니라 무시한 파일 수
     let running = false;
     let selected = null;
+    const chosenVersions = { detector: "", classifier: "" };
+    const deleteSelection = new Set();
+    let modelRefreshTimer = null;
+    let modelRefreshPending = false;
+    const modelListKeys = { detector: "", classifier: "" };
+    const modelDropdowns = ["detector", "classifier"];
     let renderToken = 0;
     let adding = false;
-    const checked = new Set();
+    let rememberedSelection = null;
+    let inspectionBatch = null;
+    let pauseRequested = false;
 
     function setStatus(message, isError = false) {
       $("status").textContent = message;
+      $("status").hidden = !message;
       $("status").classList.toggle("error", isError);
     }
 
@@ -209,7 +267,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         ctx.strokeStyle = "rgba(0, 0, 0, .6)";
         ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
         ctx.lineWidth = 1.5;
-        ctx.strokeStyle = "#ffffff";
+        ctx.strokeStyle = "#FFD166";
         ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
       }
     }
@@ -233,47 +291,58 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
     // ---------- 상세 보기 ----------
     function verdictMessage(item) {
-      if (!item) {
-        return items.length
-          ? "사진을 고르면 여기에 검사 결과가 나와요."
-          : "사진을 올려 주세요. 검사 결과는 여기에 나와요.";
-      }
-
-      switch (item.state) {
-        case "ready":
-          return "사진이 준비됐어요. ‘검사 시작’을 눌러 주세요.";
-        case "running":
-          return "사진을 살펴보고 있어요.";
-        case "error":
-          return item.reason
-            ? "검사를 마치지 못했어요. 아래 오류 내용을 확인해 주세요."
-            : "검사를 마치지 못했어요.";
-      }
-
-      if (!item.data.is_anomaly) return "정상으로 판정됐어요.";
-      if (item.data.boxes.length) {
-        return "결함이 의심돼요. 표시된 위치를 확인해 주세요.";
-      }
-      return "결함이 의심돼요. 이번 검사에서 받은 위치 정보가 없어요.";
+      if (!item) return items.length ? "선택 이미지 없음" : "검사 이미지 없음";
+      if (item.state === "ready") return "검사 대기";
+      if (item.state === "running") return "검사 중";
+      if (item.state === "error") return "검사 실패";
+      return bucketLabel(item.bucket);
     }
 
-    function infoRows(item) {
-      const rows = [["파일", item.key]];
-      if (item.state === "error" && item.reason) {
-        rows.push(["오류 내용", item.reason]);
-      }
-      if (item.state !== "done") return rows;
-
-      const d = item.data;
+    function verdictRows(item) {
+      if (item?.state !== "done") return [];
+      const result = item.data;
+      const box = result.boxes[0];
+      const location = box
+        ? `x ${Math.round(box.x)}, y ${Math.round(box.y)} / ${Math.round(box.w)}×${Math.round(box.h)} px`
+          + (result.boxes.length > 1 ? ` 외 ${result.boxes.length - 1}개` : "")
+        : "—";
+      const version = (uri, label) => {
+        const match = typeof uri === "string" && uri.match(/\/(\d+)$/);
+        return match ? `${label} v${match[1]}` : uri || "";
+      };
       return [
-        ...rows,
-        ["결함 여부", d.is_anomaly ? "불량 의심" : "정상"],
-        ["결함 유형", d.is_anomaly ? bucketLabel(item.bucket) : "-"],
-        ["이상 점수", d.anomaly_score.toFixed(4)],
-        ["판정 기준값", d.threshold.toFixed(4)],
-        ["세부 유형", d.defect_subtype || "-"],
-        ["위치 정보", d.boxes.length ? `${d.boxes.length}개` : "-"]
+        ["신뢰도", Number.isFinite(result.confidence) ? result.confidence.toFixed(2) : "—"],
+        ["위치", location],
+        ["모델", [version(result.model_name, "Detector"), version(result.classifier_name, "Classifier")].filter(Boolean).join(" / ") || "—"],
       ];
+    }
+
+    function renderVerdict(item) {
+      const title = $("verdict-message");
+      title.textContent = verdictMessage(item);
+      title.dataset.tone = item?.state === "done" ? item.bucket : item?.state || "empty";
+      $("info").replaceChildren(...verdictRows(item).map(([name, value]) => {
+        const row = document.createElement("div");
+        const label = document.createElement("dt");
+        const detail = document.createElement("dd");
+        label.textContent = name;
+        detail.textContent = value;
+        row.append(label, detail);
+        return row;
+      }));
+
+      const result = item?.state === "done" ? item.data : null;
+      const extra = result
+        ? [item.key, result.defect_subtype, `이상 점수 ${result.anomaly_score.toFixed(4)} / 기준 ${result.threshold.toFixed(4)}`]
+        : [item?.reason];
+      $("verdict-extra").replaceChildren(...extra.filter(Boolean).map((text) => {
+        const row = document.createElement("p");
+        row.textContent = text;
+        return row;
+      }));
+      $("verdict-details").hidden = !extra.some(Boolean);
+      $("download-image").disabled = !result;
+      $("json").textContent = result ? JSON.stringify(result, null, 2) : "응답 없음";
     }
 
     async function renderViewer() {
@@ -284,26 +353,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       $("viewer-empty").hidden = Boolean(item);
       $("viewer").hidden = !item;
       $("selected-name").textContent = item ? item.key : "선택된 이미지 없음";
-      syncDownloads();
-      $("verdict-message").textContent = verdictMessage(item);
-      $("score-hint").hidden = !done;
-
-      $("info").replaceChildren(
-        ...(item ? infoRows(item) : []).map(([label, value]) => {
-          const p = document.createElement("p");
-          const strong = document.createElement("strong");
-          p.className = "row-item";
-          strong.textContent = value;
-          p.append(`${label}`, strong);
-          return p;
-        })
-      );
-
-      $("json").textContent = done
-        ? JSON.stringify(item.data, null, 2)
-        : item?.state === "error"
-          ? "표시할 검사 결과가 없어요."
-          : "검사가 끝나면 여기에 결과가 나와요.";
+      renderVerdict(item);
 
       if (!item) return;
 
@@ -345,7 +395,12 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       }
 
       document.querySelectorAll("[data-category]").forEach(b => b.setAttribute("aria-pressed",String(b.dataset.category===filter)));
-      if (selected && !matches(selected,filter)) select(items.find(i=>matches(i,filter)) || null);
+      if (!selected || !matches(selected, filter)) {
+        const next = rememberedSelection && items.includes(rememberedSelection) && matches(rememberedSelection, filter)
+          ? rememberedSelection
+          : items.find((item) => matches(item, filter)) || null;
+        if (selected !== next) select(next);
+      }
       $("list-empty").hidden = shown > 0;
       $("list-empty").textContent = items.length
         ? "해당 종류의 이미지가 없습니다."
@@ -363,7 +418,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       for(const f of FILTERS) {
         const button=document.createElement("button");button.type="button";button.dataset.category=f.id;
         button.addEventListener("click",()=>{$("type-filter").value=f.id;applyFilter();});$("category-tabs").append(button);
-        const option=document.createElement("option");option.value=f.id;option.textContent=f.label;$("download-filter").append(option);
+
       }
     }
 
@@ -372,9 +427,27 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       const defect = done.filter((i) => i.data.is_anomaly).length;
       const errors = items.filter((i) => i.state === "error").length;
 
-      $("counts").textContent = done.length || errors
-        ? `완료 ${done.length}/${items.length} · 불량 ${defect} · 정상 ${done.length - defect} · 실패 ${errors}`
-        : "";
+      const active = items.filter((item) => item.state === "running").length;
+      const counter = $("active-count");
+      counter.hidden = !running && !inspectionBatch;
+      counter.textContent = !running && inspectionBatch
+        ? `대기 ${inspectionBatch.targets.length - inspectionBatch.next}장`
+        : `검사 중 ${active}장`;
+
+      $("counts").replaceChildren(...[
+        ["처리", `${done.length + errors}/${items.length}`, "processed"],
+        ["정상", done.length - defect, "normal"],
+        ["불량 의심", defect, "defect"],
+        ["실패", errors, "failed"],
+      ].map(([label, count, tone]) => {
+        const card = document.createElement("div");
+        card.className = "inspection-stat";
+        card.dataset.tone = tone;
+        const value = document.createElement("strong");
+        value.textContent = count;
+        card.append(label, value);
+        return card;
+      }));
 
       for (const option of $("type-filter").options) {
         const n = items.filter((i) => matches(i, option.value)).length;
@@ -383,8 +456,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       }
 
       document.querySelectorAll("[data-category]").forEach(b=>{const f=FILTERS.find(f=>f.id===b.dataset.category);b.textContent=`${f.label} (${items.filter(i=>matches(i,f.id)).length})`;});
-      $("save-json").disabled = done.length === 0;
-      syncDownloads();
+
     }
 
     function renderSummary() {
@@ -417,15 +489,28 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     function syncControls() {
-      const pending = items.some((i) => i.state === "ready" || i.state === "error");
+      const choice = selectedModelChoice();
+      const pending = items.some((item) => needsInspection(item, choice));
 
-      $("inspect-button").disabled = running || adding || !pending;
-      $("inspect-button").textContent = adding ? "이미지 확인 중..." : running ? "검사 중..." : !items.length ? "이미지를 먼저 추가하세요" : !pending ? "검사 완료" : "검사 시작";
+      $("inspect-button").disabled = running || adding || (!inspectionBatch && (!pending || !choice));
+      $("inspect-button").hidden = !running && !adding && !inspectionBatch && Boolean(choice) && !pending && items.length > 0;
+      const pause = $("pause-button");
+      pause.hidden = !running || !inspectionBatch || inspectionBatch.next >= inspectionBatch.targets.length;
+      pause.disabled = pauseRequested;
+      pause.textContent = pauseRequested ? "중단 처리 중" : "검사 중단";
+      $("inspect-button").textContent = adding ? "이미지 확인 중" : running ? "검사 실행 중" : inspectionBatch ? "검사 재개" : !items.length ? "검사 이미지 없음" : !choice ? "모델 버전 선택" : "검사 시작";
 
-      for (const id of ["pick-files", "pick-folder", "model-choice"]) {
-        $(id).disabled = running || adding;
+      for (const id of ["pick-files", "pick-folder"]) {
+        $(id).disabled = running || adding || Boolean(inspectionBatch);
       }
-      $("clear-button").disabled = running || adding || !selected;
+      $("clear-button").disabled = running || adding || Boolean(inspectionBatch) || !items.length;
+      for (const role of modelDropdowns) {
+        const dropdown = $(`${role}-dropdown`);
+        const locked = running || adding || Boolean(inspectionBatch);
+        dropdown.inert = locked;
+        dropdown.setAttribute("aria-disabled", String(locked));
+        if (locked) dropdown.open = false;
+      }
     }
 
     // ---------- 파일 추가 ----------
@@ -446,13 +531,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       filename.className = "filename";
       filename.textContent = key;
       item.btn.append(item.canvas, filename, item.badge);
-      item.btn.addEventListener("click", () => { $("follow-progress").checked = false; select(item); });
+      item.btn.addEventListener("click", () => { $("follow-progress").checked = false; rememberedSelection = item; select(item); });
 
       item.row = document.createElement("div"); item.row.className = "image-row";
-      item.check = document.createElement("input"); item.check.type = "checkbox"; item.check.className = "download-check";
-      item.check.disabled = true; item.check.setAttribute("aria-label", `${key} 결과 다운로드 선택`);
-      item.check.addEventListener("change", () => { if (item.check.checked) checked.add(item); else checked.delete(item); syncDownloads(); });
-      item.row.append(item.check, item.btn);
+      item.row.append(item.btn);
       return item;
     }
 
@@ -477,8 +559,8 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     async function addFiles(files) {
-      if (running || adding) {
-        setStatus("검사 중에는 파일을 추가할 수 없습니다.", true);
+      if (running || adding || inspectionBatch) {
+        setStatus("현재 검사 재개 후 이미지 추가 가능", true);
         return;
       }
 
@@ -519,37 +601,71 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       applyFilter();
       syncControls();
 
-      if (!selected && items.length) select(items[0]);
-
       if (items.length) {
-        setStatus("이미지를 선택했습니다. 검사 시작을 눌러주세요.");
+        setStatus("");
       } else {
         setStatus("검사할 수 있는 이미지가 없습니다.", true);
       }
     }
 
-    function removeSelectedImage() {
-      if (running || adding || !selected) return;
+    function updateDeleteCount() {
+      const count = deleteSelection.size;
+      $("delete-count").textContent = `선택 ${count}장`;
+      $("confirm-delete").disabled = count === 0;
+      $("confirm-delete").textContent = count ? `선택한 ${count}장 삭제` : "선택 이미지 삭제";
+    }
 
-      const removed = selected;
-      const index = items.indexOf(removed);
-      if (index < 0) return;
+    function openDeleteDialog() {
+      if (running || adding || inspectionBatch || !items.length) return;
+      deleteSelection.clear();
+      $("delete-options").replaceChildren(...items.map((item) => {
+        const label = document.createElement("label");
+        label.className = "download-option";
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.addEventListener("change", () => {
+          if (check.checked) deleteSelection.add(item);
+          else deleteSelection.delete(item);
+          updateDeleteCount();
+        });
+        const thumb = document.createElement("canvas");
+        thumb.width = item.canvas.width;
+        thumb.height = item.canvas.height;
+        if (thumb.width && thumb.height) thumb.getContext("2d").drawImage(item.canvas, 0, 0);
+        const name = document.createElement("span");
+        name.textContent = item.key;
+        label.append(check, thumb, name);
+        return label;
+      }));
+      updateDeleteCount();
+      $("delete-dialog").showModal();
+    }
 
+    function deleteSelectedImages() {
+      if (running || adding || !deleteSelection.size) return;
+
+      const count = deleteSelection.size;
+      const selectedIndex = items.indexOf(selected);
+      const removedSelected = deleteSelection.has(selected);
       const filter = $("type-filter").value;
-      items.splice(index, 1);
-      checked.delete(removed);
-      removed.row.remove();
+      items = items.filter((item) => !deleteSelection.has(item));
+      for (const item of deleteSelection) {
+        if (rememberedSelection === item) rememberedSelection = null;
+        item.row.remove();
+      }
+      if (removedSelected) {
+        const next = items.slice(selectedIndex).find((item) => matches(item, filter))
+          || items.find((item) => matches(item, filter))
+          || null;
+        select(next);
+      }
 
-      const next = items.slice(index).find((item) => matches(item, filter))
-        || items.find((item) => matches(item, filter))
-        || null;
-
-      $("progress").hidden = true;
-      select(next);
+      $("delete-dialog").close();
       renderSummary();
       renderCounts();
       applyFilter();
-      setStatus(`삭제했어요: ${removed.key}`);
+      syncControls();
+      setStatus(`${count}장 삭제됨`);
     }
 
     // ---------- 검사 ----------
@@ -571,9 +687,19 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
     function bucketOf(data) {
       if (!data.is_anomaly) return "normal";
-      const aliases={"갈적색결함":"brown","갈적색":"brown","청색결함":"blue","청색":"blue","흑색결함":"black","흑색":"black","표면결함":"surface","표면":"surface"};
-      const value=String(data.defect_type || "").trim().toLowerCase().replace(/\s+/g,"");
-      return TYPES.some(t=>t.id===value) ? value : aliases[value] || "untyped";
+      const aliases = {
+        "갈적색결함": "brown", "갈적색": "brown",
+        "청색결함": "blue", "청색": "blue", "밝은청색결함": "blue",
+        "어두운청색결함": "blue", "밝은청색": "blue", "어두운청색": "blue",
+        "lightblue": "blue", "darkblue": "blue",
+        "흑색결함": "black", "흑색": "black", "표면결함": "surface", "표면": "surface",
+      };
+      for (const raw of [data.defect_type, data.defect_subtype]) {
+        const value = String(raw || "").normalize("NFKC").trim().toLowerCase().replace(/[\s_-]+/g, "");
+        if (TYPES.some((type) => type.id === value)) return value;
+        if (Object.hasOwn(aliases, value)) return aliases[value];
+      }
+      return "untyped";
     }
 
     // 목업: 모델이 위치와 유형을 반환하기 전까지 화면 개발에 사용
@@ -633,11 +759,11 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     async function prepareRegistryModel(choice) {
-      if (MOCK || !choice.startsWith("registry-")) return;
+      if (MOCK || !choice.startsWith("registry-")) return true;
 
-      setStatus("선택한 모델을 준비하고 있어요.");
+      setStatus("모델 준비 중");
       const deadline = Date.now() + 300000;
-      while (Date.now() < deadline) {
+      while (!pauseRequested && Date.now() < deadline) {
         const response = await fetch(`/api/models/${encodeURIComponent(choice)}/prepare`, {
           method: "POST",
           signal: AbortSignal.timeout(15000),
@@ -645,154 +771,177 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         if (!response.ok) throw new Error(`모델 준비 요청 실패 (HTTP ${response.status})`);
 
         const { status } = await response.json();
-        if (status === "ready") return;
-        if (status === "failed") throw new Error("선택한 모델을 불러오지 못했어요.");
-        if (!["loading", "busy"].includes(status)) throw new Error("모델 준비 상태를 확인하지 못했어요.");
+        if (status === "ready") return !pauseRequested;
+        if (status === "failed") throw new Error("모델 로드 실패");
+        if (!["loading", "busy"].includes(status)) throw new Error("모델 준비 상태 확인 실패");
 
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
-      throw new Error("모델 준비가 오래 걸려요. 잠시 후 다시 시도해 주세요.");
+      if (pauseRequested) return false;
+      throw new Error("모델 준비 시간 초과");
+    }
+
+    async function runInspectionItem(item, choice) {
+      item.state = "running";
+      item.reason = "";
+      updateBadge(item);
+      if (item === selected) renderVerdict(item);
+      followItem(item);
+      renderCounts();
+      syncControls();
+
+      try {
+        item.data = await predict(item.file, choice);
+        item.lastChoice = choice;
+        item.bucket = bucketOf(item.data);
+        item.state = "done";
+      } catch (error) {
+        item.state = "error";
+        item.reason = error.message;
+      }
+
+      updateBadge(item);
+      if (item.state === "done") {
+        try { await drawThumb(item); } catch { /* Keep the inference result. */ }
+      }
+
+      if ($("follow-progress").checked && matches(item, $("type-filter").value)) {
+        select(item);
+        followItem(item);
+      } else if (item === selected) {
+        renderViewer();
+      }
+      renderCounts();
+      applyFilter();
     }
 
     async function inspectAll() {
-      const targets = items.filter((i) => i.state === "ready" || i.state === "error");
-      if (running || adding || !targets.length) return;
+      if (running || adding) return;
+      const choice = inspectionBatch?.choice || selectedModelChoice();
+      if (!choice) return;
 
-      const choice = $("model-choice").value;
-      let finished = 0;
+      const targets = inspectionBatch?.targets || items.filter((item) => needsInspection(item, choice));
+      if (!targets.length) return;
 
+      const batch = inspectionBatch || {choice, targets, next: 0};
+      inspectionBatch = batch;
+      pauseRequested = false;
       running = true;
       syncControls();
+      renderCounts();
 
       try {
-        await prepareRegistryModel(choice);
+        const prepared = await prepareRegistryModel(choice);
+        if (prepared && !pauseRequested) {
+          setStatus("");
+          const worker = async () => {
+            while (!pauseRequested && batch.next < batch.targets.length) {
+              const item = batch.targets[batch.next++];
+              await runInspectionItem(item, batch.choice);
+            }
+          };
+          await Promise.all(Array.from(
+            {length: Math.min(CONCURRENCY, batch.targets.length - batch.next)}, worker
+          ));
+        }
+        if (batch.next >= batch.targets.length) inspectionBatch = null;
+        setStatus(inspectionBatch ? "검사 중단" : "");
       } catch (error) {
+        if (!pauseRequested) inspectionBatch = null;
+        setStatus(pauseRequested ? "검사 중단" : error.message, !pauseRequested);
+      } finally {
+        pauseRequested = false;
         running = false;
         syncControls();
-        setStatus(error.message, true);
-        return;
-      }
-
-      $("progress").max = targets.length;
-      $("progress").value = 0;
-      $("progress").hidden = false;
-      setStatus(`검사 중입니다. (0/${targets.length})`);
-
-      await pool(targets, CONCURRENCY, async (item) => {
-        item.state = "running";
-        if (item === selected) $("verdict-message").textContent = verdictMessage(item);
-        updateBadge(item);
-        followItem(item);
-
-        try {
-          item.data = await predict(item.file, choice);
-          item.bucket = bucketOf(item.data);
-          item.state = "done";
-          item.check.disabled = false;
-        } catch (error) {
-          item.state = "error";
-          item.reason = error.message;
-        }
-
-        updateBadge(item);
-
-        if (item.state === "done") {
-          try {
-            await drawThumb(item);
-          } catch {
-            // 썸네일 갱신 실패는 결과 표시에 영향을 주지 않는다.
-          }
-        }
-
-        if ($("follow-progress").checked && matches(item, $("type-filter").value)) { select(item); followItem(item); }
-        else if (item === selected) renderViewer();
-
-        finished += 1;
-        $("progress").value = finished;
-        setStatus(`검사 중입니다. (${finished}/${targets.length})`);
         renderCounts();
-        applyFilter();
-      });
-
-      running = false;
-      syncControls();
-
-      const failed = targets.filter((i) => i.state === "error").length;
-      if (failed) {
-        setStatus(`검사 완료: ${failed}장 실패. 검사 시작을 다시 누르면 실패한 이미지만 재시도합니다.`, true);
-      } else {
-        setStatus("검사 완료");
       }
-    }
-
-    function saveJson() {
-      const results = items
-        .filter((i) => i.state === "done")
-        .map((i) => ({ file: i.key, ...i.data }));
-      if (!results.length) return;
-
-      const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
-      const link = document.createElement("a");
-
-      link.href = URL.createObjectURL(blob);
-      link.download = "zerodefect_results.json";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     }
 
     // ---------- 모델 정보 ----------
-    function describeModel(uri) {
-      return uri.replace(/^models:\//, "").replace(/\/(\d+)$/, " v$1");
+    function selectedModelChoice() {
+      if (MOCK) return "champion";
+      const { detector, classifier } = chosenVersions;
+      return detector && classifier ? `registry-d${detector}-c${classifier}` : "";
     }
 
-    async function loadModelInfo() {
-      if (MOCK) {
-        $("model-info").textContent = "목업 모드: 실제 모델을 호출하지 않습니다.";
+    function needsInspection(item, choice) {
+      return item.state === "ready" || item.state === "error"
+        || (item.state === "done" && choice && item.lastChoice !== choice);
+    }
+
+    function renderVersionOptions(role, versions) {
+      const entries = versions.map(({ version, status }) => ({version: String(version), status}));
+      if (JSON.stringify(entries) === modelListKeys[role]) return;
+      modelListKeys[role] = JSON.stringify(entries);
+
+      const selected = entries.find((entry) => entry.version === chosenVersions[role]);
+      if (!selected || selected.status !== "READY") chosenVersions[role] = "";
+      $(`${role}-label`).textContent = chosenVersions[role] ? `v${chosenVersions[role]}` : "버전 선택";
+
+      const options = $(`${role}-options`);
+      if (!entries.length) {
+        options.textContent = "등록된 버전이 없습니다.";
         return;
       }
 
+      options.replaceChildren(...entries.map(({version, status}) => {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `${role}-version`;
+        input.checked = chosenVersions[role] === version;
+        input.disabled = status !== "READY";
+        input.addEventListener("change", () => {
+          chosenVersions[role] = version;
+          $(`${role}-label`).textContent = `v${version}`;
+          $(`${role}-dropdown`).open = false;
+          $(`${role}-dropdown`).querySelector("summary").focus();
+          syncControls();
+        });
+        label.append(input, status === "READY" ? `v${version}` : `v${version} · ${status}`);
+        return label;
+      }));
+    }
+
+    async function loadModelInfo() {
+      if (MOCK || modelRefreshPending) return;
+      modelRefreshPending = true;
+      const message = $("model-info");
+
       try {
-        const response = await fetch("/api/models");
+        const response = await fetch("/api/models/versions", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(8000),
+        });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const data = await response.json();
-        if (!Array.isArray(data.models) || !data.models.length) {
-          throw new Error("모델 목록 응답이 올바르지 않습니다.");
+        if (!Array.isArray(data.detectors) || !Array.isArray(data.classifiers)) {
+          throw new Error("Invalid model version list");
         }
-
-        const select = $("model-choice");
-        const previous = select.value;
-        const notes = { loading: " (준비 중)", failed: " (불러오기 실패)" };
-
-        select.replaceChildren(...data.models.map((model) => {
-          const option = document.createElement("option");
-
-          option.value = model.id;
-          option.textContent = model.label + (notes[model.status] || "");
-          option.disabled = !["ready", "available"].includes(model.status);
-          return option;
-        }));
-
-        if (data.models.some((m) => m.id === previous && ["ready", "available"].includes(m.status))) {
-          select.value = previous;
-        }
-
-        $("model-info").textContent = data.models.map((model) => {
-          const classifier = model.classifier_name
-            ? ` + ${describeModel(model.classifier_name)}`
-            : "";
-
-          return `${model.label}: ${describeModel(model.model_name)}${classifier}`;
-        }).join(" / ");
-
-        if (data.models.some((m) => m.status === "loading")) {
-          setTimeout(loadModelInfo, 5000);
-        }
+        renderVersionOptions("detector", data.detectors);
+        renderVersionOptions("classifier", data.classifiers);
+        message.hidden = true;
+        syncControls();
       } catch {
-        $("model-info").textContent = "모델 목록을 불러오지 못했습니다.";
+        message.textContent = "모델 버전 목록 조회 실패 · 목록 다시 열기";
+        message.hidden = false;
+      } finally {
+        modelRefreshPending = false;
       }
     }
 
+    for (const role of modelDropdowns) {
+      const dropdown = $(`${role}-dropdown`);
+      dropdown.addEventListener("toggle", () => {
+        if (dropdown.open) {
+          loadModelInfo();
+          if (modelRefreshTimer === null) modelRefreshTimer = setInterval(loadModelInfo, 10000);
+        } else if (!modelDropdowns.some((name) => $(`${name}-dropdown`).open)) {
+          clearInterval(modelRefreshTimer);
+          modelRefreshTimer = null;
+        }
+      });
+    }
 
     let zoom = 1;
     function applyZoom() {
@@ -807,42 +956,18 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
     $("zoom-in").addEventListener("click", () => { zoom = Math.min(4, zoom + .25); applyZoom(); });
     $("zoom-out").addEventListener("click", () => { zoom = Math.max(.25, zoom - .25); applyZoom(); });
-    $("zoom-fit").addEventListener("click", () => {
-      zoom = Math.max(.25, Math.min(4, ($("viewer").clientHeight - 40) / HEIGHT, ($("viewer").clientWidth - 40) / WIDTH)); applyZoom();
-    });
     $("show-boxes").addEventListener("change", applyZoom);
-    function syncDownloads() {
-      const n = [...checked].filter(i => i.state === "done").length;
-      $("download-image").disabled = !items.some(i=>i.state==="done");
-      $("download-image").textContent = "선택 결과 JSON 다운로드";
-      $("checked-summary").textContent = `다운로드할 결과 ${n}개 선택 (필터로 숨긴 항목 포함)`;
-    }
-    function downloadResults(results, filename) {
-      if (!results.length) return;
-      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(results.map(i=>({file:i.key,...i.data})),null,2)],{type:"application/json"}));
-      a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-    }
-    let dialogItems=[];
-    function updateDownloadCount(){const n=[...checked].filter(i=>i.state==="done").length;$("download-count").textContent=`${n}개 선택 (다른 분류에서 선택한 결과 포함)`;$("confirm-download").disabled=!n;}
-    function renderDownloadOptions(){
-      const filter=$("download-filter").value;
-      $("download-options").replaceChildren(...dialogItems.filter(i=>matches(i,filter)).map(i=>{
-        const label=document.createElement("label");label.className="download-option";
-        const check=document.createElement("input");check.type="checkbox";check.checked=checked.has(i);
-        check.addEventListener("change",()=>{if(check.checked)checked.add(i);else checked.delete(i);i.check.checked=check.checked;updateDownloadCount();syncDownloads();});
-        const canvas=document.createElement("canvas");canvas.width=i.canvas.width;canvas.height=i.canvas.height;canvas.getContext("2d").drawImage(i.canvas,0,0);
-        const name=document.createElement("span");name.textContent=`${i.key} · ${bucketLabel(i.bucket)}`;
-        label.append(check,canvas,name);return label;
-      }));updateDownloadCount();
-    }
-    $("download-image").addEventListener("click",()=>{dialogItems=items.filter(i=>i.state==="done");$("download-filter").value=$("type-filter").value;renderDownloadOptions();$("download-dialog").showModal();});
-    $("download-filter").addEventListener("change",renderDownloadOptions);
-    $("dialog-select").addEventListener("click",()=>{dialogItems.filter(i=>matches(i,$("download-filter").value)).forEach(i=>checked.add(i));renderDownloadOptions();syncDownloads();});
-    $("dialog-clear").addEventListener("click",()=>{checked.clear();items.forEach(i=>i.check.checked=false);renderDownloadOptions();syncDownloads();});
-    $("close-download").addEventListener("click",()=>$("download-dialog").close());
-    $("confirm-download").addEventListener("click",()=>downloadResults(dialogItems.filter(i=>checked.has(i)),"zerodefect_selected_results.json"));
-    $("check-visible").addEventListener("click", () => { items.filter(i => !i.row.hidden && i.state === "done").forEach(i=>{checked.add(i);i.check.checked=true});syncDownloads(); });
-    $("uncheck-all").addEventListener("click", () => {checked.clear();items.forEach(i=>i.check.checked=false);syncDownloads();});
+    $("download-image").addEventListener("click", () => {
+      if (selected?.state !== "done") return;
+      const content = JSON.stringify({file: selected.key, ...selected.data}, null, 2);
+      const url = URL.createObjectURL(new Blob([content], {type: "application/json"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${selected.file.name.replace(/\.[^.]+$/, "")}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
     function followItem(item) {
       if (!$("follow-progress").checked || item.row.hidden) return;
       const list = $("list"), box = list.getBoundingClientRect(), row = item.row.getBoundingClientRect();
@@ -861,7 +986,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       return files;
     }
     drop.addEventListener("drop",async e=>{
-      e.preventDefault();drop.classList.remove("drag-over");if(running||adding)return;
+      e.preventDefault();drop.classList.remove("drag-over");if(running||adding||inspectionBatch)return;
       const entries=[...e.dataTransfer.items].filter(i=>i.kind==="file").map(i=>i.webkitGetAsEntry?.());
       const fallback=[...e.dataTransfer.files];
       adding=true;syncControls();
@@ -888,8 +1013,18 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     $("inspect-button").addEventListener("click", inspectAll);
-    $("clear-button").addEventListener("click", removeSelectedImage);
-    $("save-json").addEventListener("click", saveJson);
+    $("clear-button").addEventListener("click", openDeleteDialog);
+    $("confirm-delete").addEventListener("click", deleteSelectedImages);
+    $("cancel-delete").addEventListener("click", () => $("delete-dialog").close());
+    $("delete-dialog").addEventListener("close", () => {
+      deleteSelection.clear();
+      updateDeleteCount();
+    });
+    $("pause-button").addEventListener("click", () => {
+      pauseRequested = true;
+      setStatus("처리 중인 요청까지만 검사");
+      syncControls();
+    });
 
     $("mock-banner").hidden = !MOCK;
     buildFilter();
