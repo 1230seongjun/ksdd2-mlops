@@ -187,6 +187,49 @@ def parse_regions(result):
 
     return regions if isinstance(regions, list) else []
 
+def build_boxes(regions, image_width, image_height):
+    boxes = []
+
+    for region in regions:
+        if not isinstance(region, dict):
+            continue
+
+        bbox = region.get("bbox")
+        if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+            continue
+        if not all(isinstance(value, Real) and not is_bool(value) for value in bbox):
+            continue
+
+        x, y, w, h = bbox
+        if not all(math.isfinite(value) for value in bbox):
+            continue
+        if w <= 0 or h <= 0:
+            continue
+
+        left = max(0, x)
+        top = max(0, y)
+        right = min(image_width, x + w)
+        bottom = min(image_height, y + h)
+
+        if right <= left or bottom <= top:
+            continue
+
+        x, y = left, top
+        w, h = right - left, bottom - top
+
+        score = region.get("score")
+        if not (isinstance(score, Real) and not is_bool(score) and 0 <= score <= 1):
+            score = None
+
+        boxes.append({
+            "x": float(x),
+            "y": float(y),
+            "w": float(w),
+            "h": float(h),
+            "score": float(score) if score is not None else None,
+        })
+
+    return boxes
 
 def parse_classification(result):
     if not isinstance(result, pd.DataFrame) or len(result) != 1:

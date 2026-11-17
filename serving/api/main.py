@@ -29,8 +29,10 @@ from prometheus_client import (
 
 from starlette.concurrency import run_in_threadpool
 
+from mlflow import MlflowClient
+
 import db
-from model_service import load_model, run_model
+from model_service import build_boxes, load_model, run_model
 from fastapi import Cookie, Depends, HTTPException, Response
 from pydantic import BaseModel
 from auth import (
@@ -143,6 +145,9 @@ async def lifespan(app: FastAPI):
         key: {"detector": None, "classifier": None, "failed": False}
         for key in MODEL_SETS
     }
+    app.state.registry_models = {}
+    app.state.registry_load_task = None
+    app.state.registry_prepare_lock = asyncio.Lock()
     started = time.perf_counter()
 
     try:
@@ -168,7 +173,8 @@ async def lifespan(app: FastAPI):
     yield
 
     loading_task.cancel()
-
+    if app.state.registry_load_task is not None:
+        app.state.registry_load_task.cancel()
     app.state.sets = {}
 
 
@@ -219,13 +225,26 @@ def get_current_user(
 
     return user
 
-
 @app.get("/auth/me")
 def read_current_user(
     user: tuple[int, str] = Depends(get_current_user),
 ):
     user_id, role = user
-    return {"id": user_id, "role": role}
+
+    with db.connect_db() as conn:
+        row = conn.execute(
+            "SELECT email FROM users WHERE id = %s",
+            (user_id,),
+        ).fetchone()
+
+    if row is None:
+        raise HTTPException(401, "로그인이 필요합니다.")
+
+    return {
+        "id": user_id,
+        "role": role,
+        "account_name": row[0].split("@", 1)[0],
+    }
 
 @app.post("/auth/logout")
 def logout(
@@ -397,22 +416,129 @@ def ready():
 
     return {"status": "ready"}
 
+def ready_model_versions(client, model_name):
+    versions = {}
+    page_token = None
+
+    while True:
+        page = client.search_model_versions(
+            filter_string=f"name = '{model_name}'",
+            max_results=100,
+            page_token=page_token,
+        )
+
+        for model in page:
+            if model.status == "READY":
+                versions[model.version] = model
+
+        page_token = page.token
+        if not page_token:
+            return versions
+
+def registry_model_options():
+    client = MlflowClient(
+        tracking_uri=MLFLOW_TRACKING_URI,
+        registry_uri=MLFLOW_TRACKING_URI,
+    )
+    detectors = ready_model_versions(client, "Zero-Defects")
+    classifiers = ready_model_versions(client, "Zero-Defects-Classifier")
+    configured_pairs = {
+        (spec["detector_uri"], spec["classifier_uri"])
+        for spec in MODEL_SETS.values()
+    }
+
+    options = []
+    for detector_version in sorted(detectors, key=int, reverse=True):
+        tags = detectors[detector_version].tags
+        classifier_version = tags.get("classifier_version")
+        if tags.get("ui_selectable") != "true" or classifier_version not in classifiers:
+            continue
+
+        detector_uri = f"models:/Zero-Defects/{detector_version}"
+        classifier_uri = f"models:/Zero-Defects-Classifier/{classifier_version}"
+        if (detector_uri, classifier_uri) in configured_pairs:
+            continue
+
+        options.append({
+            "id": f"registry-d{detector_version}-c{classifier_version}",
+            "label": f"Detector v{detector_version} + Classifier v{classifier_version}",
+            "model_name": detector_uri,
+            "classifier_name": classifier_uri,
+            "status": "available",
+        })
+
+    return options
 
 @app.get("/models")
 def list_models():
-    return {
-        "models": [
-            {
-                "id": key,
-                "label": spec["label"],
-                "model_name": spec["detector_uri"],
-                "classifier_name": spec["classifier_uri"] or None,
-                "status": set_status(app, key),
-            }
-            for key, spec in MODEL_SETS.items()
-        ]
-    }
+    models = [
+        {
+            "id": key,
+            "label": spec["label"],
+            "model_name": spec["detector_uri"],
+            "classifier_name": spec["classifier_uri"] or None,
+            "status": set_status(app, key),
+        }
+        for key, spec in MODEL_SETS.items()
+    ]
 
+    try:
+        models.extend(registry_model_options())
+    except Exception:
+        logger.exception("MLflow 모델 목록 조회 실패")
+
+    return {"models": models}
+
+async def load_registry_pair(selection):
+    try:
+        selection["detector"] = await run_in_threadpool(
+            load_model, MLFLOW_TRACKING_URI, selection["model_name"]
+        )
+        selection["classifier"] = await run_in_threadpool(
+            load_model, MLFLOW_TRACKING_URI, selection["classifier_name"]
+        )
+        selection["status"] = "ready"
+    except Exception:
+        selection["status"] = "failed"
+        selection["retry_at"] = time.monotonic() + 30
+        logger.exception("선택 모델 로드 실패: %s", selection["id"])
+
+
+@app.post("/models/{model_choice}/prepare")
+async def prepare_model(
+    model_choice: str,
+    user: tuple[int, str] = Depends(get_current_user),
+):
+    async with app.state.registry_prepare_lock:
+        prepared = app.state.registry_models
+        current = prepared.get(model_choice)
+        if current is not None and (
+            current["status"] != "failed" or time.monotonic() < current["retry_at"]
+        ):
+            return {"status": current["status"]}
+
+        task = app.state.registry_load_task
+        if task is not None and not task.done():
+            return {"status": "busy"}
+
+        try:
+            options = await run_in_threadpool(registry_model_options)
+        except Exception as exc:
+            logger.exception("MLflow 모델 목록 조회 실패")
+            raise HTTPException(503, "모델 목록을 확인하지 못했습니다.") from exc
+
+        option = next((item for item in options if item["id"] == model_choice), None)
+        if option is None:
+            raise HTTPException(404, "선택할 수 없는 모델 조합입니다.")
+
+        prepared.pop(model_choice, None)
+        if len(prepared) >= 2:
+            del prepared[next(iter(prepared))]
+
+        selection = {**option, "status": "loading"}
+        prepared[model_choice] = selection
+        app.state.registry_load_task = asyncio.create_task(load_registry_pair(selection))
+        return {"status": "loading"}
 
 @app.post("/predict")
 async def predict(
@@ -424,11 +550,12 @@ async def predict(
     user_id, _ = user
     started_at = time.perf_counter()
 
-    if model_choice not in MODEL_SETS:
-        raise HTTPException(
-            status_code=422,
-            detail="지원하지 않는 모델 선택값입니다."
-        )
+    registry_pair = app.state.registry_models.get(model_choice)
+
+    if model_choice not in MODEL_SETS and registry_pair is None:
+        if model_choice.startswith("registry-"):
+            raise HTTPException(409, "선택한 모델을 먼저 준비해 주세요.")
+        raise HTTPException(422, "지원하지 않는 모델 선택값입니다.")
 
     if file.content_type not in (
         "image/jpeg",
@@ -463,8 +590,9 @@ async def predict(
             image.verify()
 
             # image.size 순서는 (가로, 세로)
+            
+            width, height = image.size
             if image.size != (184, 597):
-                width, height = image.size
 
                 raise HTTPException(
                     status_code=422,
@@ -486,7 +614,11 @@ async def predict(
             detail="올바른 이미지가 아닙니다."
         )
 
-    status = set_status(app, model_choice)
+    status = (
+        registry_pair["status"]
+        if registry_pair is not None
+        else set_status(app, model_choice)
+    )
 
     if status == "loading":
         raise HTTPException(
@@ -501,11 +633,18 @@ async def predict(
             detail="선택한 모델을 불러오지 못했습니다."
         )
 
-    spec = MODEL_SETS[model_choice]
-    state = app.state.sets[model_choice]
+    if registry_pair is not None:
+        state = registry_pair
+        selected_model_name = registry_pair["model_name"]
+        classifier_name = registry_pair["classifier_name"]
+    else:
+        spec = MODEL_SETS[model_choice]
+        state = app.state.sets[model_choice]
+        selected_model_name = spec["detector_uri"]
+        classifier_name = spec["classifier_uri"]
+
     selected_model = state["detector"]
     classifier = state["classifier"]
-    selected_model_name = spec["detector_uri"]
 
     detector_started = time.perf_counter()
 
@@ -569,7 +708,7 @@ async def predict(
                 "id": request_id,
                 "user_id": user_id,
                 "filename": file.filename or "",
-                "model_choice": model_choice,
+                "model_choice": "challenger" if registry_pair is not None else model_choice,
                 "prediction": prediction,
                 "total_latency_ms": round(
                     (time.perf_counter() - started_at) * 1000
@@ -581,7 +720,7 @@ async def predict(
                     "latency_ms": detector_ms,
                 },
                 "classifier": {
-                    "model_name": spec["classifier_uri"],
+                    "model_name": classifier_name,
                     "defect_type": defect["defect_type"],
                     "confidence": defect["confidence"],
                     "regions": defect["regions"],
@@ -600,5 +739,7 @@ async def predict(
         "is_anomaly": result["is_anomaly"],
         "defect_type": defect["defect_type"],
         "defect_subtype": defect["defect_subtype"],
-        "classifier_name": spec["classifier_uri"] if classified else None
+        "classifier_name": classifier_name if classified else None,
+        "confidence": defect["confidence"],
+        "boxes": build_boxes(defect["regions"], width, height),
     }
