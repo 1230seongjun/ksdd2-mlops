@@ -11,12 +11,14 @@
 .tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-top:20px;overflow:auto}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;padding:14px 3px}.tabs button[aria-pressed="true"]{color:var(--blue);border-bottom:3px solid var(--blue)}.image-row{display:flex;align-items:center;gap:8px}.image-row>.thumb{flex:1;min-width:0}.selection-tools button{font-size:11px;padding:5px 8px}.selection-tools label{font-weight:400}.selection-tools input{accent-color:var(--blue)}#drop-zone{border:1px dashed #a7b7cf;padding:14px;display:block}#drop-zone.drag-over{background:#edf3ff}#drop-zone button{width:100%}#panel-invite{margin-top:18px}
 
 header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left:auto;letter-spacing:2px;font-size:12px;color:var(--muted)}#logout-button{float:none;padding:6px 12px}#logout-status:empty{display:none}main{padding:0 24px 24px}.tabs{margin:0 0 16px;min-height:48px}.layout{margin-top:0}#panel-invite{margin-top:0}#invite-form{margin:0;padding:10px 0;border:0}.categories{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.categories button{padding:5px 8px;font-size:12px;border-color:var(--line);background:white;color:var(--ink)}.categories button[aria-pressed="true"]{background:#edf3ff;border-color:var(--blue);color:var(--blue)}.image-row>.download-check{display:none}.selection-tools>#check-visible,.selection-tools>#uncheck-all,.selection-tools>#checked-summary{display:none}dialog{width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:24px;color:var(--ink)}dialog::backdrop{background:#17243b66}#download-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:48vh;overflow:auto;margin-top:16px}.download-option{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px;margin:0;overflow-wrap:anywhere;font-weight:400;font-size:12px}.download-option canvas{width:22px;height:72px;object-fit:contain}.download-option span{min-width:0}.download-option:has(input:checked){background:#edf3ff;border-color:var(--blue)}@media(max-width:720px){main{padding:0 12px 12px}.tabs{gap:14px}header{gap:12px;padding:0 12px}.console-label{font-size:10px}}
+#account-name{min-width:0;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink)}
+#logout-button{flex-shrink:0}
 </style>
 </head>
 <body>
 <header>
 <strong>ZERO<span>DEFECT</span></strong>
-<span class="console-label">CONSOLE</span><button hidden="" id="logout-button" type="button">로그아웃</button></header><p id="logout-status" role="status"></p>
+<span class="console-label">CONSOLE</span><span id="account-name" hidden></span><button hidden="" id="logout-button" type="button">로그아웃</button></header><p id="logout-status" role="status"></p>
 <form hidden="" id="register-form">
 <h2>작업자 계정 만들기</h2>
 <label for="register-password">새 비밀번호</label>
@@ -59,7 +61,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <ul id="skipped-list"></ul>
 </details>
 <button disabled="" id="inspect-button" type="button">검사 시작</button>
-<button class="secondary" id="clear-button" type="button">목록 비우기</button>
+<button class="secondary" id="clear-button" type="button" disabled>선택 이미지 삭제</button>
 <progress hidden="" id="progress" max="1" value="0"></progress>
 <p aria-live="polite" class="status" id="status" role="status">
           이미지를 선택해 주세요.
@@ -75,8 +77,9 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <canvas aria-label="바운딩 박스가 표시된 이미지" id="canvas-boxed"></canvas>
 </div></section><aside aria-label="검사 판정 상세" class="card result-panel"><div class="panel">
 <h3>판정 상세</h3>
+<p id="verdict-message" role="status"></p>
 <div id="info"></div>
-<p class="hint">이상 점수는 불량 확률이 아닙니다.</p>
+<p class="hint" hidden id="score-hint">이상 점수는 판정 기준값과 비교하는 데 써요.</p>
 </div><div class="panel">
 <h3>선택 이미지 응답 JSON</h3>
 <pre id="json"></pre>
@@ -229,41 +232,64 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     // ---------- 상세 보기 ----------
-    function infoRows(item) {
-      if (item.state === "done") {
-        const d = item.data;
-        return [
-          ["파일", item.key],
-          ["결함 여부", d.is_anomaly ? "불량 의심" : "정상"],
-          ["결함 유형", d.is_anomaly ? bucketLabel(item.bucket) : "-"],
-          ["이상 점수", d.anomaly_score.toFixed(4)],
-          ["판정 기준값", d.threshold.toFixed(4)],
-          ["세부 유형", d.defect_subtype || "제공되지 않음"],
-          ["위치 정보", d.boxes.length ? `${d.boxes.length}개` : "제공된 박스 없음"]
-        ];
+    function verdictMessage(item) {
+      if (!item) {
+        return items.length
+          ? "사진을 고르면 여기에 검사 결과가 나와요."
+          : "사진을 올려 주세요. 검사 결과는 여기에 나와요.";
       }
 
-      const state = {
-        ready: "검사 전",
-        running: "검사 중",
-        error: `실패: ${item.reason}`
-      }[item.state];
+      switch (item.state) {
+        case "ready":
+          return "사진이 준비됐어요. ‘검사 시작’을 눌러 주세요.";
+        case "running":
+          return "사진을 살펴보고 있어요.";
+        case "error":
+          return item.reason
+            ? "검사를 마치지 못했어요. 아래 오류 내용을 확인해 주세요."
+            : "검사를 마치지 못했어요.";
+      }
 
-      return [["파일", item.key], ["결함 여부", state]];
+      if (!item.data.is_anomaly) return "정상으로 판정됐어요.";
+      if (item.data.boxes.length) {
+        return "결함이 의심돼요. 표시된 위치를 확인해 주세요.";
+      }
+      return "결함이 의심돼요. 이번 검사에서 받은 위치 정보가 없어요.";
+    }
+
+    function infoRows(item) {
+      const rows = [["파일", item.key]];
+      if (item.state === "error" && item.reason) {
+        rows.push(["오류 내용", item.reason]);
+      }
+      if (item.state !== "done") return rows;
+
+      const d = item.data;
+      return [
+        ...rows,
+        ["결함 여부", d.is_anomaly ? "불량 의심" : "정상"],
+        ["결함 유형", d.is_anomaly ? bucketLabel(item.bucket) : "-"],
+        ["이상 점수", d.anomaly_score.toFixed(4)],
+        ["판정 기준값", d.threshold.toFixed(4)],
+        ["세부 유형", d.defect_subtype || "-"],
+        ["위치 정보", d.boxes.length ? `${d.boxes.length}개` : "-"]
+      ];
     }
 
     async function renderViewer() {
       const item = selected;
       const token = ++renderToken;
+      const done = item?.state === "done";
 
       $("viewer-empty").hidden = Boolean(item);
       $("viewer").hidden = !item;
       $("selected-name").textContent = item ? item.key : "선택된 이미지 없음";
       syncDownloads();
-      if (!item) { $("info").textContent = "이미지를 선택하면 판정이 표시됩니다."; $("json").textContent = "검사 후 표시됩니다."; return; }
+      $("verdict-message").textContent = verdictMessage(item);
+      $("score-hint").hidden = !done;
 
       $("info").replaceChildren(
-        ...infoRows(item).map(([label, value]) => {
+        ...(item ? infoRows(item) : []).map(([label, value]) => {
           const p = document.createElement("p");
           const strong = document.createElement("strong");
           p.className = "row-item";
@@ -273,9 +299,13 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         })
       );
 
-      $("json").textContent = item.state === "done"
+      $("json").textContent = done
         ? JSON.stringify(item.data, null, 2)
-        : item.state === "error" ? item.reason : "검사 후 표시됩니다.";
+        : item?.state === "error"
+          ? "표시할 검사 결과가 없어요."
+          : "검사가 끝나면 여기에 결과가 나와요.";
+
+      if (!item) return;
 
       const bitmap = await createImageBitmap(item.file);
       if (token !== renderToken) {
@@ -294,6 +324,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       selected = item;
       item?.btn.classList.add("active");
       renderViewer();
+      syncControls();
     }
 
     // ---------- 리스트와 필터 ----------
@@ -391,9 +422,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       $("inspect-button").disabled = running || adding || !pending;
       $("inspect-button").textContent = adding ? "이미지 확인 중..." : running ? "검사 중..." : !items.length ? "이미지를 먼저 추가하세요" : !pending ? "검사 완료" : "검사 시작";
 
-      for (const id of ["pick-files", "pick-folder", "clear-button", "model-choice"]) {
+      for (const id of ["pick-files", "pick-folder", "model-choice"]) {
         $(id).disabled = running || adding;
       }
+      $("clear-button").disabled = running || adding || !selected;
     }
 
     // ---------- 파일 추가 ----------
@@ -496,23 +528,28 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       }
     }
 
-    function clearAll() {
-      if (running || adding) return;
-      checked.clear();
-      items = [];
-      skipped = [];
-      ignored = 0;
+    function removeSelectedImage() {
+      if (running || adding || !selected) return;
 
-      $("list").replaceChildren();
+      const removed = selected;
+      const index = items.indexOf(removed);
+      if (index < 0) return;
+
+      const filter = $("type-filter").value;
+      items.splice(index, 1);
+      checked.delete(removed);
+      removed.row.remove();
+
+      const next = items.slice(index).find((item) => matches(item, filter))
+        || items.find((item) => matches(item, filter))
+        || null;
+
       $("progress").hidden = true;
-      $("type-filter").value = "all";
-
-      select(null);
+      select(next);
       renderSummary();
       renderCounts();
       applyFilter();
-      syncControls();
-      setStatus("이미지를 선택해 주세요.");
+      setStatus(`삭제했어요: ${removed.key}`);
     }
 
     // ---------- 검사 ----------
@@ -526,7 +563,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       }
 
       const boxes = (Array.isArray(data.boxes) ? data.boxes : []).filter(
-        (b) => [b.x, b.y, b.w, b.h].every(Number.isFinite)
+        (b) => b && [b.x, b.y, b.w, b.h].every(Number.isFinite) && b.w > 0 && b.h > 0
       );
 
       return { ...data, boxes };
@@ -595,6 +632,28 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       return normalize(JSON.parse(body));
     }
 
+    async function prepareRegistryModel(choice) {
+      if (MOCK || !choice.startsWith("registry-")) return;
+
+      setStatus("선택한 모델을 준비하고 있어요.");
+      const deadline = Date.now() + 300000;
+      while (Date.now() < deadline) {
+        const response = await fetch(`/api/models/${encodeURIComponent(choice)}/prepare`, {
+          method: "POST",
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) throw new Error(`모델 준비 요청 실패 (HTTP ${response.status})`);
+
+        const { status } = await response.json();
+        if (status === "ready") return;
+        if (status === "failed") throw new Error("선택한 모델을 불러오지 못했어요.");
+        if (!["loading", "busy"].includes(status)) throw new Error("모델 준비 상태를 확인하지 못했어요.");
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+      throw new Error("모델 준비가 오래 걸려요. 잠시 후 다시 시도해 주세요.");
+    }
+
     async function inspectAll() {
       const targets = items.filter((i) => i.state === "ready" || i.state === "error");
       if (running || adding || !targets.length) return;
@@ -605,6 +664,15 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       running = true;
       syncControls();
 
+      try {
+        await prepareRegistryModel(choice);
+      } catch (error) {
+        running = false;
+        syncControls();
+        setStatus(error.message, true);
+        return;
+      }
+
       $("progress").max = targets.length;
       $("progress").value = 0;
       $("progress").hidden = false;
@@ -612,6 +680,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
       await pool(targets, CONCURRENCY, async (item) => {
         item.state = "running";
+        if (item === selected) $("verdict-message").textContent = verdictMessage(item);
         updateBadge(item);
         followItem(item);
 
@@ -700,11 +769,11 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
           option.value = model.id;
           option.textContent = model.label + (notes[model.status] || "");
-          option.disabled = model.status !== "ready";
+          option.disabled = !["ready", "available"].includes(model.status);
           return option;
         }));
 
-        if (data.models.some((m) => m.id === previous && m.status === "ready")) {
+        if (data.models.some((m) => m.id === previous && ["ready", "available"].includes(m.status))) {
           select.value = previous;
         }
 
@@ -819,7 +888,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     $("inspect-button").addEventListener("click", inspectAll);
-    $("clear-button").addEventListener("click", clearAll);
+    $("clear-button").addEventListener("click", removeSelectedImage);
     $("save-json").addEventListener("click", saveJson);
 
     $("mock-banner").hidden = !MOCK;
@@ -856,6 +925,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         const response = await fetch("/api/auth/me");
         if (response.ok) {
           const user = await response.json();
+          const accountName = document.getElementById("account-name");
+          const account = user.account_name || user.email || "";
+          accountName.textContent = account.split("@", 1)[0];
+          accountName.hidden = !accountName.textContent;
           document.getElementById("logout-button").hidden = false;
           currentRole = user.role;
           for(const name of ["monitor","invite"]) document.querySelector(`[data-tab="${name}"]`).hidden = user.role !== "admin";
@@ -871,6 +944,10 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         if (response.status !== 401) {
           throw new Error("로그인 상태를 확인할 수 없습니다.");
         }
+        const accountName = document.getElementById("account-name");
+        accountName.textContent = "";
+        accountName.hidden = true;
+        document.getElementById("logout-button").hidden = true;
         inviteForm.hidden = true;
         form.hidden = Boolean(inviteToken);
         registerForm.hidden = !inviteToken;
@@ -1057,4 +1134,5 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
   </script>
 </body>
 </html>
+
 
