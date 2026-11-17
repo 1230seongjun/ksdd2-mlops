@@ -41,7 +41,7 @@ services:
       - --config.file=/etc/prometheus/conf/prometheus.yml
       - --storage.tsdb.path=/prometheus
     volumes:
-      - ./prometheus:/etc/prometheus/conf:ro
+      - ./monitoring/prometheus:/etc/prometheus/conf:ro
       - prometheus-data:/prometheus
   grafana:
     image: grafana/grafana:latest
