@@ -3,6 +3,7 @@ import time
 import uuid
 import asyncio
 import logging
+import rc
 
 from io import BytesIO
 from contextlib import asynccontextmanager
@@ -416,7 +417,7 @@ def ready():
 
     return {"status": "ready"}
 
-def ready_model_versions(client, model_name):
+def ready_model_versions(client, model_name, *, ready_only=True):
     versions = {}
     page_token = None
 
@@ -428,12 +429,31 @@ def ready_model_versions(client, model_name):
         )
 
         for model in page:
-            if model.status == "READY":
+            if not ready_only or model.status == "READY":
                 versions[model.version] = model
 
         page_token = page.token
         if not page_token:
             return versions
+
+@app.get("/models/versions")
+def list_model_versions():
+    client = MlflowClient(
+        tracking_uri=MLFLOW_TRACKING_URI,
+        registry_uri=MLFLOW_TRACKING_URI,
+    )
+
+    def options(model_name):
+        versions = ready_model_versions(client, model_name, ready_only=False)
+        return [
+            {"version": version, "status": versions[version].status}
+            for version in sorted(versions, key=int, reverse=True)
+        ]
+
+    return {
+        "detectors": options("Zero-Defects"),
+        "classifiers": options("Zero-Defects-Classifier"),
+    }
 
 def registry_model_options():
     client = MlflowClient(
@@ -521,15 +541,35 @@ async def prepare_model(
         if task is not None and not task.done():
             return {"status": "busy"}
 
-        try:
-            options = await run_in_threadpool(registry_model_options)
-        except Exception as exc:
-            logger.exception("MLflow 모델 목록 조회 실패")
-            raise HTTPException(503, "모델 목록을 확인하지 못했습니다.") from exc
+        match = re.fullmatch(r"registry-d([1-9][0-9]*)-c([1-9][0-9]*)", model_choice)
+        if match is None:
+            raise HTTPException(422, "모델 선택값 형식이 올바르지 않습니다.")
 
-        option = next((item for item in options if item["id"] == model_choice), None)
-        if option is None:
-            raise HTTPException(404, "선택할 수 없는 모델 조합입니다.")
+        detector_version, classifier_version = match.groups()
+        client = MlflowClient(
+            tracking_uri=MLFLOW_TRACKING_URI,
+            registry_uri=MLFLOW_TRACKING_URI,
+        )
+
+        try:
+            detectors = await run_in_threadpool(
+                ready_model_versions, client, "Zero-Defects"
+            )
+            classifiers = await run_in_threadpool(
+                ready_model_versions, client, "Zero-Defects-Classifier"
+            )
+        except Exception as exc:
+            logger.exception("MLflow 모델 버전 조회 실패")
+            raise HTTPException(503, "모델 버전을 확인하지 못했습니다.") from exc
+
+        if detector_version not in detectors or classifier_version not in classifiers:
+            raise HTTPException(409, "선택한 모델 버전이 없거나 아직 준비되지 않았습니다.")
+
+        option = {
+            "id": model_choice,
+            "model_name": f"models:/Zero-Defects/{detector_version}",
+            "classifier_name": f"models:/Zero-Defects-Classifier/{classifier_version}",
+        }
 
         prepared.pop(model_choice, None)
         if len(prepared) >= 2:
