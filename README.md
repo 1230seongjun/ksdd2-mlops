@@ -74,7 +74,6 @@ infra/
 serving/
   api/              추론 API (FastAPI)                                → serving/api/README.md
   web/              검사 화면 (정적 HTML)
-  ui/               Streamlit 결과 화면
   tests/            PR마다 실행하는 스모크 테스트
 model/              모델 학습 코드 (이상 탐지 · 결함 유형 분류)
 ```
