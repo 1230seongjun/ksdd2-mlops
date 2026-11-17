@@ -3,6 +3,7 @@
 #   사용법: bash .github/scripts/deploy_stack.sh <mlops|service>
 #   순서: 배포 파일 백업 → 파일 동기화 → 이미지 태그 갱신 → pull → up → 헬스체크 → 실패 시 파일·컨테이너 복원
 #         → 성공 시 정리 (우리 이미지는 이번·직전 태그만 남김, 배포 백업은 최근 KEEP_BACKUPS 개만 남김)
+#   서버에만 두는 파일(.env, .env.prev, tls/)은 동기화에서 제외해 지우지 않는다
 #   필요한 환경변수: GITHUB_SHA, NCR_REGISTRY, REGISTRY_PATH, IMAGES(이번에 빌드한 이미지 JSON)
 set -euo pipefail
 
@@ -32,12 +33,20 @@ if [ ! -f "$DIR/.env" ]; then
   exit 1
 fi
 
+# 러너가 읽지 못하는 파일이 있으면 백업 단계에서 멈추므로 먼저 확인
+UNREADABLE=$(find "$DIR" ! -readable 2>/dev/null | head -n 20 || true)
+if [ -n "$UNREADABLE" ]; then
+  echo "::error::러너($(id -un))가 읽을 수 없는 파일이 배포 폴더에 있습니다. 권한을 주거나 배포 폴더 밖으로 옮기세요."
+  echo "$UNREADABLE"
+  exit 1
+fi
+
 # 동기화 대상 밖에 백업 저장
 BACKUP_ROOT="$DEPLOY_ROOT/.deploy-backups/$STACK"
 install -d -m 700 "$BACKUP_ROOT"
 BACKUP_DIR=$(mktemp -d "$BACKUP_ROOT/deploy.XXXXXXXX")
 
-# .env, Compose, 설정 파일, 웹 파일 백업
+# .env, tls, Compose, 설정 파일, 웹 파일 백업
 mkdir -m 700 "$BACKUP_DIR/files"
 cp -a "$DIR/." "$BACKUP_DIR/files/"
 
@@ -60,8 +69,8 @@ restore_files_on_exit() {
 
 trap restore_files_on_exit EXIT
 
-# 1) 배포 파일 동기화 (.env, .env.prev, web/ 은 보존)
-rsync -a --delete --exclude ".env" --exclude ".env.prev" --exclude "web/" "$SRC/" "$DIR/"
+# 1) 배포 파일 동기화 (서버에만 있는 .env, .env.prev, tls/ 와 따로 동기화하는 web/ 은 보존)
+rsync -a --delete --exclude "/.env" --exclude "/.env.prev" --exclude "/tls/" --exclude "/web/" "$SRC/" "$DIR/"
 if [ "$STACK" = "service" ]; then
   rsync -a --delete serving/web/ "$DIR/web/"
 fi
