@@ -127,6 +127,7 @@ def list_inference_requests(conn, user_id, role, *, filename=None, prediction=No
                 r.prediction,
                 r.created_at,
                 r.user_id AS worker_id,
+                split_part(u.email, '@', 1) AS worker_account,
                 r.total_latency_ms,
                 r.reviewed_label,
                 r.reviewed_at,
@@ -142,6 +143,7 @@ def list_inference_requests(conn, user_id, role, *, filename=None, prediction=No
                 c.regions,
                 c.latency_ms AS classifier_latency_ms
             FROM inference_requests AS r
+            LEFT JOIN users AS u ON u.id = r.user_id
             LEFT JOIN detector_results AS d ON d.request_id = r.id
             LEFT JOIN classifier_results AS c ON c.request_id = r.id
             """ + conditions + """

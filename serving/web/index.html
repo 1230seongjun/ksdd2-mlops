@@ -251,8 +251,8 @@
 <section aria-labelledby="history-title" class="card history" hidden="" id="panel-history">
 <h2 id="history-title">검사 이력</h2>
 <form id="history-search" class="row">
-  <label>시작일 (한국 시간) <input name="date_from" type="date"></label>
-  <label>종료일 (한국 시간) <input name="date_to" type="date"></label>
+  <label>시작일 <input name="date_from" type="date"></label>
+  <label>종료일 <input name="date_to" type="date"></label>
   <label>파일명 <input name="filename" type="search" maxlength="255"></label>
   <label>판정 <select name="prediction"><option value="">전체</option><option value="normal">정상</option><option value="defect">불량</option></select></label>
   <button id="load-history" type="submit">검사 이력 불러오기</button>
@@ -1568,7 +1568,7 @@
         const row = historyRows.insertRow();
         const values = [
           record.filename,
-          record.worker_id == null ? "작업자 미기록" : `작업자 #${record.worker_id}`,
+          record.worker_account || "계정명 미기록",
           record.detector_version == null ? "—" : `v${record.detector_version}`,
           record.classifier_version == null ? "—" : `v${record.classifier_version}`,
           record.prediction === "normal" ? "정상" : "불량",
@@ -1637,8 +1637,8 @@
           if (response.status === 422) throw new Error("검색 조건과 날짜 범위를 확인해 주세요.");
           if (!response.ok) throw new Error(`검사 이력 조회 실패 (${response.status})`);
 
-          const { records, total_pages: totalPages } = await response.json();
-          if (!Number.isInteger(totalPages)) {
+          const { records, total, total_pages: totalPages } = await response.json();
+          if (!Number.isInteger(totalPages) || !Number.isInteger(total)) {
             throw new Error("페이지 정보를 반환하는 API 버전을 배포해 주세요.");
           }
           renderHistoryPages(page, totalPages);
@@ -1648,8 +1648,8 @@
           historyFilters = filters;
           historyTable.hidden = records.length === 0;
           historyStatus.textContent = records.length
-            ? `${page}페이지 · 검사 ${records.length}건`
-            : "표시할 검사 이력이 없습니다.";
+            ? `총 ${total.toLocaleString("ko-KR")}건 · ${page}/${totalPages}페이지 · 현재 ${records.length}건`
+            : `총 ${total.toLocaleString("ko-KR")}건 · 표시할 검사 이력이 없습니다.`;
         } catch (error) {
           historyStatus.textContent = error.message;
         } finally {
