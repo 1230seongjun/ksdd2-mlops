@@ -6,12 +6,12 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>ZeroDefect | 품질 검사</title>
 <style>
-:root{--blue:#2563eb;--ink:#202b3c;--muted:#697586;--line:#dde3eb;--bg:#f3f5f8}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;color:var(--ink);background:var(--bg);font:14px/1.55 Arial,"Noto Sans KR","Malgun Gothic",sans-serif}header{height:64px;padding:0 28px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:20px}header strong{font-size:21px;letter-spacing:-.6px}header strong span{color:var(--blue)}header:after{content:"검사 관리 콘솔";color:var(--muted);font-size:13px;border-left:1px solid var(--line);padding-left:20px}main{max-width:1920px;margin:auto;padding:24px}h1{font-size:24px;margin:0 0 4px;letter-spacing:-.7px}h2{font-size:16px;margin:0 0 14px}h3{font-size:14px;margin:0 0 10px}p{margin:8px 0}button,input,select{font:inherit}button{border:1px solid var(--blue);border-radius:4px;background:var(--blue);color:white;padding:9px 14px;cursor:pointer;font-weight:600}button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.45;cursor:not-allowed}button.secondary,#logout-button,#clear-button{background:white;color:var(--ink);border-color:var(--line)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}input,select{max-width:100%;border:1px solid #cdd5df;border-radius:4px;padding:9px;background:white;color:var(--ink)}label{display:block;font-size:13px;font-weight:600;margin:8px 0 4px}.hint,.status,#selection-summary{color:var(--muted);font-size:12px;overflow-wrap:anywhere}.error{color:#b42318!important}.card{background:white;border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}.layout{display:grid;grid-template-columns:minmax(250px,24fr) minmax(380px,53fr) minmax(240px,23fr);gap:16px;margin-top:22px;align-items:start}.row,.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{flex:1}.side #model-choice{width:100%}.side #inspect-button{width:100%;margin-top:8px}.side #clear-button{width:100%;margin-top:8px}.side>p:not([id]){font-size:12px;color:var(--muted)}#status{padding:10px;background:#f4f7fc;border-radius:4px}progress{width:100%;height:6px;accent-color:var(--blue)}.list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow:auto;margin-top:12px}.thumb{width:100%;min-height:78px;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;background:white;color:var(--ink);border:1px solid var(--line);text-align:left;padding:8px;font-weight:400}.thumb.active{border-color:var(--blue);background:#edf3ff;box-shadow:inset 3px 0 var(--blue)}.thumb canvas{width:20px;height:65px;object-fit:contain}.filename{overflow-wrap:anywhere;font-size:12px}.badge{font-size:11px;background:#eef1f5;padding:3px 6px;border-radius:3px;white-space:nowrap}.thumb[data-result="normal"] .badge{background:#e9f7ef;color:#157347}.thumb[data-result="defect"] .badge{background:#fff0ed;color:#b42318}.filter{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}.filter select{width:100%;margin-top:5px}.viewer{height:670px;overflow:auto;background:#e9edf2;border:1px solid var(--line);display:flex;align-items:flex-start;padding:20px;margin-top:12px}.viewer canvas{display:block;margin:auto;flex-shrink:0;max-width:none;box-shadow:0 2px 8px #0002}.toolbar button{padding:6px 10px;background:white;color:var(--ink);border-color:var(--line)}.toolbar label{margin:0;font-weight:400}#viewer-empty{height:670px;display:grid;place-items:center;background:#f6f8fb;border:1px dashed #cdd5df;padding:30px;text-align:center}.row-item{display:flex;flex-direction:column;gap:3px;padding:11px 0;border-bottom:1px solid #eef1f5;color:var(--muted);font-size:12px}.row-item strong{color:var(--ink);font-size:14px;overflow-wrap:anywhere;font-weight:500}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8fb;border:1px solid var(--line);border-radius:4px;padding:12px;font-size:11px;max-height:260px;overflow:auto}.panel+.panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}#save-json{width:100%}#counts{padding:10px 0;font-size:13px;color:var(--ink)}.history{margin-top:18px;overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th{text-align:left;background:#f5f7fa;font-weight:600}td,th{padding:12px 16px;border-bottom:1px solid var(--line)}tbody tr:hover{background:#f8faff}#load-history{float:right;margin-top:-40px}.monitor{margin-top:18px}.monitor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}iframe{width:100%;height:240px;border:1px solid var(--line)}#logout-button{float:right}#logout-status{clear:right;text-align:right}#invite-form{border:1px solid var(--line);border-radius:6px;background:white;padding:16px;margin:20px 0;display:grid;grid-template-columns:160px minmax(160px,1fr) auto;gap:8px;align-items:center}#invite-form label{margin:0}#invite-link{grid-column:2/4}#invite-status{grid-column:1/-1;margin:0}#login-form,#register-form{max-width:420px;margin:90px auto;background:white;border:1px solid var(--line);padding:32px;border-radius:6px}#login-form input,#register-form input{width:100%;margin-bottom:12px}#login-form button,#register-form button{width:100%;margin-top:12px}#login-form h2,#register-form h2{font-size:23px;margin-bottom:25px}#mock-banner{background:#fff3d6;color:#805900;padding:10px}#selected-name{overflow-wrap:anywhere;color:var(--muted);font-size:12px;min-height:20px}#download-image{width:100%;margin-top:8px}.list-title{margin-top:20px}.monitor>p{color:var(--muted)}@media(min-width:1700px){.viewer,#viewer-empty{height:760px}}@media(max-width:1150px){.layout{grid-template-columns:270px minmax(0,1fr)}.result-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel+.panel{border:0;margin:0;padding:0}.monitor-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){main{padding:12px}header{padding:0 16px}.layout{grid-template-columns:1fr}.result-panel{display:block}.viewer,#viewer-empty{height:580px}.list{max-height:240px}.monitor-grid{grid-template-columns:1fr}#invite-form{display:block}#invite-form input{width:100%;margin-bottom:8px}#load-history{float:none;margin:0}#login-form,#register-form{margin:35px 16px}.panel+.panel{margin-top:20px}}
+:root{--blue:#2563eb;--ink:#202b3c;--muted:#697586;--line:#dde3eb;--bg:#f3f5f8}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;color:var(--ink);background:var(--bg);font:calc(14px * var(--text-scale, 1))/1.55 Arial,"Noto Sans KR","Malgun Gothic",sans-serif}header{--text-scale:1;font-size:14px;min-height:58px;padding:8px 28px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}header strong{font-size:calc(21px * var(--text-scale, 1));letter-spacing:-.6px}header strong span{color:var(--blue)}main{max-width:1920px;margin:auto;padding:24px}h1{font-size:calc(24px * var(--text-scale, 1));margin:0 0 4px;letter-spacing:-.7px}h2{font-size:calc(16px * var(--text-scale, 1));margin:0 0 14px}h3{font-size:calc(14px * var(--text-scale, 1));margin:0 0 10px}p{margin:8px 0}button,input,select{font:inherit}button{border:1px solid var(--blue);border-radius:4px;background:var(--blue);color:white;padding:9px 14px;cursor:pointer;font-weight:600}button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.45;cursor:not-allowed}button.secondary,#logout-button,#clear-button{background:white;color:var(--ink);border-color:var(--line)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}input,select{max-width:100%;border:1px solid #cdd5df;border-radius:4px;padding:9px;background:white;color:var(--ink)}label{display:block;font-size:calc(13px * var(--text-scale, 1));font-weight:600;margin:8px 0 4px}.hint,.status{color:var(--muted);font-size:calc(12px * var(--text-scale, 1));overflow-wrap:anywhere}.error{color:#b42318!important}.card{background:white;border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}.layout{display:grid;grid-template-columns:minmax(250px,24fr) minmax(380px,53fr) minmax(240px,23fr);gap:16px;margin-top:22px;align-items:start}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{flex:1}.side #inspect-button{width:100%;margin-top:8px}.side #clear-button{width:100%;margin-top:8px}.side>p:not([id]){font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}#status{padding:10px;background:#f4f7fc;border-radius:4px}progress{width:100%;height:6px;accent-color:var(--blue)}.list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow:auto;margin-top:12px}.thumb{width:100%;min-height:78px;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;background:white;color:var(--ink);border:1px solid var(--line);text-align:left;padding:8px;font-weight:400}.thumb.active{border-color:var(--blue);background:#edf3ff;box-shadow:inset 3px 0 var(--blue)}.thumb canvas{width:20px;height:65px;object-fit:contain}.filename{overflow-wrap:anywhere;font-size:calc(12px * var(--text-scale, 1))}.badge{font-size:calc(11px * var(--text-scale, 1));background:#eef1f5;padding:3px 6px;border-radius:3px;white-space:nowrap}.thumb[data-result="normal"] .badge{background:#e9f7ef;color:#157347}.thumb[data-result="defect"] .badge{background:#fff0ed;color:#b42318}.filter{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}.filter select{width:100%;margin-top:5px}.viewer{height:670px;overflow:auto;background:#e9edf2;border:1px solid var(--line);display:flex;align-items:flex-start;padding:20px;margin-top:12px}.viewer canvas{display:block;margin:auto;flex-shrink:0;max-width:none;box-shadow:0 2px 8px #0002}#viewer-empty{height:670px;display:grid;place-items:center;background:#f6f8fb;border:1px dashed #cdd5df;padding:30px;text-align:center}.row-item{display:flex;flex-direction:column;gap:3px;padding:11px 0;border-bottom:1px solid #eef1f5;color:var(--muted);font-size:calc(12px * var(--text-scale, 1))}.row-item strong{color:var(--ink);font-size:calc(14px * var(--text-scale, 1));overflow-wrap:anywhere;font-weight:500}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8fb;border:1px solid var(--line);border-radius:4px;padding:12px;font-size:calc(11px * var(--text-scale, 1));max-height:260px;overflow:auto}.panel+.panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}#counts{padding:10px 0;font-size:calc(13px * var(--text-scale, 1));color:var(--ink)}.history{margin-top:18px;overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:calc(13px * var(--text-scale, 1));white-space:nowrap}th{text-align:left;background:#f5f7fa;font-weight:600}td,th{padding:12px 16px;border-bottom:1px solid var(--line)}tbody tr:hover{background:#f8faff}.monitor{margin-top:18px}.monitor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}iframe{width:100%;height:240px;border:1px solid var(--line)}#logout-button{float:right}#logout-status{clear:right;text-align:right}#invite-form{border:1px solid var(--line);border-radius:6px;background:white;padding:16px;margin:20px 0;display:grid;grid-template-columns:160px minmax(160px,1fr) auto;gap:8px;align-items:center}#invite-form label{margin:0}#invite-link{grid-column:2/4}#invite-status{grid-column:1/-1;margin:0}#login-form,#register-form{max-width:420px;margin:90px auto;background:white;border:1px solid var(--line);padding:32px;border-radius:6px}#login-form input,#register-form input{width:100%;margin-bottom:12px}#login-form button,#register-form button{width:100%;margin-top:12px}#login-form h2,#register-form h2{font-size:calc(23px * var(--text-scale, 1));margin-bottom:25px}#selected-name{overflow-wrap:anywhere;color:var(--muted);font-size:calc(12px * var(--text-scale, 1));min-height:20px}#download-image{width:100%;margin-top:8px}.list-title{margin-top:20px}.monitor>p{color:var(--muted)}@media(min-width:1700px){.viewer,#viewer-empty{height:760px}}@media(max-width:1150px){.layout{grid-template-columns:270px minmax(0,1fr)}.result-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel+.panel{border:0;margin:0;padding:0}.monitor-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){main{padding:12px}header{padding-inline:16px}.layout{grid-template-columns:1fr}.result-panel{display:block}.viewer,#viewer-empty{height:580px}.list{max-height:240px}.monitor-grid{grid-template-columns:1fr}#invite-form{display:block}#invite-form input{width:100%;margin-bottom:8px}#load-history{float:none;margin:0}#login-form,#register-form{margin:35px 16px}.panel+.panel{margin-top:20px}}
 
-.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-top:20px;overflow:auto}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;padding:14px 3px}.tabs button[aria-pressed="true"]{color:var(--blue);border-bottom:3px solid var(--blue)}.image-row{display:flex;align-items:center;gap:8px}.image-row>.thumb{flex:1;min-width:0}.selection-tools button{font-size:11px;padding:5px 8px}.selection-tools label{font-weight:400}.selection-tools input{accent-color:var(--blue)}#drop-zone{border:1px dashed #a7b7cf;padding:14px;display:block}#drop-zone.drag-over{background:#edf3ff}#drop-zone button{width:100%}#panel-invite{margin-top:18px}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-top:20px;overflow:auto}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;padding:14px 3px}.tabs button[aria-pressed="true"]{color:var(--blue);border-bottom:3px solid var(--blue)}.image-row{display:flex;align-items:center;gap:8px}.image-row>.thumb{flex:1;min-width:0}.selection-tools button{font-size:calc(11px * var(--text-scale, 1));padding:5px 8px}.selection-tools label{font-weight:400}.selection-tools input{accent-color:var(--blue)}#drop-zone{border:1px dashed #a7b7cf;padding:14px;display:block}#drop-zone.drag-over{background:#edf3ff}#drop-zone button{width:100%}#panel-invite{margin-top:18px}
 
-header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left:auto;letter-spacing:2px;font-size:12px;color:var(--muted)}#logout-button{float:none;padding:6px 12px}#logout-status:empty{display:none}main{padding:0 24px 24px}.tabs{margin:0 0 16px;min-height:48px}.layout{margin-top:0}#panel-invite{margin-top:0}#invite-form{margin:0;padding:10px 0;border:0}.categories{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.categories button{padding:5px 8px;font-size:12px;border-color:var(--line);background:white;color:var(--ink)}.categories button[aria-pressed="true"]{background:#edf3ff;border-color:var(--blue);color:var(--blue)}.image-row>.download-check{display:none}.selection-tools>#check-visible,.selection-tools>#uncheck-all,.selection-tools>#checked-summary{display:none}dialog{width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:24px;color:var(--ink)}dialog::backdrop{background:#17243b66}#download-options,#delete-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:48vh;overflow:auto;margin-top:16px}.download-option{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px;margin:0;overflow-wrap:anywhere;font-weight:400;font-size:12px}.download-option canvas{width:22px;height:72px;object-fit:contain}.download-option span{min-width:0}.download-option:has(input:checked){background:#edf3ff;border-color:var(--blue)}@media(max-width:720px){main{padding:0 12px 12px}.tabs{gap:14px}header{gap:12px;padding:0 12px}.console-label{font-size:10px}}
-#account-name{min-width:0;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink)}
+.console-label{letter-spacing:2px;font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}#logout-button{float:none;padding:6px 12px}#logout-status:empty{display:none}main{padding:0 24px 24px}.tabs{margin:0 0 16px;min-height:48px}.layout{margin-top:0}#panel-invite{margin-top:0}#invite-form{margin:0;padding:10px 0;border:0}.categories{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.categories button{padding:5px 8px;font-size:calc(12px * var(--text-scale, 1));border-color:var(--line);background:white;color:var(--ink)}.categories button[aria-pressed="true"]{background:#edf3ff;border-color:var(--blue);color:var(--blue)}.image-row>.download-check{display:none}dialog{width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:24px;color:var(--ink)}dialog::backdrop{background:#17243b66}#download-options,:is(#delete-options,#reinspect-options){display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:48vh;overflow:auto;margin-top:16px}.download-option{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px;margin:0;overflow-wrap:anywhere;font-weight:400;font-size:calc(12px * var(--text-scale, 1))}.download-option canvas{width:22px;height:72px;object-fit:contain}.download-option span{min-width:0}.download-option:has(input:checked){background:#edf3ff;border-color:var(--blue)}@media(max-width:720px){main{padding:0 12px 12px}.tabs{gap:14px}header{padding-inline:12px}.console-label{font-size:calc(10px * var(--text-scale, 1))}}
+#account-name{min-width:0;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(12px * var(--text-scale, 1));color:var(--ink)}
 #logout-button{flex-shrink:0}
 .model-dropdown{margin:0 0 8px;border:1px solid var(--line);border-radius:8px;background:white}
 .model-dropdown summary{display:flex;align-items:center;gap:8px;list-style:none;padding:10px 12px;cursor:pointer}
@@ -24,53 +24,43 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 .model-options label{display:flex;align-items:center;gap:8px;padding:6px;margin:0;font-weight:400}
 .model-options label:has(input:disabled){opacity:.55}
 
-#counts.inspection-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px;padding:0}
-.inspection-stat{background:#f4f7fc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted)}
-.inspection-stat strong{display:block;color:var(--ink);font-size:19px;line-height:1.3;font-variant-numeric:tabular-nums}
-.inspection-stat[data-tone="normal"] strong{color:#146b47}
-.inspection-stat[data-tone="defect"] strong,.inspection-stat[data-tone="failed"] strong{color:#a52c24}
-#active-count{margin:8px 0;color:var(--muted);font-variant-numeric:tabular-nums}
-#verdict-message{margin:4px 0 12px;padding:10px 12px;border-radius:8px;background:#f2f4f8;color:#334155;font-size:clamp(19px,2.2vw,30px);line-height:1.2;font-weight:750;overflow-wrap:anywhere}
+#counts.inspection-stats{display:block;margin:0 0 12px;padding:0;font-size:calc(15px * var(--text-scale, 1))}
+
+#verdict-message{margin:4px 0 12px;padding:10px 12px;border-radius:8px;background:#f2f4f8;color:#334155;font-size:clamp(calc(19px * var(--text-scale, 1)),calc(2.2vw * var(--text-scale, 1)),calc(30px * var(--text-scale, 1)));line-height:1.2;font-weight:750;overflow-wrap:anywhere}
 #verdict-message[data-tone="normal"],.thumb[data-tone="normal"] .badge,.categories button[data-category="normal"]{color:#146346;background:#eaf7ef}
 #verdict-message[data-tone="blue"],.thumb[data-tone="blue"] .badge,.categories button[data-category="blue"],#verdict-message[data-tone="brown"],.thumb[data-tone="brown"] .badge,.categories button[data-category="brown"],#verdict-message[data-tone="black"],.thumb[data-tone="black"] .badge,.categories button[data-category="black"],#verdict-message[data-tone="surface"],.thumb[data-tone="surface"] .badge,.categories button[data-category="surface"]{color:#a52c24;background:#ffeeeb}
 #verdict-message[data-tone="untyped"],.thumb[data-tone="untyped"] .badge,.categories button[data-category="untyped"]{color:#924700;background:#fff1d9}
 #verdict-message[data-tone="error"],.thumb[data-tone="error"] .badge,.categories button[data-category="error"]{color:#643398;background:#f3eaff}
-#info{margin:0;font-size:13px}
+#info{margin:0;font-size:calc(13px * var(--text-scale, 1))}
 #info div{display:grid;grid-template-columns:4em minmax(0,1fr);gap:6px;padding:3px 0}
 #info dt{color:var(--muted)}
 #info dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-#verdict-details{margin-top:12px;font-size:12px;color:var(--muted)}
+#verdict-details{margin-top:12px;font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}
 #verdict-details summary{cursor:pointer}
 #verdict-details p{margin:4px 0;overflow-wrap:anywhere}
-#json-panel{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;font-size:12px}
+#json-panel{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;font-size:calc(12px * var(--text-scale, 1))}
 #json-panel summary{cursor:pointer;font-weight:650}
-#json-panel pre{max-height:180px;overflow:auto}
+
 #download-image{margin-top:8px}
-@media(max-width:450px){#counts.inspection-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #json-panel pre{max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere}
-.selection-tools label,.toolbar label{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}
-.selection-tools input,.toolbar input{width:22px;height:22px}
-.image-panel,.result-panel{font-size:17px}
-.result-panel dt,.result-panel dd,#selected-name{font-size:16px}
-#inspection-progress{width:100%}
-.selection-tools label,.toolbar label{padding:6px 10px;border:1px solid var(--line);border-radius:6px;margin:0;font-weight:600}
-.selection-tools label:has(input:checked),.toolbar label:has(input:checked){background:#edf3ff;border-color:var(--blue)}
-#fit-image{font-size:12px;padding:3px 7px;flex:none}
+.selection-tools label{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}
+.selection-tools input{width:22px;height:22px}
+.image-panel,.result-panel{font-size:calc(17px * var(--text-scale, 1))}
+.result-panel dt,.result-panel dd,#selected-name{font-size:calc(16px * var(--text-scale, 1))}
+
+.selection-tools label{padding:6px 10px;border:1px solid var(--line);border-radius:6px;margin:0;font-weight:600}
+.selection-tools label:has(input:checked){background:#edf3ff;border-color:var(--blue)}
+
 .image-caption{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .image-caption p{flex:1;min-width:0;overflow-wrap:anywhere}
-#counts.inspection-stats,.categories button{font-size:15px}
-#counts .inspection-stat strong{font-size:22px}
-#inspection-progress{height:10px}
+.categories button{font-size:calc(15px * var(--text-scale, 1))}
+
 .viewer:has(canvas[data-boxes="true"][data-tone="defect"]){outline:3px solid #a52c24;outline-offset:-3px}
 .viewer:has(canvas[data-boxes="true"][data-tone="untyped"]){outline:3px solid #924700;outline-offset:-3px}
-#counts.inspection-stats{display:block}
 .inspection-gauge{display:flex;height:16px;overflow:hidden;border-radius:5px;background:#e5e9ef;margin:8px 0}
-.inspection-legend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:13px}
-.inspection-legend span{display:inline-flex;align-items:center;gap:5px}
-.inspection-legend i{width:10px;height:10px;border-radius:2px}
-.image-panel .toolbar button{font-size:12px;padding:4px 8px}
-.image-panel .toolbar label{min-height:32px;font-size:12px;padding:3px 8px;margin-left:auto}
-.image-panel .toolbar input{width:16px;height:16px}
+.inspection-legend{font-size:calc(13px * var(--text-scale, 1))}
+
+.inspection-legend i{border-radius:2px}
 #status:empty{display:none}
 .side .list{max-height:530px}
 .side .selection-tools{margin-top:10px}
@@ -85,53 +75,51 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 .inspection-list-panel .list{max-height:530px}
 #inspection-center .thumb{grid-template-columns:48px minmax(0,1fr) auto;min-height:110px}
 #inspection-center .thumb canvas{width:38px;height:90px}
-#inspection-center .filename{font-size:15px}
+#inspection-center .filename{font-size:calc(15px * var(--text-scale, 1))}
 .inspection-legend,.inspection-list-panel .categories{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding:4px}
-.inspection-legend button{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-.inspection-gauge button{min-width:0;padding:0;border:0;border-radius:0;flex-shrink:0}
+
 #download-options .download-option canvas{width:38px;height:100px}
 #inspection-center .inspection-list-panel,#inspection-left .inspection-list-panel{border:1px solid var(--line);border-radius:6px;padding:12px;margin-top:12px}
 #inspection-center .inspection-list-panel{margin-top:0;padding:18px}
-.side>h2,.image-panel>h2,.result-panel h3,.inspection-list-panel .list-title{font-size:20px;font-weight:750}
+.side>h2,.image-panel>h2,.result-panel h3,.inspection-list-panel .list-title{font-size:calc(20px * var(--text-scale, 1));font-weight:750}
 .inspection-list-panel .categories{flex-wrap:wrap;overflow:visible;white-space:normal}
 #inspection-center #list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:720px;align-content:start}
 #inspection-center .thumb{height:100%}
 @media(max-width:480px){#inspection-center .thumb{grid-template-columns:24px minmax(0,1fr);gap:5px}#inspection-center .thumb canvas{width:22px}#inspection-center .thumb .badge{grid-column:2;white-space:normal}}
-.inspection-list-panel .selection-tools label{font-size:12px;min-height:32px;padding:3px 7px}
+.inspection-list-panel .selection-tools label{font-size:calc(12px * var(--text-scale, 1));min-height:32px;padding:3px 7px}
 .inspection-list-panel .selection-tools input{width:16px;height:16px}
 .image-panel .viewer{height:auto;overflow:clip;display:block;padding:12px}
 .image-panel .viewer canvas{width:auto;max-width:100%;height:auto;max-height:560px;object-fit:contain}
 #inspection-left .viewer canvas{max-height:330px}
 #inspection-left #viewer-empty{height:250px}
 .inspection-legend{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;overflow:visible;padding:0}
-.inspection-legend span{min-width:0;display:block;text-align:center;font-size:clamp(9px,1vw,13px);letter-spacing:-.04em;white-space:nowrap}
+.inspection-legend span{min-width:0;display:block;text-align:center;font-size:clamp(calc(9px * var(--text-scale, 1)),calc(1vw * var(--text-scale, 1)),calc(13px * var(--text-scale, 1)));letter-spacing:-.04em;white-space:nowrap}
 .inspection-legend i{display:inline-block;margin-right:3px;width:7px;height:7px}
-#inspection-left .inspection-legend span{font-size:9px}
+#inspection-left .inspection-legend span{font-size:calc(9px * var(--text-scale, 1))}
 #inspection-left .inspection-legend i{display:none}
 .inspection-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.inspection-heading h2{font-size:20px;font-weight:750;margin:0}
-.inspection-heading .selection-tools label{min-height:30px;font-size:12px;padding:2px 7px}
+.inspection-heading h2{font-size:calc(20px * var(--text-scale, 1));font-weight:750;margin:0}
+.inspection-heading .selection-tools label{min-height:30px;font-size:calc(12px * var(--text-scale, 1));padding:2px 7px}
 .inspection-heading .selection-tools input{width:14px;height:14px}
 .side #inspection-action{width:100%;margin-top:8px;border-radius:10px;border-color:#e5b0ad;color:#972d25}
 .side #swap-inspection-panels{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;background:#edf3ff;border-color:#b9ccf6;color:#18449d}
-#swap-inspection-panels [aria-hidden="true"]{font-size:21px;line-height:1}
+#swap-inspection-panels [aria-hidden="true"]{font-size:calc(21px * var(--text-scale, 1));line-height:1}
 #inspection-left .inspection-list-panel,#inspection-center .inspection-list-panel{padding:18px}
 .inspection-list-panel .list-title{margin:0 0 14px}
-.inspection-legend small{display:block;font-size:inherit}
-.inspection-legend span{white-space:normal;overflow-wrap:anywhere}
+
 .thumb[data-tone] .badge{font-weight:650}
 .categories button[data-category="pending"]{color:#556274;background:#f2f5f8}
 .categories button[aria-pressed="true"]{outline:2px solid var(--blue);outline-offset:1px}
-.inspection-legend span{white-space:nowrap;overflow-wrap:normal}
+
 .inspection-legend small{display:inline;font-size:inherit}
-@media(max-width:480px){.inspection-legend span{font-size:8px}.inspection-legend i{display:none}}
-#inspection-left .inspection-legend span{font-size:8px}
+@media(max-width:480px){.inspection-legend span{font-size:calc(8px * var(--text-scale, 1))}.inspection-legend i{display:none}}
+#inspection-left .inspection-legend span{font-size:calc(8px * var(--text-scale, 1))}
 .side #clear-button{color:#972d25;border-color:#e5b0ad;border-radius:10px}
 #drop-zone{background:#f4f8ff;border:1px dashed #799ee7;border-radius:10px;padding:14px}
 #drop-zone #pick-files{background:#e8f0ff;border-color:#abc3f7;color:#18449d;border-radius:8px}
 #drop-zone #pick-files span{font-size:1.15em;margin-right:4px}
 #drop-zone:has(#pick-files:not(:disabled)):hover{background:#eaf2ff;border-color:var(--blue)}
-#drop-zone #added-image-count{flex-basis:100%;margin:0;text-align:center;color:#18449d;font-size:13px;font-weight:650}
+#drop-zone #added-image-count{flex-basis:100%;margin:0;text-align:center;color:#18449d;font-size:calc(13px * var(--text-scale, 1));font-weight:650}
 #inspection-left .categories,#inspection-center .categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-content:start}
 #inspection-left #list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start}
 .inspection-list-panel .categories button{min-width:0;padding-inline:3px;overflow-wrap:anywhere}
@@ -140,16 +128,59 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 .inspection-list-panel .categories button {
   white-space: nowrap;
   overflow-wrap: normal;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   padding: 7px 2px;
   letter-spacing: -0.5px;
 }
+#inspection-control{display:grid;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:#f7f9fc}
+#inspection-control #inspect-button,#inspection-control #inspection-action{width:100%;margin:0}
+#inspection-control #status{margin:0}
+#inspection-service-state{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;font-size:calc(13px * var(--text-scale, 1));color:var(--muted)}
+#inspection-service-label[data-tone="ready"]{color:#166534}
+#inspection-service-label[data-tone="error"],#inspection-service-label[data-tone="connection"]{color:#991b1b}
+#inspection-service-recheck{padding:3px 7px;font-size:inherit}
+#inspection-service-spinner{width:1em;height:1em;flex:none;border:2px solid #c6d6f4;border-top-color:var(--blue);border-radius:50%;animation:inspection-spin .8s linear infinite}
+@keyframes inspection-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#inspection-service-spinner{animation:none}}
+
+.header-title,.header-actions,.text-size-controls{display:flex;align-items:center;gap:8px}
+.header-title strong{white-space:nowrap}
+.console-label{border-left:1px solid var(--line);padding-left:8px}
+.header-actions{margin-left:auto;flex-wrap:wrap;max-width:100%}
+.header-account{display:flex;align-items:center;gap:8px;min-width:0;border-left:1px solid var(--line);padding-left:8px}
+.header-account:has(#logout-button[hidden]){display:none}
+.header-account #account-name{font-weight:700}
+.text-size-controls{gap:4px;flex-wrap:wrap}
+.text-size-controls button{background:white;color:var(--ink);border-color:var(--line);padding:3px 8px;min-width:32px;min-height:32px}
+.text-size-controls #text-size-reset{min-width:7ch;font-variant-numeric:tabular-nums}
+.text-size-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.inspection-legend span{white-space:normal;overflow-wrap:anywhere}
+#history-search button{flex:0 1 auto}
+#history-pagination{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin-top:16px}
+#history-pagination button{min-width:36px;padding:6px;border:0;background:transparent;color:inherit}
+#history-pagination [aria-current="page"]{color:#00854a;font-weight:700}
 </style>
 </head>
 <body>
 <header>
-<strong>ZERO<span>DEFECT</span></strong>
-<span class="console-label">CONSOLE</span><span id="account-name" hidden></span><button hidden="" id="logout-button" type="button">로그아웃</button></header><p id="logout-status" role="status"></p>
+<div class="header-title">
+  <strong>ZERO<span>DEFECT</span></strong>
+  <span class="console-label">CONSOLE</span>
+</div>
+<div class="header-actions">
+  <div class="text-size-controls" role="group" aria-labelledby="text-size-label">
+    <span id="text-size-label">글자 크기</span>
+    <button id="text-size-decrease" type="button" aria-label="글자 크기 줄이기">−</button>
+    <button id="text-size-reset" type="button" aria-label="기본 크기로 재설정, 현재 100%">100%</button>
+    <button id="text-size-increase" type="button" aria-label="글자 크기 키우기">+</button>
+    <span class="text-size-status" id="text-size-status" role="status"></span>
+  </div>
+  <div class="header-account">
+    <span id="account-name" hidden></span>
+    <button hidden="" id="logout-button" type="button">로그아웃</button>
+  </div>
+</div>
+</header><p id="logout-status" role="status"></p>
 <form hidden="" id="register-form">
 <h2>작업자 계정 만들기</h2>
 <label for="register-password">새 비밀번호</label>
@@ -167,9 +198,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <p id="login-status" role="status"></p>
 </form>
 <main id="inspection-screen" style="display: none"><nav aria-label="서비스 메뉴" class="tabs"><button aria-pressed="true" data-tab="inspect" type="button">이미지 검사</button><button aria-pressed="false" data-tab="history" type="button">검사 이력</button><button aria-pressed="false" data-tab="monitor" hidden="" type="button">모니터링</button><button aria-pressed="false" data-tab="invite" hidden="" type="button">작업자 초대</button></nav>
-<p class="status" hidden="" id="mock-banner">
-      목업 모드입니다. API를 호출하지 않고 임의의 결과를 표시합니다.
-    </p>
 <div class="layout" id="panel-inspect">
 <!-- 검사 이미지 -->
 <section class="card side">
@@ -186,18 +214,23 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
 <div class="row" id="drop-zone">
 <button class="secondary" id="pick-files" type="button"><span aria-hidden="true">＋</span> 이미지 추가</button>
-<button class="secondary" hidden="" id="pick-folder" type="button">이미지 폴더</button>
 <p class="hint">클릭하여 이미지 선택 · 폴더/이미지는 여기에 끌어놓기</p><p id="added-image-count" role="status" hidden></p></div>
 <input accept="image/png,image/jpeg" hidden="" id="files" multiple="" type="file"/>
-<input hidden="" id="folder" multiple="" type="file" webkitdirectory=""/>
 <details hidden="" id="skipped">
 <summary id="skipped-summary"></summary>
 <ul id="skipped-list"></ul>
 </details>
-<button disabled="" id="inspect-button" type="button">검사 시작</button>
+<div id="inspection-control" role="group" aria-label="검사 제어">
+  <div id="inspection-service-state">
+    <span id="inspection-service-spinner" aria-hidden="true" hidden></span>
+    <span id="inspection-service-label" role="status">검사 서버 상태 확인 전</span>
+    <button class="secondary" id="inspection-service-recheck" type="button" hidden>상태 다시 확인</button>
+  </div>
+  <button disabled="" id="inspect-button" type="button">검사 시작</button>
+  <button class="secondary" hidden id="inspection-action" type="button">검사 중단</button>
+  <p aria-live="polite" class="status" id="status" role="status" hidden></p>
+</div>
 <button class="secondary" id="clear-button" type="button" disabled>이미지 삭제</button>
-<button class="secondary" hidden id="inspection-action" type="button">검사 중단</button>
-<p aria-live="polite" class="status" id="status" role="status" hidden></p>
 <button class="secondary" id="swap-inspection-panels" type="button" aria-pressed="false"><span aria-hidden="true">⇄</span> <span id="swap-inspection-label">목록을 가운데로</span></button>
 <div id="inspection-left">
 <section class="inspection-list-panel" aria-label="검사 이미지 목록">
@@ -217,20 +250,30 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 <!-- Grafana 모니터링 -->
 <section aria-labelledby="history-title" class="card history" hidden="" id="panel-history">
 <h2 id="history-title">검사 이력</h2>
-<button id="load-history" type="button">최근 검사 이력 불러오기</button>
+<form id="history-search" class="row">
+  <label>시작일 (한국 시간) <input name="date_from" type="date"></label>
+  <label>종료일 (한국 시간) <input name="date_to" type="date"></label>
+  <label>파일명 <input name="filename" type="search" maxlength="255"></label>
+  <label>판정 <select name="prediction"><option value="">전체</option><option value="normal">정상</option><option value="defect">불량</option></select></label>
+  <button id="load-history" type="submit">검사 이력 불러오기</button>
+</form>
 <p id="history-status" role="status"></p>
 <table hidden="" id="history-table">
 <thead>
 <tr>
 <th scope="col">파일명</th>
 <th scope="col">작업자</th>
-<th scope="col">모델</th>
+<th scope="col">이상치 탐지 버전</th>
+<th scope="col">분류 버전</th>
 <th scope="col">판정</th>
+<th scope="col">결함 종류</th>
 <th scope="col">검사 시각</th>
+<th scope="col">상세</th>
 </tr>
 </thead>
 <tbody id="history-rows"></tbody>
 </table>
+<nav id="history-pagination" aria-label="검사 이력 페이지" hidden></nav>
 </section><section class="card monitor" hidden="" id="panel-monitor">
 <h2>모니터링 데이터</h2>
 <p>모니터링 연결은 후속 작업에서 확인합니다. 필요할 때 패널을 불러오세요.</p><button class="secondary" id="load-monitor" type="button">모니터링 패널 불러오기</button>
@@ -281,6 +324,17 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     <button id="cancel-delete" class="secondary" type="button">취소</button>
   </div>
 </dialog>
+<dialog id="reinspect-dialog" aria-labelledby="reinspect-title">
+  <h2 id="reinspect-title">재검사할 이미지 선택</h2>
+  <button id="select-all-reinspect" type="button" class="secondary">전체 선택</button>
+  <label for="reinspect-filter">분류</label><select id="reinspect-filter"></select>
+  <div id="reinspect-options"></div>
+  <p id="reinspect-count" role="status"></p>
+  <div class="row">
+    <button id="confirm-reinspect" type="button" disabled>선택 이미지 재검사</button>
+    <button id="cancel-reinspect" class="secondary" type="button">취소</button>
+  </div>
+</dialog>
 <dialog id="export-dialog" aria-labelledby="export-title">
   <h2 id="export-title">JSON으로 저장할 검사 이미지 선택</h2>
   <label for="export-filter">분류</label><select id="export-filter"></select>
@@ -295,7 +349,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
   (() => {
     "use strict";
 
-    const MOCK = new URLSearchParams(location.search).has("mock");
     const WIDTH = 184;
     const HEIGHT = 597;
     const MAX_BYTES = 5 * 1024 * 1024;
@@ -320,7 +373,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
     let items = [];      // 검사 대상: { key, file, state, reason, data, bucket, canvas, badge, btn }
     let skipped = [];    // 제외된 파일: { key, reason }
-    let ignored = 0;     // 이미지가 아니라 무시한 파일 수
     let running = false;
     let selected = null;
     const chosenVersions = { detector: "", classifier: "" };
@@ -332,6 +384,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     let renderToken = 0;
     let adding = false;
     let rememberedSelection = null;
+    let lastCompletedItem = null;
     let inspectionBatch = null;
     let pauseRequested = false;
 
@@ -401,13 +454,14 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     function verdictRows(item) {
-      if (item?.state !== "done") return [];
-      const result = item.data;
-      const rows = [];
-      if (result.is_anomaly) {
-        rows.push(["결함 종류", item.bucket === "untyped" ? "유형 미확인 · 작업자 확인 필요" : bucketLabel(item.bucket)]);
-        rows.push(["결함 위치", result.boxes.length ? `${result.boxes.length}곳` : "표시할 위치 없음"]);
-      }
+      const result = item?.state === "done" ? item.data : null;
+      const rows = [
+        ["결함 종류", !result ? "—" : !result.is_anomaly ? "해당 없음"
+          : item.bucket === "untyped" ? "유형 미확인" : bucketLabel(item.bucket)],
+        ["결함 위치", !result ? "—" : !result.is_anomaly ? "해당 없음"
+          : result.boxes.length ? `${result.boxes.length}곳` : "표시할 위치 없음"],
+      ];
+      if (!result) return rows;
       if (Object.hasOwn(result, "reviewed_label")) {
         const labels = {normal: "정상", defect: "불량"};
         const review = result.reviewed_label;
@@ -591,20 +645,20 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
     function syncControls() {
       const choice = selectedModelChoice();
-      const pending = items.some((item) => needsInspection(item, choice));
+      const pending = items.some((item) => item.state !== "error" && needsInspection(item, choice));
+      const reinspect = !inspectionBatch && !pending && items.some(canReinspect);
+      const inspectButton = $("inspect-button");
 
-      $("inspect-button").disabled = running || adding || (!inspectionBatch && (!pending || !choice));
-      $("inspect-button").hidden = !running && !adding && !inspectionBatch && Boolean(choice) && !pending && items.length > 0;
+      inspectButton.disabled = running || adding || (!inspectionBatch && (!choice || (!pending && !reinspect)));
+      inspectButton.dataset.action = reinspect ? "reinspect" : "inspect";
       const action = $("inspection-action");
       action.hidden = !inspectionBatch;
       action.disabled = adding || pauseRequested;
       action.textContent = running ? (pauseRequested ? "중단 처리 중" : "검사 중단") : "검사 취소";
       $("download-image").disabled = !items.some(item => ["done", "error"].includes(item.state));
-      $("inspect-button").textContent = adding ? "이미지 확인 중" : running ? "검사 실행 중" : inspectionBatch ? "검사 재개" : !items.length ? "검사 이미지 없음" : !choice ? "모델 버전 선택" : "검사 시작";
+      inspectButton.textContent = adding ? "이미지 확인 중" : running ? "검사 실행 중" : inspectionBatch ? "검사 재개" : !items.length ? "검사 이미지 없음" : !choice ? "모델 버전 선택" : reinspect ? "재검사" : "검사 시작";
 
-      for (const id of ["pick-files", "pick-folder"]) {
-        $(id).disabled = running || adding;
-      }
+      $("pick-files").disabled = running || adding;
       $("clear-button").hidden = !action.hidden;
       $("clear-button").disabled = adding || !items.length;
       for (const role of modelDropdowns) {
@@ -680,7 +734,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
       for (const file of files) {
         if (!IMAGE_TYPES.includes(file.type)) {
-          ignored += 1;
           continue;
         }
 
@@ -761,26 +814,37 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       filter.onchange();
     }
 
+    function canReinspect(item) {
+      return item.state === "done" || item.state === "error";
+    }
+
+    function imageSelectionOption(item, index) {
+      const label = document.createElement("label");
+      label.className = "download-option";
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.value = index;
+      const thumb = document.createElement("canvas");
+      thumb.width = item.canvas.width;
+      thumb.height = item.canvas.height;
+      if (thumb.width && thumb.height) thumb.getContext("2d").drawImage(item.canvas, 0, 0);
+      const name = document.createElement("span");
+      name.textContent = item.key;
+      label.append(check, thumb, name);
+      return label;
+    }
+
     function openDeleteDialog() {
       if (running || adding || inspectionBatch || !items.length) return;
       deleteSelection.clear();
-      $("delete-options").replaceChildren(...items.map((item) => {
-        const label = document.createElement("label");
-        label.className = "download-option";
-        const check = document.createElement("input");
-        check.type = "checkbox";
+      $("delete-options").replaceChildren(...items.map((item, index) => {
+        const label = imageSelectionOption(item, index);
+        const check = label.querySelector("input");
         check.addEventListener("change", () => {
           if (check.checked) deleteSelection.add(item);
           else deleteSelection.delete(item);
           updateDeleteCount();
         });
-        const thumb = document.createElement("canvas");
-        thumb.width = item.canvas.width;
-        thumb.height = item.canvas.height;
-        if (thumb.width && thumb.height) thumb.getContext("2d").drawImage(item.canvas, 0, 0);
-        const name = document.createElement("span");
-        name.textContent = item.key;
-        label.append(check, thumb, name);
         return label;
       }));
       updateDeleteCount();
@@ -798,6 +862,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       items = items.filter((item) => !deleteSelection.has(item));
       for (const item of deleteSelection) {
         if (rememberedSelection === item) rememberedSelection = null;
+        if (lastCompletedItem === item) lastCompletedItem = null;
         item.row.remove();
       }
       if (removedSelected) {
@@ -849,54 +914,58 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       return "untyped";
     }
 
-    // 목업: 모델이 위치와 유형을 반환하기 전까지 화면 개발에 사용
-    function mockPredict(file) {
-      const rand = (n) => Math.floor(Math.random() * n);
+    let healthRequest = 0;
 
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const threshold = 0.62;
-          const anomaly = Math.random() < 0.7;
-          const score = anomaly
-            ? threshold + Math.random() * 0.35
-            : Math.random() * threshold;
-          const type = anomaly ? TYPES[rand(TYPES.length)].id : null;
+    function setInspectionServiceState(message, tone = "") {
+      const label = $("inspection-service-label");
+      label.textContent = message;
+      label.dataset.tone = tone;
+      $("inspection-service-spinner").hidden = tone !== "loading";
+      $("inspection-service-recheck").hidden = tone !== "connection";
+    }
 
-          const boxes = [];
-          for (let n = anomaly ? 1 + rand(3) : 0; n > 0; n -= 1) {
-            const w = 10 + rand(100);
-            const h = 10 + rand(200);
-            boxes.push({
-              x: rand(WIDTH - w),
-              y: rand(HEIGHT - h),
-              w,
-              h,
-              score: Number((0.5 + Math.random() * 0.5).toFixed(3))
-            });
-          }
+    async function checkInspectionService() {
+      if (running) return;
+      const request = ++healthRequest;
+      setInspectionServiceState("검사 서버 확인 중");
 
-          resolve({
-            filename: file.name,
-            model_name: "mock",
-            prediction: anomaly ? "defect" : "normal",
-            anomaly_score: score,
-            threshold,
-            is_anomaly: anomaly,
-            defect_type: type,
-            boxes
-          });
-        }, 150 + Math.random() * 250);
-      });
+      try {
+        const response = await fetch("/api/health", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!response.ok) throw new Error("Health request failed");
+        const health = await response.json();
+        if (typeof health.model_loaded !== "boolean" ||
+            typeof health.classifier_loaded !== "boolean") {
+          throw new Error("Invalid health response");
+        }
+        if (request !== healthRequest) return;
+        setInspectionServiceState(selectedModelChoice() || inspectionBatch?.choice
+          ? "검사 서버 연결됨 · 시작 시 모델 확인"
+          : "검사 서버 연결됨 · 모델 버전 선택");
+      } catch {
+        if (request === healthRequest) {
+          setInspectionServiceState("검사 서버 상태 확인 실패", "connection");
+        }
+      }
+    }
+
+    function inspectionRequestError(response, message) {
+      const error = new Error(message);
+      error.httpStatus = response.status;
+      return error;
     }
 
     async function predict(file, choice) {
-      if (MOCK) return normalize(await mockPredict(file));
-
       const form = new FormData();
       form.append("file", file);
       form.append("model_choice", choice);
 
       const response = await fetch("/api/predict", { method: "POST", body: form });
+      if (response.status === 401) {
+        throw inspectionRequestError(response, "다시 로그인한 뒤 검사 재개를 누르세요.");
+      }
       const body = await response.text();
 
       if (!response.ok) {
@@ -906,20 +975,30 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     async function prepareRegistryModel(choice) {
-      if (MOCK || !choice.startsWith("registry-")) return true;
+      if (!choice.startsWith("registry-")) return true;
 
+      setInspectionServiceState("선택 모델 확인 중…", "loading");
       const deadline = Date.now() + 300000;
       while (!pauseRequested && Date.now() < deadline) {
         const response = await fetch(`/api/models/${encodeURIComponent(choice)}/prepare`, {
           method: "POST",
           signal: AbortSignal.timeout(15000),
         });
-        if (!response.ok) throw new Error(`모델 준비 요청 실패 (HTTP ${response.status})`);
+        if (!response.ok) {
+          const message = response.status === 409
+            ? "선택한 모델 버전을 다시 확인하세요."
+            : `모델 준비 요청 실패 (HTTP ${response.status})`;
+          throw inspectionRequestError(response, message);
+        }
 
         const { status } = await response.json();
-        if (status === "ready") return !pauseRequested;
+        if (status === "ready") {
+          if (!pauseRequested) setInspectionServiceState("선택 모델 준비 완료", "ready");
+          return !pauseRequested;
+        }
         if (status === "failed") throw new Error("모델 로드 실패");
         if (!["loading", "busy"].includes(status)) throw new Error("모델 준비 상태 확인 실패");
+        setInspectionServiceState(status === "busy" ? "다른 모델 준비가 끝나기를 기다리는 중…" : "선택 모델을 불러오는 중…", "loading");
 
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
@@ -932,10 +1011,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       item.reason = "";
       updateBadge(item);
       if (item === selected) renderVerdict(item);
-      if ($("follow-progress").checked && matches(item, $("type-filter").value)) {
-        select(item);
-        followItem(item);
-      }
       renderCounts();
       syncControls();
 
@@ -947,36 +1022,49 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       } catch (error) {
         item.state = "error";
         item.reason = error.message;
+        if (error.httpStatus === 401) {
+          updateBadge(item);
+          if (item === selected) renderVerdict(item);
+          throw error;
+        }
       }
 
       updateBadge(item);
       if (item.state === "done") {
+        lastCompletedItem = item;
         try { await drawThumb(item); } catch { /* Keep the inference result. */ }
       }
 
-      if ($("follow-progress").checked && matches(item, $("type-filter").value)) {
+      const followCompleted = item.state === "done" && $("follow-progress").checked
+        && matches(item, $("type-filter").value);
+      if (followCompleted) {
         await select(item);
-        followItem(item);
       } else if (item === selected) {
         renderViewer();
       }
       renderCounts();
       applyFilter();
+      if (followCompleted) followItem(item);
       syncControls();
     }
 
-    async function inspectAll() {
+    function showInspectionProgress(batch) {
+      setInspectionServiceState(`검사 진행 중 · ${batch.processed} / ${batch.targets.length}장`);
+    }
+
+    async function inspectAll(selectedTargets) {
       if (running || adding) return;
       const choice = inspectionBatch?.choice || selectedModelChoice();
       if (!choice) return;
 
-      const targets = inspectionBatch?.targets || items.filter((item) => needsInspection(item, choice));
+      const targets = inspectionBatch?.targets || selectedTargets || items.filter((item) => needsInspection(item, choice));
       if (!targets.length) return;
 
       const batch = inspectionBatch || {choice, targets, next: 0, processed: 0};
       inspectionBatch = batch;
       pauseRequested = false;
       running = true;
+      ++healthRequest;
       $("added-image-count").hidden = true;
       syncControls();
       renderCounts();
@@ -985,24 +1073,34 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         const prepared = await prepareRegistryModel(choice);
         if (prepared && !pauseRequested) {
           setStatus("");
+          showInspectionProgress(batch);
           while (!pauseRequested && batch.next < batch.targets.length) {
             const item = batch.targets[batch.next];
             await runInspectionItem(item, batch.choice);
             batch.next += 1;
             batch.processed += 1;
-            renderCounts();
-            if (!pauseRequested && batch.next < batch.targets.length &&
-                $("follow-progress").checked && selected === item && item.state === "done") {
-              await new Promise(resolve => setTimeout(resolve, 1500));
-            }
+            showInspectionProgress(batch);
+
           }
         }
-        if (batch.next >= batch.targets.length) inspectionBatch = null;
+        if (batch.next >= batch.targets.length) {
+          inspectionBatch = null;
+          setInspectionServiceState(`검사 처리 완료 · ${batch.processed} / ${batch.targets.length}장`);
+        }
         setStatus("");
       } catch (error) {
-        if (!pauseRequested) inspectionBatch = null;
-        setStatus(pauseRequested ? "" : error.message, !pauseRequested);
+        if (error.httpStatus === 401) {
+          const message = "다시 로그인한 뒤 검사 재개를 누르세요.";
+          setInspectionServiceState(message, "error");
+          setStatus(message, true);
+          window.dispatchEvent(new Event("inspection-session-expired"));
+        } else if (!pauseRequested) {
+          inspectionBatch = null;
+          setInspectionServiceState(error.message, "error");
+          setStatus(error.message, true);
+        }
       } finally {
+        if (pauseRequested && inspectionBatch) setInspectionServiceState("검사 일시 중단");
         pauseRequested = false;
         running = false;
         syncControls();
@@ -1012,7 +1110,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
     // ---------- 모델 정보 ----------
     function selectedModelChoice() {
-      if (MOCK) return "champion";
       const { detector, classifier } = chosenVersions;
       return detector && classifier ? `registry-d${detector}-c${classifier}` : "";
     }
@@ -1050,6 +1147,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
           $(`${role}-dropdown`).open = false;
           $(`${role}-dropdown`).querySelector("summary").focus();
           syncControls();
+          checkInspectionService();
         });
         label.append(input, status === "READY" ? `v${version}` : `v${version} · ${status}`);
         return label;
@@ -1057,7 +1155,7 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     }
 
     async function loadModelInfo() {
-      if (MOCK || modelRefreshPending) return;
+      if (modelRefreshPending) return;
       modelRefreshPending = true;
       const message = $("model-info");
 
@@ -1177,10 +1275,9 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
     $("follow-progress").addEventListener("change", () => {
       if (!$("follow-progress").checked) return;
       rememberedSelection = null;
-      const current = items.find(item => item.state === "running" && matches(item, $("type-filter").value));
-      if (current) {
-        select(current);
-        followItem(current);
+      if (lastCompletedItem?.state === "done" && matches(lastCompletedItem, $("type-filter").value)) {
+        select(lastCompletedItem);
+        followItem(lastCompletedItem);
       }
     });
     const drop = $("drop-zone");
@@ -1209,17 +1306,50 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
 
     // ---------- 시작 ----------
     $("pick-files").addEventListener("click", () => $("files").click());
-    $("pick-folder").addEventListener("click", () => $("folder").click());
 
-    for (const id of ["files", "folder"]) {
-      $(id).addEventListener("change", async (event) => {
-        const list = Array.from(event.target.files);
-        event.target.value = "";
-        await addFiles(list);
-      });
+    $("files").addEventListener("change", async (event) => {
+      const list = Array.from(event.target.files);
+      event.target.value = "";
+      await addFiles(list);
+    });
+
+    $("inspect-button").addEventListener("click", () => {
+      if ($("inspect-button").dataset.action === "reinspect") openReinspectDialog();
+      else inspectAll();
+    });
+
+    function openReinspectDialog() {
+      if (running || adding || inspectionBatch || !selectedModelChoice()) return;
+      const candidates = items.filter(canReinspect);
+      if (!candidates.length) return;
+
+      const options = $("reinspect-options");
+      const confirm = $("confirm-reinspect");
+      options.replaceChildren(...candidates.map(imageSelectionOption));
+      function updateCount() {
+        const count = options.querySelectorAll("input:checked").length;
+        $("reinspect-count").textContent = `선택 ${count}장`;
+        confirm.disabled = count === 0;
+      }
+      configureImageSelection("reinspect", "reinspect-options", candidates, FILTERS);
+      const updateSelectAll = options.onchange;
+      options.onchange = () => {
+        updateSelectAll();
+        updateCount();
+      };
+      confirm.onclick = () => {
+        const targets = Array.from(options.querySelectorAll("input:checked"), input => candidates[Number(input.value)]);
+        if (!targets.length) return;
+        $("reinspect-dialog").close();
+        inspectAll(targets);
+      };
+      updateCount();
+      $("reinspect-dialog").showModal();
     }
-
-    $("inspect-button").addEventListener("click", inspectAll);
+    $("cancel-reinspect").addEventListener("click", () => $("reinspect-dialog").close());
+    $("inspection-service-recheck").addEventListener("click", checkInspectionService);
+    document.querySelector('[data-tab="inspect"]').addEventListener("click", checkInspectionService);
+    window.addEventListener("session-ready", checkInspectionService);
     $("clear-button").addEventListener("click", openDeleteDialog);
     $("confirm-delete").addEventListener("click", deleteSelectedImages);
     $("cancel-delete").addEventListener("click", () => $("delete-dialog").close());
@@ -1228,7 +1358,6 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       updateDeleteCount();
     });
 
-    $("mock-banner").hidden = !MOCK;
     buildFilter();
     renderSummary();
     renderCounts();
@@ -1290,6 +1419,14 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
         registerForm.hidden = !inviteToken;
         screen.style.display = "none";
       }
+
+      window.addEventListener("inspection-session-expired", () => {
+        refreshSession().then(() => {
+          if (!form.hidden) status.textContent = "세션이 만료되었습니다. 다시 로그인한 뒤 검사 재개를 누르세요.";
+        }).catch((error) => {
+          status.textContent = error.message;
+        });
+      });
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -1418,50 +1555,115 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       const historyTable = document.getElementById("history-table");
       const historyRows = document.getElementById("history-rows");
 
-      historyButton.addEventListener("click", async () => {
+      const historySearch = document.getElementById("history-search");
+      const pagination = document.getElementById("history-pagination");
+      const historyDate = new Intl.DateTimeFormat("ko-KR", {
+        dateStyle: "short", timeStyle: "medium", timeZone: "Asia/Seoul",
+      });
+      const defectNames = { brown: "갈적색", blue: "청색", black: "흑색", surface: "표면" };
+      let historyPage = 1;
+      let historyFilters = new URLSearchParams();
+
+      function addHistoryRecord(record) {
+        const row = historyRows.insertRow();
+        const values = [
+          record.filename,
+          record.worker_id == null ? "작업자 미기록" : `작업자 #${record.worker_id}`,
+          record.detector_version == null ? "—" : `v${record.detector_version}`,
+          record.classifier_version == null ? "—" : `v${record.classifier_version}`,
+          record.prediction === "normal" ? "정상" : "불량",
+          defectNames[record.defect_type] ?? (record.prediction === "normal" ? "해당 없음" : "분류 결과 없음"),
+          historyDate.format(new Date(record.created_at)),
+        ];
+        for (const value of values) row.insertCell().textContent = value;
+
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = "보기";
+        const body = document.createElement("pre");
+        const duration = (value) => value == null ? "—" : `${value} ms`;
+        const fields = [
+          ["요청 ID", record.id],
+          ["탐지 모델 URI", record.detector_name],
+          ["분류 모델 URI", record.classifier_name],
+          ["이상 점수", record.anomaly_score],
+          ["탐지 결함 여부", record.is_defect == null ? null : record.is_defect ? "있음" : "없음"],
+          ["분류 신뢰도", record.confidence],
+          ["결함 위치", record.regions == null ? null : JSON.stringify(record.regions, null, 2)],
+          ["전체 처리 시간", duration(record.total_latency_ms)],
+          ["탐지 시간", duration(record.detector_latency_ms)],
+          ["분류 시간", duration(record.classifier_latency_ms)],
+          ["검토 결과", record.reviewed_label],
+          ["검토 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
+        ];
+        body.textContent = fields.map(([label, value]) => `${label}: ${value ?? "—"}`).join("\n");
+        details.append(summary, body);
+        row.insertCell().append(details);
+      }
+
+      function renderHistoryPages(page, totalPages) {
+        pagination.replaceChildren();
+        pagination.hidden = totalPages === 0;
+        if (!totalPages) return;
+
+        function addButton(label, target, accessibleLabel, disabled = false) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          button.setAttribute("aria-label", accessibleLabel);
+          button.disabled = disabled;
+          if (target === page) button.setAttribute("aria-current", "page");
+          button.addEventListener("click", () => loadHistory(target));
+          pagination.append(button);
+        }
+
+        addButton("‹", page - 1, "이전 페이지", page <= 1);
+        const first = Math.floor((page - 1) / 10) * 10 + 1;
+        for (let number = first; number <= Math.min(first + 9, totalPages); number++) {
+          addButton(String(number), number, `${number}페이지`, number === page);
+        }
+        addButton("›", page + 1, "다음 페이지", page >= totalPages);
+      }
+
+      async function loadHistory(page, filters = historyFilters) {
+        if (historyButton.disabled) return;
         historyButton.disabled = true;
-        historyRows.replaceChildren();
-        historyTable.hidden = true;
         historyStatus.textContent = "검사 이력을 불러오는 중입니다.";
-
         try {
-          const response = await fetch("/api/inference/history");
-          if (response.status === 401) {
-            historyStatus.textContent = "세션이 만료됐습니다. 새로고침 후 다시 로그인하세요.";
-            return;
-          }
-          if (!response.ok) {
-            throw new Error(`검사 이력을 불러오지 못했습니다 (${response.status}).`);
-          }
+          const params = new URLSearchParams(filters);
+          params.set("page", page);
+          const response = await fetch(`/api/inference/history?${params}`);
+          if (response.status === 401) throw new Error("다시 로그인해 주세요.");
+          if (response.status === 422) throw new Error("검색 조건과 날짜 범위를 확인해 주세요.");
+          if (!response.ok) throw new Error(`검사 이력 조회 실패 (${response.status})`);
 
-          const { records } = await response.json();
-          for (const record of records) {
-            const row = historyRows.insertRow();
-            const prediction = {
-              normal: "정상",
-              defect: "불량",
-            }[record.prediction] ?? record.prediction;
-            const values = [
-              record.filename,
-              record.worker_email ?? "작업자 미기록",
-              record.model_choice,
-              prediction,
-              new Date(record.created_at).toLocaleString("ko-KR"),
-            ];
-            for (const value of values) {
-              row.insertCell().textContent = value;
-            }
+          const { records, total_pages: totalPages } = await response.json();
+          if (!Number.isInteger(totalPages)) {
+            throw new Error("페이지 정보를 반환하는 API 버전을 배포해 주세요.");
           }
-
+          renderHistoryPages(page, totalPages);
+          historyRows.replaceChildren();
+          for (const record of records) addHistoryRecord(record);
+          historyPage = page;
+          historyFilters = filters;
           historyTable.hidden = records.length === 0;
           historyStatus.textContent = records.length
-            ? `최근 검사 ${records.length}건`
+            ? `${page}페이지 · 검사 ${records.length}건`
             : "표시할 검사 이력이 없습니다.";
         } catch (error) {
           historyStatus.textContent = error.message;
         } finally {
           historyButton.disabled = false;
         }
+      }
+
+      historySearch.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const filters = new URLSearchParams();
+        for (const [key, value] of new FormData(historySearch)) {
+          if (value.trim()) filters.set(key, value.trim());
+        }
+        loadHistory(1, filters);
       });
       refreshSession().catch((error) => {
         form.hidden = false;
@@ -1469,5 +1671,50 @@ header{height:58px;gap:18px}header:after{content:none}.console-label{margin-left
       });
     })();
   </script>
+<script>
+(() => {
+  const storageKey = "zerodefect.text-size";
+  const sizes = [90, 100, 110, 120, 130];
+  const decrease = document.getElementById("text-size-decrease");
+  const reset = document.getElementById("text-size-reset");
+  const increase = document.getElementById("text-size-increase");
+  const status = document.getElementById("text-size-status");
+  let size = 100;
+
+  try {
+    const savedSize = Number(localStorage.getItem(storageKey));
+    if (sizes.includes(savedSize)) size = savedSize;
+  } catch {
+    // Keep the default size when storage is unavailable.
+  }
+
+  function applySize() {
+    document.documentElement.style.setProperty("--text-scale", size / 100);
+    reset.textContent = `${size}%`;
+    reset.setAttribute("aria-label", `기본 크기로 재설정, 현재 ${size}%`);
+    decrease.disabled = size === sizes[0];
+    increase.disabled = size === sizes[sizes.length - 1];
+  }
+
+  function changeSize(nextSize) {
+    if (!sizes.includes(nextSize) || nextSize === size) return;
+    size = nextSize;
+    applySize();
+    status.textContent = `글자 크기 ${size}%`;
+    try {
+      localStorage.setItem(storageKey, String(size));
+    } catch {
+      // The current page still supports resizing without storage.
+    }
+  }
+
+  decrease.addEventListener("click", () => changeSize(sizes[sizes.indexOf(size) - 1]));
+  reset.addEventListener("click", () => changeSize(100));
+  increase.addEventListener("click", () => changeSize(sizes[sizes.indexOf(size) + 1]));
+  applySize();
+})();
+</script>
 </body>
 </html>
+
+
