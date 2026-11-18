@@ -5,6 +5,9 @@ import asyncio
 import logging
 import re
 
+from datetime import date, datetime, time as midnight, timedelta
+from typing import Literal
+from zoneinfo import ZoneInfo
 from io import BytesIO
 from contextlib import asynccontextmanager
 
@@ -16,6 +19,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     Request,
     UploadFile,
 )
@@ -335,13 +339,33 @@ def register(payload: RegisterRequest):
 def read_inference_history(
     response: Response,
     user: tuple[int, str] = Depends(get_current_user),
+    filename: str | None = Query(default=None, max_length=255),
+    prediction: Literal["normal", "defect"] | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    page: int = Query(default=1, ge=1, le=1_000_000),
 ):
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(422, "시작일은 종료일보다 늦을 수 없습니다.")
+    if date_to == date.max:
+        raise HTTPException(422, "종료일 범위를 확인해 주세요.")
+
+    timezone = ZoneInfo("Asia/Seoul")
+    start = datetime.combine(date_from, midnight.min, timezone) if date_from else None
+    end = datetime.combine(date_to + timedelta(days=1), midnight.min, timezone) if date_to else None
     user_id, role = user
+    page_size = 50
     with db.connect_db() as conn:
-        records = db.list_inference_requests(conn, user_id, role)
+        records, total = db.list_inference_requests(
+            conn, user_id, role, filename=filename, prediction=prediction,
+            start=start, end=end, offset=(page - 1) * page_size, limit=page_size,
+        )
 
     response.headers["Cache-Control"] = "no-store"
-    return {"records": records}
+    total_pages = (total + page_size - 1) // page_size
+    return {"records": records, "page": page, "has_next": page < total_pages,
+            "total": total, "total_pages": total_pages}
+
 
 predict_requests = Counter(
     "defectcatch_predict_requests_total",
@@ -783,3 +807,4 @@ async def predict(
         "confidence": defect["confidence"],
         "boxes": build_boxes(defect["regions"], width, height),
     }
+

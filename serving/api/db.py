@@ -105,7 +105,18 @@ def save_inference(record):
         save_total.labels("error").inc()
         logger.exception("Inference save failed: %s", record["id"])
     
-def list_inference_requests(conn, user_id: int, role: str):
+def list_inference_requests(conn, user_id, role, *, filename=None, prediction=None,
+                            start=None, end=None, offset=0, limit=50):
+    conditions = """
+            WHERE (%(role)s = 'admin' OR r.user_id = %(user_id)s)
+              AND (%(filename)s::text IS NULL OR
+                   strpos(lower(r.filename), lower(%(filename)s::text)) > 0)
+              AND (%(prediction)s::text IS NULL OR r.prediction = %(prediction)s)
+              AND (%(start)s::timestamptz IS NULL OR r.created_at >= %(start)s)
+              AND (%(end)s::timestamptz IS NULL OR r.created_at < %(end)s)
+    """
+    params = dict(role=role, user_id=user_id, filename=filename,
+                  prediction=prediction, start=start, end=end, offset=offset, limit=limit)
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
             """
@@ -115,13 +126,31 @@ def list_inference_requests(conn, user_id: int, role: str):
                 r.model_choice,
                 r.prediction,
                 r.created_at,
-                u.email AS worker_email
+                r.user_id AS worker_id,
+                r.total_latency_ms,
+                r.reviewed_label,
+                r.reviewed_at,
+                d.model_name AS detector_name,
+                d.model_version AS detector_version,
+                d.anomaly_score,
+                d.is_defect,
+                d.latency_ms AS detector_latency_ms,
+                c.model_name AS classifier_name,
+                c.model_version AS classifier_version,
+                c.defect_type,
+                c.confidence,
+                c.regions,
+                c.latency_ms AS classifier_latency_ms
             FROM inference_requests AS r
-            LEFT JOIN users AS u ON u.id = r.user_id
-            WHERE (%s = 'admin' OR r.user_id = %s)
+            LEFT JOIN detector_results AS d ON d.request_id = r.id
+            LEFT JOIN classifier_results AS c ON c.request_id = r.id
+            """ + conditions + """
             ORDER BY r.created_at DESC, r.id DESC
-            LIMIT 50
+            LIMIT %(limit)s OFFSET %(offset)s
             """,
-            (role, user_id),
+            params,
         )
-        return cur.fetchall()
+        records = cur.fetchall()
+        cur.execute("SELECT count(*) AS total FROM inference_requests AS r " + conditions, params)
+        return records, cur.fetchone()["total"]
+
