@@ -4,9 +4,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>ZeroDefect | 품질 검사</title>
 <style>
-:root{--blue:#2563eb;--ink:#202b3c;--muted:#697586;--line:#dde3eb;--bg:#f3f5f8}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;color:var(--ink);background:var(--bg);font:calc(14px * var(--text-scale, 1))/1.55 Arial,"Noto Sans KR","Malgun Gothic",sans-serif}header{--text-scale:1;font-size:14px;min-height:58px;padding:8px 28px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}header strong{font-size:calc(21px * var(--text-scale, 1));letter-spacing:-.6px}header strong span{color:var(--blue)}main{max-width:1920px;margin:auto;padding:24px}h1{font-size:calc(24px * var(--text-scale, 1));margin:0 0 4px;letter-spacing:-.7px}h2{font-size:calc(16px * var(--text-scale, 1));margin:0 0 14px}h3{font-size:calc(14px * var(--text-scale, 1));margin:0 0 10px}p{margin:8px 0}button,input,select{font:inherit}button{border:1px solid var(--blue);border-radius:4px;background:var(--blue);color:white;padding:9px 14px;cursor:pointer;font-weight:600}button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.45;cursor:not-allowed}button.secondary,#logout-button,#clear-button{background:white;color:var(--ink);border-color:var(--line)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}input,select{max-width:100%;border:1px solid #cdd5df;border-radius:4px;padding:9px;background:white;color:var(--ink)}label{display:block;font-size:calc(13px * var(--text-scale, 1));font-weight:600;margin:8px 0 4px}.hint,.status{color:var(--muted);font-size:calc(12px * var(--text-scale, 1));overflow-wrap:anywhere}.error{color:#b42318!important}.card{background:white;border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}.layout{display:grid;grid-template-columns:minmax(250px,24fr) minmax(380px,53fr) minmax(240px,23fr);gap:16px;margin-top:22px;align-items:start}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{flex:1}.side #inspect-button{width:100%;margin-top:8px}.side #clear-button{width:100%;margin-top:8px}.side>p:not([id]){font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}#status{padding:10px;background:#f4f7fc;border-radius:4px}progress{width:100%;height:6px;accent-color:var(--blue)}.list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow:auto;margin-top:12px}.thumb{width:100%;min-height:78px;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;background:white;color:var(--ink);border:1px solid var(--line);text-align:left;padding:8px;font-weight:400}.thumb.active{border-color:var(--blue);background:#edf3ff;box-shadow:inset 3px 0 var(--blue)}.thumb canvas{width:20px;height:65px;object-fit:contain}.filename{overflow-wrap:anywhere;font-size:calc(12px * var(--text-scale, 1))}.badge{font-size:calc(11px * var(--text-scale, 1));background:#eef1f5;padding:3px 6px;border-radius:3px;white-space:nowrap}.thumb[data-result="normal"] .badge{background:#e9f7ef;color:#157347}.thumb[data-result="defect"] .badge{background:#fff0ed;color:#b42318}.filter{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}.filter select{width:100%;margin-top:5px}.viewer{height:670px;overflow:auto;background:#e9edf2;border:1px solid var(--line);display:flex;align-items:flex-start;padding:20px;margin-top:12px}.viewer canvas{display:block;margin:auto;flex-shrink:0;max-width:none;box-shadow:0 2px 8px #0002}#viewer-empty{height:670px;display:grid;place-items:center;background:#f6f8fb;border:1px dashed #cdd5df;padding:30px;text-align:center}.row-item{display:flex;flex-direction:column;gap:3px;padding:11px 0;border-bottom:1px solid #eef1f5;color:var(--muted);font-size:calc(12px * var(--text-scale, 1))}.row-item strong{color:var(--ink);font-size:calc(14px * var(--text-scale, 1));overflow-wrap:anywhere;font-weight:500}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8fb;border:1px solid var(--line);border-radius:4px;padding:12px;font-size:calc(11px * var(--text-scale, 1));max-height:260px;overflow:auto}.panel+.panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}#counts{padding:10px 0;font-size:calc(13px * var(--text-scale, 1));color:var(--ink)}.history{margin-top:18px;overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:calc(13px * var(--text-scale, 1));white-space:nowrap}th{text-align:left;background:#f5f7fa;font-weight:600}td,th{padding:12px 16px;border-bottom:1px solid var(--line)}tbody tr:hover{background:#f8faff}.monitor{margin-top:18px}.monitor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}iframe{width:100%;height:240px;border:1px solid var(--line)}#logout-button{float:right}#logout-status{clear:right;text-align:right}#invite-form{border:1px solid var(--line);border-radius:6px;background:white;padding:16px;margin:20px 0;display:grid;grid-template-columns:160px minmax(160px,1fr) auto;gap:8px;align-items:center}#invite-form label{margin:0}#invite-link{grid-column:2/4}#invite-status{grid-column:1/-1;margin:0}#login-form,#register-form{max-width:420px;margin:90px auto;background:white;border:1px solid var(--line);padding:32px;border-radius:6px}#login-form input,#register-form input{width:100%;margin-bottom:12px}#login-form button,#register-form button{width:100%;margin-top:12px}#login-form h2,#register-form h2{font-size:calc(23px * var(--text-scale, 1));margin-bottom:25px}#selected-name{overflow-wrap:anywhere;color:var(--muted);font-size:calc(12px * var(--text-scale, 1));min-height:20px}#download-image{width:100%;margin-top:8px}.list-title{margin-top:20px}.monitor>p{color:var(--muted)}@media(min-width:1700px){.viewer,#viewer-empty{height:760px}}@media(max-width:1150px){.layout{grid-template-columns:270px minmax(0,1fr)}.result-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel+.panel{border:0;margin:0;padding:0}.monitor-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){main{padding:12px}header{padding-inline:16px}.layout{grid-template-columns:1fr}.result-panel{display:block}.viewer,#viewer-empty{height:580px}.list{max-height:240px}.monitor-grid{grid-template-columns:1fr}#invite-form{display:block}#invite-form input{width:100%;margin-bottom:8px}#load-history{float:none;margin:0}#login-form,#register-form{margin:35px 16px}.panel+.panel{margin-top:20px}}
+:root{--normal-ink:#146346;--defect-ink:#a52c24;--untyped-ink:#924700;--blue:#2563eb;--ink:#202b3c;--muted:#697586;--line:#dde3eb;--bg:#f3f5f8}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;color:var(--ink);background:var(--bg);font:calc(14px * var(--text-scale, 1))/1.55 Arial,"Noto Sans KR","Malgun Gothic",sans-serif}header{--text-scale:1;font-size:14px;min-height:58px;padding:8px 28px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}header strong{font-size:calc(21px * var(--text-scale, 1));letter-spacing:-.6px}header strong span{color:var(--blue)}main{max-width:1920px;margin:auto;padding:24px}h1{font-size:calc(24px * var(--text-scale, 1));margin:0 0 4px;letter-spacing:-.7px}h2{font-size:calc(16px * var(--text-scale, 1));margin:0 0 14px}h3{font-size:calc(14px * var(--text-scale, 1));margin:0 0 10px}p{margin:8px 0}button,input,select{font:inherit}button{border:1px solid var(--blue);border-radius:4px;background:var(--blue);color:white;padding:9px 14px;cursor:pointer;font-weight:600}button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.45;cursor:not-allowed}button.secondary,#logout-button,#clear-button{background:white;color:var(--ink);border-color:var(--line)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}input,select{max-width:100%;border:1px solid #cdd5df;border-radius:4px;padding:9px;background:white;color:var(--ink)}label{display:block;font-size:calc(13px * var(--text-scale, 1));font-weight:600;margin:8px 0 4px}.hint,.status{color:var(--muted);font-size:calc(12px * var(--text-scale, 1));overflow-wrap:anywhere}.error{color:#b42318!important}.card{background:white;border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}.layout{display:grid;grid-template-columns:minmax(250px,24fr) minmax(380px,53fr) minmax(240px,23fr);gap:16px;margin-top:22px;align-items:start}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row button{flex:1}.side #inspect-button{width:100%;margin-top:8px}.side #clear-button{width:100%;margin-top:8px}.side>p:not([id]){font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}#status{padding:10px;background:#f4f7fc;border-radius:4px}progress{width:100%;height:6px;accent-color:var(--blue)}.list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow:auto;margin-top:12px}.thumb{width:100%;min-height:78px;display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;background:white;color:var(--ink);border:1px solid var(--line);text-align:left;padding:8px;font-weight:400}.thumb.active{border-color:var(--blue);background:#edf3ff;box-shadow:none}.thumb canvas{width:20px;height:65px;object-fit:contain}.filename{overflow-wrap:anywhere;font-size:calc(12px * var(--text-scale, 1))}.badge{font-size:calc(11px * var(--text-scale, 1));background:#eef1f5;padding:3px 6px;border-radius:3px;white-space:nowrap}.thumb[data-result="normal"] .badge{background:#e9f7ef;color:#157347}.thumb[data-result="defect"] .badge{background:#fff0ed;color:#b42318}.filter{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}.filter select{width:100%;margin-top:5px}.viewer{height:670px;overflow:auto;background:#e9edf2;border:1px solid var(--line);display:flex;align-items:flex-start;padding:20px;margin-top:12px}.viewer canvas{display:block;margin:auto;flex-shrink:0;max-width:none;box-shadow:0 2px 8px #0002}#viewer-empty{height:670px;display:grid;place-items:center;background:#f6f8fb;border:1px dashed #cdd5df;padding:30px;text-align:center}.row-item{display:flex;flex-direction:column;gap:3px;padding:11px 0;border-bottom:1px solid #eef1f5;color:var(--muted);font-size:calc(12px * var(--text-scale, 1))}.row-item strong{color:var(--ink);font-size:calc(14px * var(--text-scale, 1));overflow-wrap:anywhere;font-weight:500}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8fb;border:1px solid var(--line);border-radius:4px;padding:12px;font-size:calc(11px * var(--text-scale, 1));max-height:260px;overflow:auto}.panel+.panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}#counts{padding:10px 0;font-size:calc(13px * var(--text-scale, 1));color:var(--ink)}.history{margin-top:18px;overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:calc(13px * var(--text-scale, 1));white-space:nowrap}th{text-align:left;background:#f5f7fa;font-weight:600}td,th{padding:12px 16px;border-bottom:1px solid var(--line)}tbody tr:hover{background:#f8faff}.monitor{margin-top:18px}.monitor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}iframe{width:100%;height:240px;border:1px solid var(--line)}#logout-button{float:right}#logout-status{clear:right;text-align:right}#invite-form{border:1px solid var(--line);border-radius:6px;background:white;padding:16px;margin:20px 0;display:grid;grid-template-columns:160px minmax(160px,1fr) auto;gap:8px;align-items:center}#invite-form label{margin:0}#invite-link{grid-column:2/4}#invite-status{grid-column:1/-1;margin:0}#login-form,#register-form{max-width:420px;margin:90px auto;background:white;border:1px solid var(--line);padding:32px;border-radius:6px}#login-form input,#register-form input{width:100%;margin-bottom:12px}#login-form button,#register-form button{width:100%;margin-top:12px}#login-form h2,#register-form h2{font-size:calc(23px * var(--text-scale, 1));margin-bottom:25px}#selected-name{overflow-wrap:anywhere;color:var(--muted);font-size:calc(12px * var(--text-scale, 1));min-height:20px}#download-image{width:100%;margin-top:8px}.list-title{margin-top:20px}.monitor>p{color:var(--muted)}@media(min-width:1700px){.viewer,#viewer-empty{height:760px}}@media(max-width:1150px){.layout{grid-template-columns:270px minmax(0,1fr)}.result-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel+.panel{border:0;margin:0;padding:0}.monitor-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){main{padding:12px}header{padding-inline:16px}.layout{grid-template-columns:1fr}.result-panel{display:block}.viewer,#viewer-empty{height:580px}.list{max-height:240px}.monitor-grid{grid-template-columns:1fr}#invite-form{display:block}#invite-form input{width:100%;margin-bottom:8px}#load-history{float:none;margin:0}#login-form,#register-form{margin:35px 16px}.panel+.panel{margin-top:20px}}
 
 .tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-top:20px;overflow:auto}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;padding:14px 3px}.tabs button[aria-pressed="true"]{color:var(--blue);border-bottom:3px solid var(--blue)}.image-row{display:flex;align-items:center;gap:8px}.image-row>.thumb{flex:1;min-width:0}.selection-tools button{font-size:calc(11px * var(--text-scale, 1));padding:5px 8px}.selection-tools label{font-weight:400}.selection-tools input{accent-color:var(--blue)}#drop-zone{border:1px dashed #a7b7cf;padding:14px;display:block}#drop-zone.drag-over{background:#edf3ff}#drop-zone button{width:100%}#panel-invite{margin-top:18px}
 
@@ -27,9 +28,9 @@
 #counts.inspection-stats{display:block;margin:0 0 12px;padding:0;font-size:calc(15px * var(--text-scale, 1))}
 
 #verdict-message{margin:4px 0 12px;padding:10px 12px;border-radius:8px;background:#f2f4f8;color:#334155;font-size:clamp(calc(19px * var(--text-scale, 1)),calc(2.2vw * var(--text-scale, 1)),calc(30px * var(--text-scale, 1)));line-height:1.2;font-weight:750;overflow-wrap:anywhere}
-#verdict-message[data-tone="normal"],.thumb[data-tone="normal"] .badge,.categories button[data-category="normal"]{color:#146346;background:#eaf7ef}
-#verdict-message[data-tone="blue"],.thumb[data-tone="blue"] .badge,.categories button[data-category="blue"],#verdict-message[data-tone="brown"],.thumb[data-tone="brown"] .badge,.categories button[data-category="brown"],#verdict-message[data-tone="black"],.thumb[data-tone="black"] .badge,.categories button[data-category="black"],#verdict-message[data-tone="surface"],.thumb[data-tone="surface"] .badge,.categories button[data-category="surface"]{color:#a52c24;background:#ffeeeb}
-#verdict-message[data-tone="untyped"],.thumb[data-tone="untyped"] .badge,.categories button[data-category="untyped"]{color:#924700;background:#fff1d9}
+#verdict-message[data-tone="normal"],.thumb[data-tone="normal"] .badge,.categories button[data-category="normal"]{color:var(--normal-ink);background:#eaf7ef}
+#verdict-message[data-tone="blue"],.thumb[data-tone="blue"] .badge,.categories button[data-category="blue"],#verdict-message[data-tone="brown"],.thumb[data-tone="brown"] .badge,.categories button[data-category="brown"],#verdict-message[data-tone="black"],.thumb[data-tone="black"] .badge,.categories button[data-category="black"],#verdict-message[data-tone="surface"],.thumb[data-tone="surface"] .badge,.categories button[data-category="surface"]{color:var(--defect-ink);background:#ffeeeb}
+#verdict-message[data-tone="untyped"],.thumb[data-tone="untyped"] .badge,.categories button[data-category="untyped"]{color:var(--untyped-ink);background:#fff1d9}
 #verdict-message[data-tone="error"],.thumb[data-tone="error"] .badge,.categories button[data-category="error"]{color:#643398;background:#f3eaff}
 #info{margin:0;font-size:calc(13px * var(--text-scale, 1))}
 #info div{display:grid;grid-template-columns:4em minmax(0,1fr);gap:6px;padding:3px 0}
@@ -159,6 +160,125 @@
 #history-pagination{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin-top:16px}
 #history-pagination button{min-width:36px;padding:6px;border:0;background:transparent;color:inherit}
 #history-pagination [aria-current="page"]{color:#00854a;font-weight:700}
+/* zerodefect-ui-20261119 */
+#drop-zone #pick-files:not(:disabled):is(:hover,[aria-expanded="true"]){
+  background:#c6dcff;border-color:var(--blue);color:#12347c
+}
+#image-add-control{position:relative;max-width:100%}
+#image-add-options{
+  position:absolute;z-index:3;inset-block-start:calc(100% + 5px);inset-inline-start:50%;
+  transform:translateX(-50%);min-width:100%;width:max-content;max-width:200px;
+  padding:4px;background:#fff;border:1px solid var(--line);border-radius:6px;
+  box-shadow:0 4px 12px #202b3c22
+}
+#image-add-options button{
+  display:block;width:100%;padding:6px 8px;text-align:left;
+  border:0;background:#fff;color:var(--ink)
+}
+#image-add-options button:is(:hover,:focus-visible){background:#dbeafe;color:#12347c}
+#category-select{
+  display:none;width:100%;min-width:0;max-width:100%;margin:0 0 10px;
+  padding:6px 8px;font:inherit
+}
+#inspection-left #category-select{display:block}
+#inspection-left #category-tabs{display:none}
+#inspection-center #category-tabs button{white-space:normal;overflow-wrap:anywhere}
+.inspection-list-panel .thumb .filename,
+.inspection-list-panel .thumb .badge{
+  min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere
+}
+#history-search{
+  --history-gap:12px;
+  display:grid;grid-template-columns:repeat(2,minmax(10rem,1fr)) minmax(12rem,2fr) minmax(7rem,1fr) auto;
+  align-items:end;gap:var(--history-gap)
+}
+#history-search label{display:grid;gap:4px;min-width:0;margin:0}
+#history-search :is(input,select){width:100%;min-width:0;margin:0;font:inherit}
+#load-history{margin:0}
+@media(max-width:950px){
+  #history-search{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:450px){
+  #history-search{grid-template-columns:minmax(0,1fr)}
+}
+#history-layout{
+  display:grid;grid-template-columns:minmax(0,2fr) minmax(18rem,1fr);
+  gap:16px;align-items:start
+}
+#history-list{min-width:0}
+#history-table-scroll{overflow-x:auto}
+#history-detail{
+  min-width:0;height:22rem;overflow:auto;padding:14px;
+  border:1px solid var(--line);border-radius:6px;background:#f8fafc
+}
+#history-detail-selection{overflow-wrap:anywhere}
+#history-detail-data{margin:0;max-height:none;background:#fff}
+.history-view-button{
+  border:0;padding:0 8px;background:#edf3ff;color:#17418f;
+  font:inherit;font-weight:600;vertical-align:top
+}
+.history-view-button:hover{background:#dbeafe}
+.history-view-button[aria-pressed="true"]{background:#dbeafe;color:#12347c}
+@media(max-width:950px){
+  #history-layout{grid-template-columns:minmax(0,1fr)}
+}
+#history-rows [data-verdict]{font-weight:700}
+#history-rows [data-verdict="normal"]{color:var(--normal-ink)}
+#history-rows [data-verdict="defect"]{color:var(--defect-ink)}
+#history-rows [data-verdict="untyped"]{color:var(--untyped-ink)}
+#panel-history{overflow:visible}
+#history-search{grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}
+#history-period{position:relative;min-width:0}
+#history-period summary{
+  cursor:pointer;padding:9px;border:1px solid #cdd5df;border-radius:4px;background:#fff;
+  font-size:inherit;font-weight:600
+}
+#history-period summary:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}
+#history-period-fields{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:3;display:grid;gap:12px;
+  width:min(19rem,calc(100vw - 56px));padding:12px;border:1px solid var(--line);
+  border-radius:6px;background:#fff;box-shadow:0 6px 16px #0002
+}
+@media(max-width:450px){
+  #history-period-fields{position:static;width:auto;margin-top:6px}
+}
+.history-datetime{min-width:0;margin:0;padding:0;border:0}
+.history-datetime legend{padding:0;margin:0 0 4px;font-size:calc(13px * var(--text-scale,1));font-weight:600}
+.history-datetime-controls{display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 3.25rem;gap:4px}
+#history-search .history-datetime select{padding:6px 4px}
+#history-search .history-datetime input{padding:6px}
+@media(min-width:1200px){
+  #history-search{grid-template-columns:minmax(9rem,1fr) minmax(8rem,2fr) repeat(2,minmax(6.5rem,1fr)) auto}
+}
+#history-rows tr:has(.history-view-button[aria-pressed="true"]){background:#f8faff}
+#history-detail{height:auto;overflow:visible}
+#history-detail-data{display:grid;gap:12px;background:transparent}
+.history-detail-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.history-detail-card{min-width:0;padding:12px;border:1px solid var(--line);border-radius:6px;background:#fff;overflow-wrap:anywhere}
+.history-detail-card h4{margin:0 0 8px}
+.history-detail-card dl{margin:0}
+.history-detail-card dl>div{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:8px;padding:3px 0}
+.history-detail-card dd{margin:0;font-weight:600}
+.history-detail-card table{table-layout:fixed;white-space:normal}
+.history-detail-card th,.history-detail-card td{padding:6px 4px;overflow-wrap:anywhere}
+.history-detail-card th:first-child{width:19%}
+.history-detail-card th:last-child{width:27%}
+#history-pagination{margin:0 0 8px;background:#fff}
+@media(min-width:951px){
+  #history-pagination{position:sticky;top:0;z-index:2;padding:5px;border-bottom:1px solid var(--line)}
+  #history-detail{position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;scrollbar-gutter:stable}
+}
+@media(max-width:1100px) and (min-width:951px),(max-width:530px){
+  .history-detail-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:450px){
+  #history-search{grid-template-columns:minmax(0,1fr)}
+}
+.model-options label:has(input:enabled){cursor:pointer;border-radius:4px}
+.model-options input:enabled{cursor:pointer}
+.model-options label:has(input:enabled):hover{background:#F1F5F9}
+.model-options label:has(input:checked){background:#EAF2FF}
+.model-options label:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -213,9 +333,16 @@
 <p class="hint" id="model-info" role="status" hidden></p>
 <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
 <div class="row" id="drop-zone">
-<button class="secondary" id="pick-files" type="button"><span aria-hidden="true">＋</span> 이미지 추가</button>
-<p class="hint">클릭하여 이미지 선택 · 폴더/이미지는 여기에 끌어놓기</p><p id="added-image-count" role="status" hidden></p></div>
+<div id="image-add-control">
+  <button class="secondary" id="pick-files" type="button" aria-expanded="false" aria-controls="image-add-options"><span aria-hidden="true">＋</span> 이미지 추가</button>
+  <div id="image-add-options" role="group" aria-label="이미지 추가 방식" hidden>
+    <button type="button" id="choose-image-files">이미지 파일 선택</button>
+    <button type="button" id="choose-image-folder">폴더 선택</button>
+  </div>
+</div>
+<p class="hint">이미지 또는 폴더 선택 · 끌어놓기 가능</p><p id="added-image-count" role="status" hidden></p></div>
 <input accept="image/png,image/jpeg" hidden="" id="files" multiple="" type="file"/>
+<input hidden id="image-folder" type="file" webkitdirectory multiple>
 <details hidden="" id="skipped">
 <summary id="skipped-summary"></summary>
 <ul id="skipped-list"></ul>
@@ -234,7 +361,7 @@
 <button class="secondary" id="swap-inspection-panels" type="button" aria-pressed="false"><span aria-hidden="true">⇄</span> <span id="swap-inspection-label">목록을 가운데로</span></button>
 <div id="inspection-left">
 <section class="inspection-list-panel" aria-label="검사 이미지 목록">
-<input type="hidden" id="type-filter" value="all"/><h3 class="list-title">검사 이미지 목록</h3><div aria-label="결과 분류" class="categories" id="category-tabs"></div><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="list" id="list"></div></section></div></section>
+<input type="hidden" id="type-filter" value="all"/><h3 class="list-title">검사 이미지 목록</h3><div aria-label="결과 분류" class="categories" id="category-tabs"></div><select id="category-select" aria-label="검사 결과 유형"></select><p class="hint" id="list-empty">선택한 이미지가 없습니다.</p><div class="list" id="list"></div></section></div></section>
 <div id="inspection-center"><section class="card image-panel"><h2>이미지 상세</h2><div id="counts" class="inspection-stats" aria-label="검사 현황"></div><p class="hint" id="viewer-empty">
             표시할 이미지 없음
           </p><div class="viewer" hidden="" id="viewer">
@@ -251,13 +378,42 @@
 <section aria-labelledby="history-title" class="card history" hidden="" id="panel-history">
 <h2 id="history-title">검사 이력</h2>
 <form id="history-search" class="row">
-  <label>시작일 <input name="date_from" type="date"></label>
-  <label>종료일 <input name="date_to" type="date"></label>
+  <details id="history-period">
+    <summary>기간 설정 (KST)</summary>
+    <div id="history-period-fields">
+      <fieldset class="history-datetime">
+        <legend>시작 일시 (KST)</legend>
+        <div class="history-datetime-controls">
+          <input type="date" name="date_from" aria-label="시작일">
+          <select name="hour_from" aria-label="시작 시 (24시간제)" data-hour><option value="">시</option></select>
+          <select name="minute_from" aria-label="시작 분" data-minute><option value="">분</option></select>
+        </div>
+      </fieldset>
+      <fieldset class="history-datetime">
+        <legend>종료 일시 (KST)</legend>
+        <div class="history-datetime-controls">
+          <input type="date" name="date_to" aria-label="종료일">
+          <select name="hour_to" aria-label="종료 시 (24시간제)" data-hour><option value="">시</option></select>
+          <select name="minute_to" aria-label="종료 분" data-minute><option value="">분</option></select>
+        </div>
+      </fieldset>
+    </div>
+  </details>
   <label>파일명 <input name="filename" type="search" maxlength="255"></label>
   <label>판정 <select name="prediction"><option value="">전체</option><option value="normal">정상</option><option value="defect">불량</option></select></label>
+  <label id="history-worker-field" hidden>
+    작업자
+    <select name="worker_id" id="history-worker-select" disabled>
+      <option value="">전체 작업자</option>
+    </select>
+  </label>
   <button id="load-history" type="submit">검사 이력 불러오기</button>
 </form>
 <p id="history-status" role="status"></p>
+<div id="history-layout">
+<div id="history-list">
+<nav id="history-pagination" aria-label="검사 이력 페이지" hidden></nav>
+<div id="history-table-scroll">
 <table hidden="" id="history-table">
 <thead>
 <tr>
@@ -273,7 +429,14 @@
 </thead>
 <tbody id="history-rows"></tbody>
 </table>
-<nav id="history-pagination" aria-label="검사 이력 페이지" hidden></nav>
+</div>
+</div>
+<section id="history-detail" aria-labelledby="history-detail-title" tabindex="-1">
+  <h3 id="history-detail-title">검사 상세</h3>
+  <p id="history-detail-selection" role="status">보기 버튼을 눌러 검사 기록을 선택하세요.</p>
+  <div id="history-detail-data" hidden></div>
+</section>
+</div>
 </section><section class="card monitor" hidden="" id="panel-monitor">
 <h2>모니터링 데이터</h2>
 <p>모니터링 연결은 후속 작업에서 확인합니다. 필요할 때 패널을 불러오세요.</p><button class="secondary" id="load-monitor" type="button">모니터링 패널 불러오기</button>
@@ -409,20 +572,45 @@
     const bucketLabel = (id) => BUCKETS.find((b) => b.id === id)?.label ?? "유형 없음";
 
     // ---------- 그리기 ----------
-    function paint(canvas, bitmap, scale, boxes) {
+    // 결함 박스 색상 설정
+    const BOX_COLOR = "#F59E0B";
+    const BOX_OUTLINE = "#171717";
+
+    function paint(canvas, bitmap, scale, boxes, defectLabel) {
       canvas.width = Math.round(WIDTH * scale);
       canvas.height = Math.round(HEIGHT * scale);
 
       const ctx = canvas.getContext("2d");
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
-      for (const b of boxes) {
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = "rgba(0, 0, 0, .95)";
-        ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#FFD166";
-        ctx.strokeRect(b.x * scale, b.y * scale, b.w * scale, b.h * scale);
+      for (const {x, y, w, h} of boxes) {
+        ctx.lineWidth = scale === 1 ? 5 : 3;
+        ctx.strokeStyle = BOX_OUTLINE;
+        ctx.strokeRect(x * scale, y * scale, w * scale, h * scale);
+        ctx.lineWidth = scale === 1 ? 3 : 1.5;
+        ctx.strokeStyle = BOX_COLOR;
+        ctx.strokeRect(x * scale, y * scale, w * scale, h * scale);
+      }
+
+      if (!defectLabel) return;
+      const labelHeight = 21;
+      const labelPadding = 5;
+      ctx.font = 'bold 13px "Noto Sans KR", "Malgun Gothic", sans-serif';
+      ctx.textBaseline = "middle";
+
+      for (const {x, y, h, score} of boxes) {
+        const confidence = Number.isFinite(score) && score >= 0 && score <= 1
+          ? ` · ${score.toFixed(2)}` : "";
+        const label = defectLabel + confidence;
+        const width = Math.min(canvas.width, Math.ceil(ctx.measureText(label).width) + labelPadding * 2);
+        const left = Math.min(Math.max(0, x), canvas.width - width);
+        const preferredTop = y - labelHeight - 2;
+        const top = preferredTop >= 0 ? preferredTop
+          : Math.min(y + h + 2, canvas.height - labelHeight);
+        ctx.fillStyle = BOX_COLOR;
+        ctx.fillRect(left, top, width, labelHeight);
+        ctx.fillStyle = BOX_OUTLINE;
+        ctx.fillText(label, left + labelPadding, top + labelHeight / 2, width - labelPadding * 2);
       }
     }
 
@@ -524,7 +712,8 @@
         return;
       }
 
-      paint($("canvas-boxed"), bitmap, 1, item.state === "done" ? item.data.boxes : []);
+      paint($("canvas-boxed"), bitmap, 1, done ? item.data.boxes : [],
+        done && item.data.is_anomaly ? bucketLabel(item.bucket) : undefined);
       bitmap.close();
     }
 
@@ -548,6 +737,7 @@
 
     function applyFilter() {
       const filter = $("type-filter").value;
+      $("category-select").value = filter;
       let shown = 0;
 
       for (const item of items) {
@@ -570,6 +760,12 @@
     }
 
     function buildFilter() {
+      const categorySelect = $("category-select");
+      categorySelect.replaceChildren(...FILTERS.map(({id, label}) => new Option(label, id)));
+      categorySelect.addEventListener("change", () => {
+        $("type-filter").value = categorySelect.value;
+        applyFilter();
+      });
       for (const f of FILTERS.filter(({id}) => id !== "all")) {
         const button=document.createElement("button");button.type="button";button.dataset.category=f.id;
         button.addEventListener("click", () => {
@@ -622,7 +818,13 @@
       }
       $("counts").replaceChildren(summary, gauge, legend);
 
-      document.querySelectorAll("[data-category]").forEach(b=>{const f=FILTERS.find(f=>f.id===b.dataset.category);b.textContent=`${f.label} (${items.filter(i=>matches(i,f.id)).length})`;});
+      for (const [index, {id, label}] of FILTERS.entries()) {
+        const count = items.filter(item => matches(item, id)).length;
+        const caption = `${label} (${count})`;
+        $("category-select").options[index].textContent = caption;
+        const button = $("category-tabs").querySelector(`[data-category="${id}"]`);
+        if (button) button.textContent = caption;
+      }
 
     }
 
@@ -649,7 +851,7 @@
       const reinspect = !inspectionBatch && !pending && items.some(canReinspect);
       const inspectButton = $("inspect-button");
 
-      inspectButton.disabled = running || adding || (!inspectionBatch && (!choice || (!pending && !reinspect)));
+      inspectButton.disabled = running || adding || !choice || (!inspectionBatch && !pending && !reinspect);
       inspectButton.dataset.action = reinspect ? "reinspect" : "inspect";
       const action = $("inspection-action");
       action.hidden = !inspectionBatch;
@@ -659,11 +861,12 @@
       inspectButton.textContent = adding ? "이미지 확인 중" : running ? "검사 실행 중" : inspectionBatch ? "검사 재개" : !items.length ? "검사 이미지 없음" : !choice ? "모델 버전 선택" : reinspect ? "재검사" : "검사 시작";
 
       $("pick-files").disabled = running || adding;
+      if ($("pick-files").disabled && !$("image-add-options").hidden) toggleImageAddOptions(false);
       $("clear-button").hidden = !action.hidden;
       $("clear-button").disabled = adding || !items.length;
       for (const role of modelDropdowns) {
         const dropdown = $(`${role}-dropdown`);
-        const locked = running || adding || Boolean(inspectionBatch);
+        const locked = running || adding;
         dropdown.inert = locked;
         dropdown.setAttribute("aria-disabled", String(locked));
         if (locked) dropdown.open = false;
@@ -1054,7 +1257,8 @@
 
     async function inspectAll(selectedTargets) {
       if (running || adding) return;
-      const choice = inspectionBatch?.choice || selectedModelChoice();
+      const resuming = Boolean(inspectionBatch);
+      const choice = selectedModelChoice();
       if (!choice) return;
 
       const targets = inspectionBatch?.targets || selectedTargets || items.filter((item) => needsInspection(item, choice));
@@ -1072,6 +1276,7 @@
       try {
         const prepared = await prepareRegistryModel(choice);
         if (prepared && !pauseRequested) {
+          batch.choice = choice;
           setStatus("");
           showInspectionProgress(batch);
           while (!pauseRequested && batch.next < batch.targets.length) {
@@ -1095,7 +1300,7 @@
           setStatus(message, true);
           window.dispatchEvent(new Event("inspection-session-expired"));
         } else if (!pauseRequested) {
-          inspectionBatch = null;
+          if (!resuming) inspectionBatch = null;
           setInspectionServiceState(error.message, "error");
           setStatus(error.message, true);
         }
@@ -1147,7 +1352,12 @@
           $(`${role}-dropdown`).open = false;
           $(`${role}-dropdown`).querySelector("summary").focus();
           syncControls();
-          checkInspectionService();
+          if (inspectionBatch) {
+            ++healthRequest;
+            setInspectionServiceState("검사 일시 중단 · 재개 시 선택 모델 확인");
+          } else {
+            checkInspectionService();
+          }
         });
         label.append(input, status === "READY" ? `v${version}` : `v${version} · ${status}`);
         return label;
@@ -1305,13 +1515,43 @@
     });
 
     // ---------- 시작 ----------
-    $("pick-files").addEventListener("click", () => $("files").click());
+    const imageAddButton = $("pick-files");
+    const imageAddOptions = $("image-add-options");
+    function toggleImageAddOptions(open) {
+      imageAddOptions.hidden = !open;
+      imageAddButton.setAttribute("aria-expanded", String(open));
+    }
+    imageAddButton.addEventListener("click", () => toggleImageAddOptions(imageAddOptions.hidden));
+    for (const [button, input] of [
+      ["choose-image-files", "files"],
+      ["choose-image-folder", "image-folder"]
+    ]) {
+      $(button).addEventListener("click", () => {
+        toggleImageAddOptions(false);
+        imageAddButton.focus();
+        if (!imageAddButton.disabled) $(input).click();
+      });
+    }
+    document.addEventListener("click", (event) => {
+      if (!imageAddOptions.hidden && !$("image-add-control").contains(event.target)) {
+        toggleImageAddOptions(false);
+      }
+    });
+    $("image-add-control").addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !imageAddOptions.hidden) {
+        toggleImageAddOptions(false);
+        imageAddButton.focus();
+      }
+    });
+    // Reuse the same change handler as the image-file picker.
+    $("image-folder").addEventListener("change", handlePickedImages);
 
-    $("files").addEventListener("change", async (event) => {
+    async function handlePickedImages(event) {
       const list = Array.from(event.target.files);
       event.target.value = "";
       await addFiles(list);
-    });
+    }
+    $("files").addEventListener("change", handlePickedImages);
 
     $("inspect-button").addEventListener("click", () => {
       if ($("inspect-button").dataset.action === "reinspect") openReinspectDialog();
@@ -1385,6 +1625,7 @@
           document.getElementById(`panel-${key}`).hidden = key !== name;
           document.querySelector(`[data-tab="${key}"]`).setAttribute("aria-pressed",String(key===name));
         }
+        if (name === "history" && currentRole === "admin") loadHistoryWorkers();
       }
       document.querySelectorAll("[data-tab]").forEach(button=>button.addEventListener("click",()=>showTab(button.dataset.tab)));
       async function refreshSession() {
@@ -1396,7 +1637,9 @@
           accountName.textContent = account.split("@", 1)[0];
           accountName.hidden = !accountName.textContent;
           document.getElementById("logout-button").hidden = false;
+          const roleChanged = currentRole !== user.role;
           currentRole = user.role;
+          if (roleChanged) resetHistory();
           for(const name of ["monitor","invite"]) document.querySelector(`[data-tab="${name}"]`).hidden = user.role !== "admin";
           document.getElementById("history-title").textContent = user.role === "admin" ? "전체 검사 이력" : "내 검사 이력";
           showTab("inspect");
@@ -1411,6 +1654,8 @@
           throw new Error("로그인 상태를 확인할 수 없습니다.");
         }
         const accountName = document.getElementById("account-name");
+        currentRole = null;
+        resetHistory();
         accountName.textContent = "";
         accountName.hidden = true;
         document.getElementById("logout-button").hidden = true;
@@ -1554,15 +1799,84 @@
       const historyStatus = document.getElementById("history-status");
       const historyTable = document.getElementById("history-table");
       const historyRows = document.getElementById("history-rows");
+      const historyDetail = document.getElementById("history-detail");
+      const historyDetailSelection = document.getElementById("history-detail-selection");
+      const historyDetailData = document.getElementById("history-detail-data");
+      const stackedHistory = window.matchMedia("(max-width: 950px)");
 
       const historySearch = document.getElementById("history-search");
+      const historyPeriod = document.getElementById("history-period");
       const pagination = document.getElementById("history-pagination");
+      const workerField = document.getElementById("history-worker-field");
+      const workerSelect = document.getElementById("history-worker-select");
+      let historySession = 0;
+      let workerListState = "idle";
       const historyDate = new Intl.DateTimeFormat("ko-KR", {
-        dateStyle: "short", timeStyle: "medium", timeZone: "Asia/Seoul",
+        dateStyle: "short", timeStyle: "medium", timeZone: "Asia/Seoul", hourCycle: "h23",
       });
       const defectNames = { brown: "갈적색", blue: "청색", black: "흑색", surface: "표면" };
       let historyPage = 1;
       let historyFilters = new URLSearchParams();
+      let activeHistoryButton;
+
+      for (const select of historySearch.querySelectorAll("[data-hour], [data-minute]")) {
+        const count = select.hasAttribute("data-hour") ? 24 : 60;
+        for (let number = 0; number < count; number++) {
+          const value = String(number).padStart(2, "0");
+          select.add(new Option(value, value));
+        }
+      }
+
+      function resetHistory() {
+        ++historySession;
+        workerListState = "idle";
+        workerField.hidden = true;
+        workerSelect.disabled = true;
+        workerSelect.replaceChildren(new Option("전체 작업자", ""));
+        historyPage = 1;
+        historyFilters = new URLSearchParams();
+        historyRows.replaceChildren();
+        historyTable.hidden = true;
+        historyDetailSelection.textContent = "보기 버튼을 눌러 검사 기록을 선택하세요.";
+        historyDetailData.replaceChildren();
+        historyDetailData.hidden = true;
+        pagination.replaceChildren();
+        pagination.hidden = true;
+        activeHistoryButton = undefined;
+        historyStatus.textContent = "";
+        historyButton.disabled = false;
+      }
+
+      async function loadHistoryWorkers() {
+        if (currentRole !== "admin" || workerListState !== "idle") return;
+        const session = historySession;
+        workerListState = "loading";
+        workerField.hidden = false;
+        workerSelect.replaceChildren(new Option("작업자 불러오는 중", ""));
+        try {
+          const response = await fetch("/api/inference/history/workers", {cache: "no-store"});
+          if (!response.ok) throw new Error("작업자 목록 조회 실패");
+          const {workers} = await response.json();
+          if (!Array.isArray(workers)) throw new Error("작업자 목록 형식 오류");
+          if (session !== historySession) return;
+          const names = new Map();
+          for (const {worker_account} of workers) {
+            names.set(worker_account, (names.get(worker_account) ?? 0) + 1);
+          }
+          workerSelect.replaceChildren(new Option("전체 작업자", ""), ...workers.map(
+            ({worker_id, worker_account}) => new Option(
+              names.get(worker_account) > 1 ? `${worker_account} (#${worker_id})` : worker_account,
+              String(worker_id)
+            )
+          ));
+          workerSelect.disabled = false;
+          workerListState = "loaded";
+        } catch {
+          if (session !== historySession) return;
+          workerSelect.replaceChildren(new Option("목록 조회 실패 · 이력 탭 다시 열기", ""));
+          workerListState = "idle";
+        }
+      }
 
       function addHistoryRecord(record) {
         const row = historyRows.insertRow();
@@ -1576,29 +1890,116 @@
           historyDate.format(new Date(record.created_at)),
         ];
         for (const value of values) row.insertCell().textContent = value;
+        row.cells[4].dataset.verdict = record.prediction === "normal" ? "normal"
+          : defectNames[record.defect_type] ? "defect" : "untyped";
 
-        const details = document.createElement("details");
-        const summary = document.createElement("summary");
-        summary.textContent = "보기";
-        const body = document.createElement("pre");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "history-view-button";
+        button.textContent = "보기";
+        button.setAttribute("aria-label", `${record.filename} 상세 보기`);
+        button.setAttribute("aria-controls", "history-detail");
+        button.setAttribute("aria-pressed", "false");
+        button.addEventListener("click", () => {
+          activeHistoryButton?.setAttribute("aria-pressed", "false");
+          activeHistoryButton = button;
+          button.setAttribute("aria-pressed", "true");
+          showHistoryDetail(record);
+        });
+        row.insertCell().append(button);
+      }
+
+      function historyCard(title, fields) {
+        const card = document.createElement("section");
+        card.className = "history-detail-card";
+        const heading = document.createElement("h4");
+        heading.textContent = title;
+        card.append(heading);
+        if (fields.length) {
+          const list = document.createElement("dl");
+          for (const [label, value] of fields) {
+            const row = document.createElement("div");
+            const term = document.createElement("dt");
+            const detail = document.createElement("dd");
+            term.textContent = label;
+            detail.textContent = value ?? "—";
+            row.append(term, detail);
+            list.append(row);
+          }
+          card.append(list);
+        }
+        return card;
+      }
+
+      function showHistoryDetail(record) {
         const duration = (value) => value == null ? "—" : `${value} ms`;
-        const fields = [
-          ["요청 ID", record.id],
-          ["탐지 모델 URI", record.detector_name],
-          ["분류 모델 URI", record.classifier_name],
-          ["이상 점수", record.anomaly_score],
-          ["탐지 결함 여부", record.is_defect == null ? null : record.is_defect ? "있음" : "없음"],
-          ["분류 신뢰도", record.confidence],
-          ["결함 위치", record.regions == null ? null : JSON.stringify(record.regions, null, 2)],
-          ["전체 처리 시간", duration(record.total_latency_ms)],
-          ["탐지 시간", duration(record.detector_latency_ms)],
-          ["분류 시간", duration(record.classifier_latency_ms)],
-          ["검토 결과", record.reviewed_label],
-          ["검토 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
-        ];
-        body.textContent = fields.map(([label, value]) => `${label}: ${value ?? "—"}`).join("\n");
-        details.append(summary, body);
-        row.insertCell().append(details);
+        const percent = (value) => {
+          if (value == null || value === "") return "—";
+          const score = Number(value);
+          return Number.isFinite(score) && score >= 0 && score <= 1
+            ? `${(score * 100).toFixed(2)}%` : String(value);
+        };
+        const defect = record.is_defect == null ? "탐지 결과 없음"
+          : record.is_defect ? "탐지 결함 있음" : "탐지 결함 없음";
+        historyDetailSelection.textContent = `${record.filename} · ${defect}`;
+        const models = document.createElement("div");
+        models.className = "history-detail-grid";
+        models.append(
+          historyCard("이상치 탐지", [
+            ["이상 점수", record.anomaly_score],
+            ["모델 URI", record.detector_name],
+          ]),
+          historyCard("결함 분류", [
+            ["분류 신뢰도", percent(record.confidence)],
+            ["모델 URI", record.classifier_name],
+          ])
+        );
+
+        const regions = historyCard("결함 위치", []);
+        const storedRegions = Array.isArray(record.regions) ? record.regions : [];
+        if (storedRegions.length) {
+          const table = document.createElement("table");
+          table.setAttribute("aria-label", "결함 위치");
+          const header = table.createTHead().insertRow();
+          for (const label of ["영역", "바운딩 박스 좌표", "영역 점수"]) {
+            const th = document.createElement("th");
+            th.scope = "col";
+            th.textContent = label;
+            header.append(th);
+          }
+          const body = table.createTBody();
+          storedRegions.forEach((region, index) => {
+            const box = Array.isArray(region) ? region : region?.bbox;
+            const row = body.insertRow();
+            row.insertCell().textContent = String(index + 1);
+            row.insertCell().textContent = Array.isArray(box) ? box.join(", ") : "—";
+            const score = region?.score;
+            row.insertCell().textContent = score == null || score === "" || !Number.isFinite(Number(score))
+              ? "—" : Number(score).toFixed(2);
+          });
+          regions.append(table);
+        } else {
+          const empty = document.createElement("p");
+          empty.textContent = record.regions == null ? "기록된 결함 위치 없음" : "표시할 결함 영역 없음";
+          regions.append(empty);
+        }
+
+        historyDetailData.replaceChildren(
+          models,
+          regions,
+          historyCard("처리 시간", [
+            ["전체", duration(record.total_latency_ms)],
+            ["탐지", duration(record.detector_latency_ms)],
+            ["분류", duration(record.classifier_latency_ms)],
+          ]),
+          historyCard("기록 및 검토", [
+            ["요청 ID", record.id],
+            ["검토 결과", record.reviewed_label ?? "미검토"],
+            ["검토 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
+          ])
+        );
+        historyDetailData.hidden = false;
+        if (stackedHistory.matches) historyDetail.focus();
       }
 
       function renderHistoryPages(page, totalPages) {
@@ -1606,27 +2007,29 @@
         pagination.hidden = totalPages === 0;
         if (!totalPages) return;
 
-        function addButton(label, target, accessibleLabel, disabled = false) {
+        function addButton(label, target, accessibleLabel, disabled = false, current = false) {
           const button = document.createElement("button");
           button.type = "button";
           button.textContent = label;
           button.setAttribute("aria-label", accessibleLabel);
           button.disabled = disabled;
-          if (target === page) button.setAttribute("aria-current", "page");
+          if (current) button.setAttribute("aria-current", "page");
           button.addEventListener("click", () => loadHistory(target));
           pagination.append(button);
         }
-
+        addButton("<<", 1, "첫 페이지", page <= 1);
         addButton("‹", page - 1, "이전 페이지", page <= 1);
         const first = Math.floor((page - 1) / 10) * 10 + 1;
         for (let number = first; number <= Math.min(first + 9, totalPages); number++) {
-          addButton(String(number), number, `${number}페이지`, number === page);
+          addButton(String(number), number, `${number}페이지`, number === page, number === page);
         }
         addButton("›", page + 1, "다음 페이지", page >= totalPages);
+        addButton(">>", totalPages, "마지막 페이지", page >= totalPages);
       }
 
       async function loadHistory(page, filters = historyFilters) {
         if (historyButton.disabled) return;
+        const session = historySession;
         historyButton.disabled = true;
         historyStatus.textContent = "검사 이력을 불러오는 중입니다.";
         try {
@@ -1638,11 +2041,18 @@
           if (!response.ok) throw new Error(`검사 이력 조회 실패 (${response.status})`);
 
           const { records, total, total_pages: totalPages } = await response.json();
+          if (session !== historySession) return;
           if (!Number.isInteger(totalPages) || !Number.isInteger(total)) {
             throw new Error("페이지 정보를 반환하는 API 버전을 배포해 주세요.");
           }
           renderHistoryPages(page, totalPages);
           historyRows.replaceChildren();
+          activeHistoryButton = undefined;
+          historyDetailSelection.textContent = records.length
+            ? "보기 버튼을 눌러 검사 기록을 선택하세요."
+            : "표시할 검사 기록이 없습니다.";
+          historyDetailData.replaceChildren();
+          historyDetailData.hidden = true;
           for (const record of records) addHistoryRecord(record);
           historyPage = page;
           historyFilters = filters;
@@ -1651,18 +2061,47 @@
             ? `총 ${total.toLocaleString("ko-KR")}건 · ${page}/${totalPages}페이지 · 현재 ${records.length}건`
             : `총 ${total.toLocaleString("ko-KR")}건 · 표시할 검사 이력이 없습니다.`;
         } catch (error) {
-          historyStatus.textContent = error.message;
+          if (session === historySession) historyStatus.textContent = error.message;
         } finally {
-          historyButton.disabled = false;
+          if (session === historySession) historyButton.disabled = false;
         }
       }
 
       historySearch.addEventListener("submit", (event) => {
         event.preventDefault();
+        const formData = new FormData(historySearch);
         const filters = new URLSearchParams();
-        for (const [key, value] of new FormData(historySearch)) {
-          if (value.trim()) filters.set(key, value.trim());
+        for (const name of ["date_from", "date_to", "filename", "prediction", "worker_id"]) {
+          const value = formData.get(name)?.trim();
+          if (value) filters.set(name, value);
         }
+
+        for (const suffix of ["from", "to"]) {
+          const date = filters.get(`date_${suffix}`);
+          const hour = formData.get(`hour_${suffix}`);
+          const minute = formData.get(`minute_${suffix}`);
+          if ((hour || minute) && !date) {
+            historyPeriod.open = true;
+            historyStatus.textContent = "시각을 지정하려면 해당 날짜도 선택해 주세요.";
+            return;
+          }
+          if (!hour && minute) {
+            historyPeriod.open = true;
+            historyStatus.textContent = "분을 지정하려면 시도 선택해 주세요.";
+            return;
+          }
+          if (hour) filters.set(`time_${suffix}`, `${hour}:${minute || "00"}`);
+        }
+
+        const start = filters.get("date_from");
+        const end = filters.get("date_to");
+        if (start && end && `${start}T${filters.get("time_from") ?? "00:00"}`
+          > `${end}T${filters.get("time_to") ?? "23:59"}`) {
+          historyPeriod.open = true;
+          historyStatus.textContent = "종료 일시를 시작 일시와 같거나 이후로 선택해 주세요.";
+          return;
+        }
+        historyPeriod.open = false;
         loadHistory(1, filters);
       });
       refreshSession().catch((error) => {
@@ -1674,7 +2113,7 @@
 <script>
 (() => {
   const storageKey = "zerodefect.text-size";
-  const sizes = [90, 100, 110, 120, 130];
+  const sizes = [80, 90, 100, 110, 120, 130, 140, 150];
   const decrease = document.getElementById("text-size-decrease");
   const reset = document.getElementById("text-size-reset");
   const increase = document.getElementById("text-size-increase");
@@ -1716,5 +2155,3 @@
 </script>
 </body>
 </html>
-
-
