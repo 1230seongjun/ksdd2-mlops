@@ -105,18 +105,33 @@ def save_inference(record):
         save_total.labels("error").inc()
         logger.exception("Inference save failed: %s", record["id"])
     
+def list_history_workers(conn):
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT id AS worker_id, split_part(email, '@', 1) AS worker_account
+            FROM users
+            WHERE role = 'worker'
+            ORDER BY lower(split_part(email, '@', 1)), id
+            """
+        )
+        return cur.fetchall()
+
 def list_inference_requests(conn, user_id, role, *, filename=None, prediction=None,
-                            start=None, end=None, offset=0, limit=50):
+                            start=None, end=None, offset=0, limit=50, worker_id=None):
     conditions = """
             WHERE (%(role)s = 'admin' OR r.user_id = %(user_id)s)
+              AND (%(worker_id)s::bigint IS NULL OR r.user_id = %(worker_id)s::bigint)
               AND (%(filename)s::text IS NULL OR
                    strpos(lower(r.filename), lower(%(filename)s::text)) > 0)
               AND (%(prediction)s::text IS NULL OR r.prediction = %(prediction)s)
               AND (%(start)s::timestamptz IS NULL OR r.created_at >= %(start)s)
               AND (%(end)s::timestamptz IS NULL OR r.created_at < %(end)s)
     """
-    params = dict(role=role, user_id=user_id, filename=filename,
-                  prediction=prediction, start=start, end=end, offset=offset, limit=limit)
+    params = dict(
+        role=role, user_id=user_id, worker_id=worker_id, filename=filename,
+        prediction=prediction, start=start, end=end, offset=offset, limit=limit,
+    )
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
             """
