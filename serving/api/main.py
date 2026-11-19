@@ -335,6 +335,21 @@ def register(payload: RegisterRequest):
 
     return {"id": user_id}
 
+@app.get("/inference/history/workers")
+def read_history_workers(
+    response: Response,
+    user: tuple[int, str] = Depends(get_current_user),
+):
+    _, role = user
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+
+    with db.connect_db() as conn:
+        workers = db.list_history_workers(conn)
+
+    response.headers["Cache-Control"] = "no-store"
+    return {"workers": workers}
+
 @app.get("/inference/history")
 def read_inference_history(
     response: Response,
@@ -344,6 +359,7 @@ def read_inference_history(
     date_from: date | None = None,
     date_to: date | None = None,
     page: int = Query(default=1, ge=1, le=1_000_000),
+  worker_id: int | None = Query(default=None, ge=1, le=2**63 - 1),
 ):
     if date_from and date_to and date_from > date_to:
         raise HTTPException(422, "시작일은 종료일보다 늦을 수 없습니다.")
@@ -354,11 +370,17 @@ def read_inference_history(
     start = datetime.combine(date_from, midnight.min, timezone) if date_from else None
     end = datetime.combine(date_to + timedelta(days=1), midnight.min, timezone) if date_to else None
     user_id, role = user
+    if worker_id is not None and role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="관리자만 작업자를 지정할 수 있습니다.",
+        )
     page_size = 50
     with db.connect_db() as conn:
         records, total = db.list_inference_requests(
             conn, user_id, role, filename=filename, prediction=prediction,
             start=start, end=end, offset=(page - 1) * page_size, limit=page_size,
+            worker_id=worker_id,
         )
 
     response.headers["Cache-Control"] = "no-store"
