@@ -3,6 +3,7 @@ import time
 import uuid
 import asyncio
 import logging
+import math
 import re
 import json
 from urllib.error import HTTPError as TrainingHTTPError, URLError
@@ -465,12 +466,22 @@ def read_inference_history(
     date_from: date | None = None,
     date_to: date | None = None,
     page: int = Query(default=1, ge=1, le=1_000_000),
-  worker_id: int | None = Query(default=None, ge=1, le=2**63 - 1),
+    worker_id: int | None = Query(default=None, ge=1, le=2**63 - 1),
+    reviewed: Literal["normal", "defect", "unreviewed"] | None = None,
+    anomaly_min: float | None = None,
+    anomaly_max: float | None = None,
+    confidence_min: float | None = Query(default=None, ge=0, le=1),
+    confidence_max: float | None = Query(default=None, ge=0, le=1),
 ):
     if date_from and date_to and date_from > date_to:
         raise HTTPException(422, "시작일은 종료일보다 늦을 수 없습니다.")
     if date_to == date.max:
         raise HTTPException(422, "종료일 범위를 확인해 주세요.")
+    for lower, upper in ((anomaly_min, anomaly_max), (confidence_min, confidence_max)):
+        if any(value is not None and not math.isfinite(value) for value in (lower, upper)):
+            raise HTTPException(422, "점수 범위에는 유한한 숫자를 입력해 주세요.")
+        if lower is not None and upper is not None and lower > upper:
+            raise HTTPException(422, "최솟값은 최댓값보다 클 수 없습니다.")
 
     timezone = ZoneInfo("Asia/Seoul")
     start = datetime.combine(date_from, midnight.min, timezone) if date_from else None
@@ -487,6 +498,8 @@ def read_inference_history(
             conn, user_id, role, filename=filename, prediction=prediction,
             start=start, end=end, offset=(page - 1) * page_size, limit=page_size,
             worker_id=worker_id,
+            reviewed=reviewed, anomaly_min=anomaly_min, anomaly_max=anomaly_max,
+            confidence_min=confidence_min, confidence_max=confidence_max,
         )
 
     response.headers["Cache-Control"] = "no-store"
@@ -954,6 +967,7 @@ async def predict(
         "detector": {
             "model_name": selected_model_name,
             "anomaly_score": result["anomaly_score"],
+            "threshold": result["threshold"],
             "is_defect": result["is_anomaly"],
             "latency_ms": detector_ms,
         },
@@ -987,6 +1001,7 @@ async def predict(
         "boxes": boxes,
         "review_required": review_required,
     }
+
 
 
 

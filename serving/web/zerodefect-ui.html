@@ -203,11 +203,11 @@
 #history-detail-selection{overflow-wrap:anywhere}
 #history-detail-data{margin:0;max-height:none;background:#fff}
 .history-view-button{
-  border:0;padding:0 8px;background:#edf3ff;color:#17418f;
+  border:0;padding:0;background:transparent;color:#17418f;
   font:inherit;font-weight:600;vertical-align:top
 }
-.history-view-button:hover{background:#dbeafe}
-.history-view-button[aria-pressed="true"]{background:#dbeafe;color:#12347c}
+.history-view-button:hover{text-decoration:underline}
+.history-view-button[aria-pressed="true"]{color:#12347c;text-decoration:underline}
 @media(max-width:950px){
   #history-layout{grid-template-columns:minmax(0,1fr)}
 }
@@ -240,7 +240,6 @@
 @media(min-width:1200px){
   #history-search{grid-template-columns:minmax(9rem,1fr) minmax(8rem,2fr) repeat(2,minmax(6.5rem,1fr)) auto}
 }
-#history-rows tr:has(.history-view-button[aria-pressed="true"]){background:#f8faff}
 #history-detail{height:auto;overflow:visible}
 #history-detail-data{display:grid;gap:12px;background:transparent}
 .history-detail-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -306,6 +305,27 @@
 #review-annotation{margin:8px 0}
 #review-box-list{padding-left:22px}
 #review-box-list button{margin-left:6px}
+#category-tabs button,.image-row .badge,#final-review button{
+  font-family:inherit;font-size:calc(12px * var(--text-scale, 1));
+  font-weight:700;letter-spacing:-0.5px
+}
+#final-review .row{display:flex;flex-wrap:wrap;gap:8px}
+#final-review .row button{flex:0 0 auto;width:auto;white-space:nowrap}
+#final-review button{white-space:nowrap}
+.image-row{cursor:pointer}
+.image-row .filename{cursor:text}
+.image-row:has(.thumb.active){background:#f8faff}
+#added-image-count p{margin:2px 0;overflow-wrap:anywhere}
+#history-scores{grid-column:1/-1}
+#history-scores summary{cursor:pointer}
+.history-score-fields{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.history-score-fields fieldset{flex:1 1 260px;min-width:0;margin:0;padding:8px;border:1px solid var(--line)}
+.history-score-fields legend{font-weight:600}
+.history-score-bounds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#history-search input[type="range"]{min-height:24px;accent-color:var(--blue)}
+#history-rows tr{cursor:pointer}
+#history-rows tr:hover{background:#f8faff}
+#history-rows tr:has(.history-view-button[aria-pressed="true"]){background:#eaf2ff}
 </style>
 </head>
 <body>
@@ -364,7 +384,7 @@
 <div class="row" id="drop-zone">
 <button class="secondary" id="pick-files" type="button"><span aria-hidden="true">＋</span> 이미지 추가</button>
 <p class="hint">이미지는 버튼으로 선택하거나 끌어놓으세요. 폴더는 끌어놓아 추가하세요.</p>
-<p id="added-image-count" role="status" hidden></p></div>
+<div id="added-image-count" role="status" hidden></div></div>
 <input accept="image/png,image/jpeg" hidden id="files" multiple type="file"/>
 <details hidden="" id="skipped">
 <summary id="skipped-summary"></summary>
@@ -377,6 +397,7 @@
     <button class="secondary" id="inspection-service-recheck" type="button" hidden>상태 다시 확인</button>
   </div>
   <button disabled="" id="inspect-button" type="button">검사 시작</button>
+  <button class="secondary" id="reinspect-button" type="button" hidden>재검사</button>
   <button class="secondary" hidden id="inspection-action" type="button">검사 중단</button>
   <p aria-live="polite" class="status" id="status" role="status" hidden></p>
 </div>
@@ -446,6 +467,14 @@
   </details>
   <label>파일명 <input name="filename" type="search" maxlength="255"></label>
   <label>판정 <select name="prediction"><option value="">전체</option><option value="normal">정상</option><option value="defect">불량</option></select></label>
+  <label>최종 판정
+    <select name="reviewed">
+      <option value="">전체</option>
+      <option value="normal">최종 정상</option>
+      <option value="defect">최종 불량</option>
+      <option value="unreviewed">작업자 판정 없음</option>
+    </select>
+  </label>
   <label id="history-worker-field" hidden>
     작업자
     <select name="worker_id" id="history-worker-select" disabled>
@@ -453,6 +482,27 @@
     </select>
   </label>
   <button id="load-history" type="submit">검사 이력 불러오기</button>
+  <details id="history-scores">
+    <summary>점수 범위</summary>
+    <div class="history-score-fields">
+      <fieldset>
+        <legend>이상 점수</legend>
+        <div class="history-score-bounds">
+          <label>최솟값 <input type="number" name="anomaly_min" step="any"></label>
+          <label>최댓값 <input type="number" name="anomaly_max" step="any"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>분류 점수 (0~1)</legend>
+        <div class="history-score-bounds">
+          <label>최솟값 <input type="number" name="confidence_min" min="0" max="1" step="any"></label>
+          <label>최댓값 <input type="number" name="confidence_max" min="0" max="1" step="any"></label>
+          <input type="range" data-score-bound="confidence_min" min="0" max="1" step="0.01" value="0" aria-label="분류 점수 최솟값 조절">
+          <input type="range" data-score-bound="confidence_max" min="0" max="1" step="0.01" value="1" aria-label="분류 점수 최댓값 조절">
+        </div>
+      </fieldset>
+    </div>
+  </details>
 </form>
 <p id="history-status" role="status"></p>
 <div id="history-layout">
@@ -469,7 +519,6 @@
 <th scope="col">판정</th>
 <th scope="col">결함 종류</th>
 <th scope="col">검사 시각</th>
-<th scope="col">상세</th>
 </tr>
 </thead>
 <tbody id="history-rows"></tbody>
@@ -478,7 +527,7 @@
 </div>
 <section id="history-detail" aria-labelledby="history-detail-title" tabindex="-1">
   <h3 id="history-detail-title">검사 상세</h3>
-  <p id="history-detail-selection" role="status">보기 버튼을 눌러 검사 기록을 선택하세요.</p>
+  <p id="history-detail-selection" role="status">검사 기록의 행을 선택하세요.</p>
   <div id="history-detail-data" hidden></div>
 </section>
 </div>
@@ -592,6 +641,13 @@
   </form>
 </dialog>
 <script>
+  function formatInspectionBox(box) {
+    const values = Array.isArray(box) ? box : [box?.x, box?.y, box?.w, box?.h];
+    if (values.length !== 4 || !values.every(Number.isFinite)) return "—";
+    const [x, y, w, h] = values.map(value => Number(value.toFixed(2)));
+    return `x, y (${x}, ${y}) / ${w} × ${h} px`;
+  }
+
   (() => {
     "use strict";
 
@@ -666,6 +722,28 @@
       const ctx = canvas.getContext("2d");
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
+      if (defectLabel) {
+        const labelHeight = 21;
+        const labelPadding = 5;
+        ctx.font = 'bold 13px "Noto Sans KR", "Malgun Gothic", sans-serif';
+        ctx.textBaseline = "middle";
+
+        for (const {x, y, h, score} of boxes) {
+          const confidence = Number.isFinite(score) && score >= 0 && score <= 1
+            ? ` · ${score.toFixed(2)}` : "";
+          const label = defectLabel + confidence;
+          const width = Math.min(canvas.width, Math.ceil(ctx.measureText(label).width) + labelPadding * 2);
+          const left = Math.min(Math.max(0, x), canvas.width - width);
+          const preferredTop = y - labelHeight - 2;
+          const top = preferredTop >= 0 ? preferredTop
+            : Math.min(y + h + 2, canvas.height - labelHeight);
+          ctx.fillStyle = BOX_COLOR;
+          ctx.fillRect(left, top, width, labelHeight);
+          ctx.fillStyle = BOX_OUTLINE;
+          ctx.fillText(label, left + labelPadding, top + labelHeight / 2, width - labelPadding * 2);
+        }
+      }
+
       for (const {x, y, w, h} of boxes) {
         ctx.lineWidth = scale === 1 ? 5 : 3;
         ctx.strokeStyle = BOX_OUTLINE;
@@ -673,27 +751,6 @@
         ctx.lineWidth = scale === 1 ? 3 : 1.5;
         ctx.strokeStyle = BOX_COLOR;
         ctx.strokeRect(x * scale, y * scale, w * scale, h * scale);
-      }
-
-      if (!defectLabel) return;
-      const labelHeight = 21;
-      const labelPadding = 5;
-      ctx.font = 'bold 13px "Noto Sans KR", "Malgun Gothic", sans-serif';
-      ctx.textBaseline = "middle";
-
-      for (const {x, y, h, score} of boxes) {
-        const confidence = Number.isFinite(score) && score >= 0 && score <= 1
-          ? ` · ${score.toFixed(2)}` : "";
-        const label = defectLabel + confidence;
-        const width = Math.min(canvas.width, Math.ceil(ctx.measureText(label).width) + labelPadding * 2);
-        const left = Math.min(Math.max(0, x), canvas.width - width);
-        const preferredTop = y - labelHeight - 2;
-        const top = preferredTop >= 0 ? preferredTop
-          : Math.min(y + h + 2, canvas.height - labelHeight);
-        ctx.fillStyle = BOX_COLOR;
-        ctx.fillRect(left, top, width, labelHeight);
-        ctx.fillStyle = BOX_OUTLINE;
-        ctx.fillText(label, left + labelPadding, top + labelHeight / 2, width - labelPadding * 2);
       }
     }
 
@@ -725,7 +782,7 @@
       if (item.state === "error") return "검사 실패";
       if (item.state === "size-error") return "이미지 크기 오류";
       if (item.data.reviewed_label) return item.data.reviewed_label === "normal" ? "최종 정상" : "최종 불량";
-      return item.data.is_anomaly ? "불량 의심" : "정상";
+      return item.data.is_anomaly ? "불량" : "정상";
     }
 
     function needsReview(item) {
@@ -801,7 +858,7 @@
       list.replaceChildren();
       for (const [index, box] of (draft?.boxes ?? []).entries()) {
         const row = document.createElement("li");
-        row.textContent = `(${box.x}, ${box.y}) · ${box.w}×${box.h}px`;
+        row.textContent = formatInspectionBox(box);
         for (const action of ["수정", "삭제"]) {
           const button = document.createElement("button");
           button.type = "button";
@@ -1027,11 +1084,14 @@
           Number.isFinite(result.anomaly_score) && Number.isFinite(result.threshold)
             ? `이상 점수 ${result.anomaly_score.toFixed(4)} / 판정 기준 ${result.threshold.toFixed(4)}` : "",
           result.is_anomaly && Number.isFinite(result.confidence) && result.confidence >= 0 && result.confidence <= 1
-            ? `분류 신뢰도 ${Math.round(result.confidence * 100)}%` : "",
-          ...result.boxes.map((box, index) => `위치 ${index + 1} · x ${Math.round(box.x)}, y ${Math.round(box.y)} / ${Math.round(box.w)}×${Math.round(box.h)} px`),
+            ? `분류 점수 ${result.confidence.toFixed(4)}` : "",
+          ...(result.reviewed_boxes ?? result.boxes).map(
+            (box, index) => `위치 ${index + 1} · ${formatInspectionBox(box)}`
+          ),
           [result.model_name, result.classifier_name].filter(Boolean).join(" / "),
         ]
         : [item?.reason];
+      if (item?.reinspectError) extra.push(`재검사 실패 · ${item.reinspectError}`);
       $("verdict-extra").replaceChildren(...extra.filter(Boolean).map((text) => {
         const row = document.createElement("p");
         row.textContent = text;
@@ -1133,6 +1193,8 @@
     }
 
     function renderCounts() {
+      const listCount = $("current-image-count");
+      if (listCount) listCount.textContent = `현재 목록 ${items.length}장`;
       const total = items.filter(item => item.state !== "size-error").length;
       const normal = items.filter(item => item.state === "done" && item.bucket === "normal").length;
       const review = items.filter(item => item.state === "done" && item.bucket === "review").length;
@@ -1208,6 +1270,9 @@
 
       inspectButton.disabled = running || adding || !choice || (!inspectionBatch && !pending && !reinspect);
       inspectButton.dataset.action = reinspect ? "reinspect" : "inspect";
+      const reinspectButton = $("reinspect-button");
+      reinspectButton.hidden = Boolean(inspectionBatch) || !pending || !items.some(canReinspect);
+      reinspectButton.disabled = running || adding || !choice;
       const action = $("inspection-action");
       action.hidden = !inspectionBatch;
       action.disabled = adding || pauseRequested;
@@ -1246,11 +1311,15 @@
       filename.className = "filename";
       filename.textContent = key;
       item.btn.append(item.canvas);
-      item.btn.addEventListener("click", () => select(item));
-
       item.row = document.createElement("div");
       item.row.className = "image-row";
       item.row.append(item.btn, filename, item.badge);
+      item.row.addEventListener("click", event => {
+        const selection = window.getSelection();
+        if (!item.btn.contains(event.target) && selection && !selection.isCollapsed &&
+            item.row.contains(selection.anchorNode)) return;
+        select(item);
+      });
       return item;
     }
 
@@ -1295,39 +1364,63 @@
       }
 
       adding = true; syncControls();
-      const previousCount = items.length;
-      const known = new Set([...items, ...skipped].map((i) => i.key));
+      const known = new Set(items.map(item => item.key));
+      const excluded = new Set(skipped.map(item => item.key));
+      const groups = new Map();
       const fresh = [];
 
       for (const file of files) {
-        if (!isImageFile(file)) {
+        const key = file.relativePath || file.webkitRelativePath || file.name;
+        const folder = key.includes("/") ? key.split("/", 1)[0] : "";
+        if (!groups.has(folder)) {
+          groups.set(folder, {added: 0, duplicate: 0, sizeError: 0, rejected: 0});
+        }
+        const counts = groups.get(folder);
+        if (!isImageFile(file) || excluded.has(key)) {
+          counts.rejected += 1;
+          continue;
+        }
+        if (known.has(key)) {
+          counts.duplicate += 1;
           continue;
         }
 
-        const key = file.relativePath || file.webkitRelativePath || file.name;
-        if (known.has(key)) continue;
-
         known.add(key);
-        fresh.push(makeItem(withImageType(file), key));
+        fresh.push({item: makeItem(withImageType(file), key), counts});
       }
 
       setStatus("");
 
-      await pool(fresh, 8, async (item) => {
+      await pool(fresh, 8, async ({item, counts}) => {
         try {
           await checkImage(item);
           items.push(item);
-          if (item.state === "ready") inspectionBatch?.targets.push(item);
+          if (item.state === "size-error") counts.sizeError += 1;
+          else {
+            counts.added += 1;
+            inspectionBatch?.targets.push(item);
+          }
         } catch (error) {
+          counts.rejected += 1;
           skipped.push({ key: item.key, reason: error.message });
         }
       });
 
       const addedCount = $("added-image-count");
+      const lines = Array.from(groups, ([folder, counts]) => {
+        const line = document.createElement("p");
+        const parts = [folder || "개별 파일", `신규 ${counts.added}장`];
+        if (counts.duplicate) parts.push(`이미 등록 ${counts.duplicate}장`);
+        if (counts.sizeError) parts.push(`크기 오류 ${counts.sizeError}장`);
+        if (counts.rejected) parts.push(`제외 ${counts.rejected}개`);
+        line.textContent = parts.join(" · ");
+        return line;
+      });
+      const listCount = document.createElement("p");
+      listCount.id = "current-image-count";
+      addedCount.replaceChildren(...lines, listCount);
       addedCount.hidden = false;
-      const sizeErrors = fresh.filter(item => item.state === "size-error").length;
-      addedCount.textContent = `${items.length - previousCount - sizeErrors}장 추가`
-        + (sizeErrors ? ` · 재검토에 크기 오류 ${sizeErrors}장` : "");
+      const sizeErrors = fresh.some(({item}) => item.state === "size-error");
       items.sort((a, b) => a.key.localeCompare(b.key));
       $("list").replaceChildren(...items.map((i) => i.row));
 
@@ -1560,8 +1653,10 @@
     }
 
     async function runInspectionItem(item, choice) {
-      item.state = "running";
+      const previousResult = item.state === "done";
+      if (!previousResult) item.state = "running";
       item.reason = "";
+      item.reinspectError = "";
       updateBadge(item);
       if (item === selected) renderVerdict(item);
       renderCounts();
@@ -1575,8 +1670,11 @@
         item.bucket = bucketOf(item.data);
         item.state = "done";
       } catch (error) {
-        item.state = "error";
-        item.reason = error.message;
+        if (previousResult) item.reinspectError = error.message;
+        else {
+          item.state = "error";
+          item.reason = error.message;
+        }
         if (error.httpStatus === 401) {
           updateBadge(item);
           if (item === selected) renderVerdict(item);
@@ -1585,17 +1683,16 @@
       }
 
       updateBadge(item);
-      if (item.state === "done") {
+      const completed = item.state === "done" && !item.reinspectError;
+      if (completed) {
         lastCompletedItem = item;
         try { await drawThumb(item); } catch { /* Keep the inference result. */ }
       }
 
-      const followCompleted = item.state === "done" && $("follow-progress").checked
-        && matches(item, $("type-filter").value);
-      if (item === selected) renderViewer();
       renderCounts();
       applyFilter();
-      if (followCompleted) followItem(item);
+      const following = completed && followItem(item);
+      if (!following && item === selected) renderViewer();
       syncControls();
     }
 
@@ -1826,10 +1923,12 @@
     });
 
     function followItem(item) {
-      if (!$("follow-progress").checked || item.row.hidden) return;
+      if (!$("follow-progress").checked || item.row.hidden) return false;
       const list = $("list"), box = list.getBoundingClientRect(), row = item.row.getBoundingClientRect();
       if (row.bottom > box.bottom) list.scrollTop += row.bottom - box.bottom;
       else if (row.top < box.top) list.scrollTop += row.top - box.top;
+      select(item);
+      return true;
     }
     $("follow-progress").addEventListener("change", () => {
       if (!$("follow-progress").checked) return;
@@ -1896,6 +1995,8 @@
       if ($("inspect-button").dataset.action === "reinspect") openReinspectDialog();
       else inspectAll();
     });
+
+    $("reinspect-button").addEventListener("click", openReinspectDialog);
 
     function openReinspectDialog() {
       if (running || adding || inspectionBatch || !selectedModelChoice()) return;
@@ -2061,7 +2162,7 @@
               log.textContent = "";
               refresh();
             });
-            row.insertCell().append(button);
+            filenameCell.append(button);
             return row;
           });
           history.replaceChildren(...rows);
@@ -2401,6 +2502,12 @@
 
       const historySearch = document.getElementById("history-search");
       const historyPeriod = document.getElementById("history-period");
+      const scoreFields = document.getElementById("history-scores");
+      for (const slider of scoreFields.querySelectorAll("[data-score-bound]")) {
+        const bound = historySearch.elements[slider.dataset.scoreBound];
+        slider.addEventListener("input", () => { bound.value = slider.value; });
+        bound.addEventListener("input", () => { slider.value = bound.value || slider.defaultValue; });
+      }
       const pagination = document.getElementById("history-pagination");
       const workerField = document.getElementById("history-worker-field");
       const workerSelect = document.getElementById("history-worker-select");
@@ -2432,7 +2539,7 @@
         historyFilters = new URLSearchParams();
         historyRows.replaceChildren();
         historyTable.hidden = true;
-        historyDetailSelection.textContent = "보기 버튼을 눌러 검사 기록을 선택하세요.";
+        historyDetailSelection.textContent = "검사 기록의 행을 선택하세요.";
         historyDetailData.replaceChildren();
         historyDetailData.hidden = true;
         pagination.replaceChildren();
@@ -2476,7 +2583,6 @@
       function addHistoryRecord(record) {
         const row = historyRows.insertRow();
         const values = [
-          record.filename,
           record.worker_account || "계정명 미기록",
           record.detector_version == null ? "—" : `v${record.detector_version}`,
           record.classifier_version == null ? "—" : `v${record.classifier_version}`,
@@ -2484,6 +2590,7 @@
           defectNames[record.defect_type] ?? (record.prediction === "normal" ? "해당 없음" : "분류 결과 없음"),
           historyDate.format(new Date(record.created_at)),
         ];
+        const filenameCell = row.insertCell();
         for (const value of values) row.insertCell().textContent = value;
         row.cells[4].dataset.verdict = record.prediction === "normal" ? "normal"
           : defectNames[record.defect_type] ? "defect" : "untyped";
@@ -2491,11 +2598,14 @@
         const button = document.createElement("button");
         button.type = "button";
         button.className = "history-view-button";
-        button.textContent = "보기";
+        button.textContent = record.filename;
         button.setAttribute("aria-label", `${record.filename} 상세 보기`);
         button.setAttribute("aria-controls", "history-detail");
         button.setAttribute("aria-pressed", "false");
-        button.addEventListener("click", () => {
+        row.addEventListener("click", event => {
+          const selection = window.getSelection();
+          if (event.target !== button && selection && !selection.isCollapsed &&
+              row.contains(selection.anchorNode)) return;
           activeHistoryButton?.setAttribute("aria-pressed", "false");
           activeHistoryButton = button;
           button.setAttribute("aria-pressed", "true");
@@ -2528,12 +2638,7 @@
 
       function showHistoryDetail(record) {
         const duration = (value) => value == null ? "—" : `${value} ms`;
-        const percent = (value) => {
-          if (value == null || value === "") return "—";
-          const score = Number(value);
-          return Number.isFinite(score) && score >= 0 && score <= 1
-            ? `${(score * 100).toFixed(2)}%` : String(value);
-        };
+        const score = (value) => Number.isFinite(value) ? value.toFixed(4) : "미기록";
         const defect = record.is_defect == null ? "탐지 결과 없음"
           : record.is_defect ? "탐지 결함 있음" : "탐지 결함 없음";
         historyDetailSelection.textContent = `${record.filename} · ${defect}`;
@@ -2541,11 +2646,12 @@
         models.className = "history-detail-grid";
         models.append(
           historyCard("이상치 탐지", [
-            ["이상 점수", record.anomaly_score],
+            ["이상 점수", score(record.anomaly_score)],
+            ["판정 기준", score(record.detector_threshold)],
             ["모델 URI", record.detector_name],
           ]),
           historyCard("결함 분류", [
-            ["분류 신뢰도", percent(record.confidence)],
+            ["분류 점수", score(record.confidence)],
             ["모델 URI", record.classifier_name],
           ])
         );
@@ -2567,7 +2673,7 @@
             const box = Array.isArray(region) ? region : region?.bbox;
             const row = body.insertRow();
             row.insertCell().textContent = String(index + 1);
-            row.insertCell().textContent = Array.isArray(box) ? box.join(", ") : "—";
+            row.insertCell().textContent = formatInspectionBox(box);
             const score = region?.score;
             row.insertCell().textContent = score == null || score === "" || !Number.isFinite(Number(score))
               ? "—" : Number(score).toFixed(2);
@@ -2582,11 +2688,6 @@
         historyDetailData.replaceChildren(
           models,
           regions,
-          ...(record.reviewed_boxes?.length ? [
-            historyCard("작업자 결함 위치 (x, y, w, h)", record.reviewed_boxes.map(
-              (box, index) => [`박스 ${index + 1}`, [box.x, box.y, box.w, box.h].join(", ")]
-            ))
-          ] : []),
           historyCard("처리 시간", [
             ["전체", duration(record.total_latency_ms)],
             ["탐지", duration(record.detector_latency_ms)],
@@ -2596,9 +2697,15 @@
             ["요청 ID", record.id],
             ["모델 판정", ({normal: "정상", defect: "불량"})[record.model_prediction ?? record.prediction] ?? "—"],
             ["모델 분류 유형", defectNames[record.model_defect_type] ?? "—"],
-            ["최종 판정", ({normal: "정상", defect: "불량"})[record.reviewed_label] ?? "미확정"],
+            ["최종 판정", ({normal: "최종 정상", defect: "최종 불량"})[record.reviewed_label] ?? "작업자 판정 없음"],
+            ["작업자 결함 유형", defectNames[record.reviewed_defect_type] ?? null],
             ["최종 판정 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
-          ])
+          ]),
+          ...(record.reviewed_boxes?.length ? [
+            historyCard("작업자 지정 결함 위치", record.reviewed_boxes.map(
+              (box, index) => [`위치 ${index + 1}`, formatInspectionBox(box)]
+            ))
+          ] : [])
         );
         historyDetailData.hidden = false;
         if (stackedHistory.matches) historyDetail.focus();
@@ -2651,7 +2758,7 @@
           historyRows.replaceChildren();
           activeHistoryButton = undefined;
           historyDetailSelection.textContent = records.length
-            ? "보기 버튼을 눌러 검사 기록을 선택하세요."
+            ? "검사 기록의 행을 선택하세요."
             : "표시할 검사 기록이 없습니다.";
           historyDetailData.replaceChildren();
           historyDetailData.hidden = true;
@@ -2673,9 +2780,23 @@
         event.preventDefault();
         const formData = new FormData(historySearch);
         const filters = new URLSearchParams();
-        for (const name of ["date_from", "date_to", "filename", "prediction", "worker_id"]) {
+        const names = [
+          "date_from", "date_to", "filename", "prediction", "worker_id", "reviewed",
+          "anomaly_min", "anomaly_max", "confidence_min", "confidence_max",
+        ];
+        for (const name of names) {
           const value = formData.get(name)?.trim();
           if (value) filters.set(name, value);
+        }
+
+        for (const kind of ["anomaly", "confidence"]) {
+          const lower = filters.get(`${kind}_min`);
+          const upper = filters.get(`${kind}_max`);
+          if (lower !== null && upper !== null && Number(lower) > Number(upper)) {
+            scoreFields.open = true;
+            historyStatus.textContent = "점수 최솟값은 최댓값보다 클 수 없습니다.";
+            return;
+          }
         }
 
         for (const suffix of ["from", "to"]) {
@@ -2757,6 +2878,7 @@
 </script>
 </body>
 </html>
+
 
 
 
