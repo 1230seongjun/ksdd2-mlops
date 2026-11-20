@@ -103,13 +103,75 @@ echo "--- $STACK 배포 태그 ---"; grep -E "^($(echo "$TAG_VARS" | tr ' ' '|')
 # 3) 배포
 compose() { docker compose -f "$FILE" -p "$PROJECT" --env-file .env "$@"; }
 
+# Prometheus 안에서 HTTP API 조회 (호스트 포트를 열지 않아도 되도록 컨테이너 안의 wget 사용)
+prom_get() { compose exec -T prometheus wget -qO- "http://localhost:9090$1" 2>/dev/null; }
+# 쿼리 결과의 첫 값만 꺼냄 (없으면 빈 문자열)
+prom_value() {
+  prom_get "/api/v1/query?query=$1" | python3 -c '
+import json, sys
+try:
+    r = json.load(sys.stdin)["data"]["result"]
+    print(r[0]["value"][1] if r else "")
+except Exception:
+    print("")'
+}
+
+# Prometheus 설정 다시 읽기
+#   - compose kill -s HUP 은 쓰지 않음: Docker 가 '수동 중지'로 기록해서 VM 재부팅 후
+#     restart: unless-stopped 가 Prometheus 를 다시 띄우지 않음 (11/13·11/18 Exited(255) 원인)
+#   - 대신 컨테이너 안에서 PID 1 이 prometheus 인지 확인한 뒤 SIGHUP 을 보냄
+#   - 실패해도 배포는 계속함 (Prometheus 는 감시용이라 서비스 동작과 별개). 결과는 경고로 남김
+reload_prometheus() {
+  local ready=false i comm before after api_up
+
+  # 1) 준비될 때까지 /-/ready 재시도 (최대 20회, 3초 간격)
+  for i in $(seq 1 20); do
+    if prom_get "/-/ready" >/dev/null; then ready=true; break; fi
+    echo "Prometheus 준비 대기... ($i/20)"; sleep 3
+  done
+  if [ "$ready" != true ]; then
+    echo "::warning::Prometheus 가 준비되지 않아 설정 재로드를 건너뜀"; return 0
+  fi
+
+  # 2) PID 1 이 prometheus 인지 확인
+  comm=$(compose exec -T prometheus cat /proc/1/comm 2>/dev/null | tr -d '\r\n' || true)
+  if [ "$comm" != "prometheus" ]; then
+    echo "::warning::Prometheus 컨테이너의 PID 1 이 '$comm' 이라 SIGHUP 을 보내지 않음"; return 0
+  fi
+
+  # 3) SIGHUP 전송 후 재로드 성공 시각이 갱신됐는지 확인
+  before=$(prom_value prometheus_config_last_reload_success_timestamp_seconds)
+  if ! compose exec -T prometheus kill -HUP 1; then
+    echo "::warning::Prometheus 에 SIGHUP 전송 실패"; return 0
+  fi
+  for i in $(seq 1 10); do
+    sleep 2
+    after=$(prom_value prometheus_config_last_reload_success_timestamp_seconds)
+    if [ -n "$after" ] && [ "$after" != "$before" ]; then
+      echo "Prometheus 설정 재로드 성공 (성공 시각 $before → $after)"; break
+    fi
+  done
+  if [ -z "$after" ] || [ "$after" = "$before" ]; then
+    echo "::warning::Prometheus 설정 재로드 성공 시각이 갱신되지 않음. prometheus.yml 문법을 확인하세요"
+  fi
+
+  # 4) defectcatch-api 타깃이 UP 인지 확인 (새 API 컨테이너를 한 번 수집할 때까지 최대 60초)
+  for i in $(seq 1 12); do
+    api_up=$(prom_value 'up%7Bjob%3D%22defectcatch-api%22%7D')
+    if [ "$api_up" = "1" ]; then echo "Prometheus 수집 대상 defectcatch-api: UP"; return 0; fi
+    sleep 5
+  done
+  echo "::warning::Prometheus 수집 대상 defectcatch-api 가 UP 이 아님 (현재 값: '${api_up:-없음}')"
+  return 0
+}
+
 deploy() {
   compose pull $NCR_SERVICES || return 1          # 우리 이미지만 받음 (postgres·nginx 등은 있으면 그대로 사용)
   # --remove-orphans 는 쓰지 않음: compose 에 없는 컨테이너(현재 수동으로 띄운 ui)를 지우지 않기 위해
   compose up -d || return 1
   if [ "$STACK" = "service" ]; then  # 설정 파일 변경 반영 + 새 API 컨테이너 주소를 Nginx가 다시 찾게 함
     compose exec -T nginx nginx -s reload || true
-    compose kill -s HUP prometheus || true
+    reload_prometheus || true
   fi
   compose ps
 }
