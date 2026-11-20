@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
 
     environment:
+      GPU_TRAINING_URL: "${GPU_TRAINING_URL:-}"
+      GPU_TRAINING_TOKEN: "${GPU_TRAINING_TOKEN:-}"
       MLFLOW_TRACKING_URI: "${MLFLOW_TRACKING_URI:?MLFLOW_TRACKING_URI is not set in .env}"
       MODEL_URI: "models:/Zero-Defects/2"
       CLASSIFIER_MODEL_URI: "models:/Zero-Defects-Classifier/1"
@@ -58,3 +60,4 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+

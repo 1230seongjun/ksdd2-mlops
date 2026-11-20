@@ -4,6 +4,10 @@ import uuid
 import asyncio
 import logging
 import re
+import json
+from urllib.error import HTTPError as TrainingHTTPError, URLError
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request as TrainingRequest, build_opener
 
 from datetime import date, datetime, time as midnight, timedelta
 from typing import Literal
@@ -229,6 +233,107 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
 
     return user
+
+class TrainingJobPayload(BaseModel):
+    model: Literal["anomaly", "classifier"]
+    fold: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] | None = None
+    register_model: bool = False
+
+
+class RejectTrainingRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+training_opener = build_opener(ProxyHandler({}), RejectTrainingRedirects())
+training_job_id = re.compile(r"[0-9]{20}_(anomaly|classifier)_[0-9a-f]{12}")
+
+
+def require_training_admin(user: tuple[int, str] = Depends(get_current_user)) -> None:
+    if user[1] != "admin":
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+
+
+def training_job_path(job_id: str) -> str:
+    if not training_job_id.fullmatch(job_id):
+        raise HTTPException(status_code=404, detail="학습 작업을 찾을 수 없습니다.")
+    return f"/jobs/{job_id}"
+
+
+def call_training_gpu(method: str, path: str, payload: dict | None = None):
+    base_url = os.getenv("GPU_TRAINING_URL", "").strip().rstrip("/")
+    token = os.getenv("GPU_TRAINING_TOKEN", "").strip()
+    try:
+        target = urlsplit(base_url)
+    except ValueError:
+        target = None
+    if (
+        not token
+        or target is None
+        or target.scheme not in {"https", "http"}
+        or not target.hostname
+        or target.username is not None
+        or target.path
+        or target.query
+        or target.fragment
+    ):
+        raise HTTPException(status_code=503, detail="GPU 학습 서비스 설정을 확인하세요.")
+
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    body = None
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+        body = json.dumps(payload).encode("utf-8")
+    request = TrainingRequest(base_url + path, data=body, headers=headers, method=method)
+
+    try:
+        with training_opener.open(request, timeout=5) as response:
+            return json.load(response)
+    except TrainingHTTPError as error:
+        error.close()
+        code = error.code
+        messages = {
+            404: "학습 작업을 찾을 수 없습니다.",
+            409: "다른 학습이 실행 중이거나 작업 상태가 바뀌었습니다.",
+            422: "학습 설정을 확인하세요.",
+            503: "GPU 학습 서비스를 사용할 수 없습니다.",
+        }
+        if code in messages:
+            raise HTTPException(status_code=code, detail=messages[code]) from None
+        raise HTTPException(status_code=502, detail="GPU 학습 요청 처리에 실패했습니다.") from None
+    except (URLError, TimeoutError, OSError, ValueError):
+        raise HTTPException(status_code=502, detail="GPU 학습 서비스의 응답을 확인하세요.") from None
+
+
+@app.get("/training/jobs", dependencies=[Depends(require_training_admin)])
+def list_training_jobs():
+    return call_training_gpu("GET", "/jobs")
+
+
+@app.post("/training/jobs", status_code=202, dependencies=[Depends(require_training_admin)])
+def start_training_job(payload: TrainingJobPayload):
+    if payload.model == "anomaly" and payload.fold is not None:
+        raise HTTPException(status_code=422, detail="Fold는 결함 분류 모델만 지정할 수 있습니다.")
+    return call_training_gpu(
+        "POST",
+        "/jobs",
+        {
+            "model": payload.model,
+            "fold": payload.fold,
+            "register_model": payload.register_model,
+        },
+    )
+
+
+@app.get("/training/jobs/{job_id}/log", dependencies=[Depends(require_training_admin)])
+def read_training_log(job_id: str):
+    return call_training_gpu("GET", training_job_path(job_id) + "/log")
+
+
+@app.post("/training/jobs/{job_id}/stop", status_code=202, dependencies=[Depends(require_training_admin)])
+def stop_training_job(job_id: str):
+    return call_training_gpu("POST", training_job_path(job_id) + "/stop")
+
 
 @app.get("/auth/me")
 def read_current_user(
@@ -829,4 +934,5 @@ async def predict(
         "confidence": defect["confidence"],
         "boxes": build_boxes(defect["regions"], width, height),
     }
+
 
