@@ -44,7 +44,7 @@ from mlflow import MlflowClient
 import db
 from model_service import build_boxes, load_model, run_model
 from fastapi import Cookie, Depends, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StrictInt
 from auth import (
     authenticate_user,
     create_invitation,
@@ -495,8 +495,23 @@ def read_inference_history(
             "total": total, "total_pages": total_pages}
 
 
+DefectType = Literal["brown", "black", "blue", "surface"]
+DEFECT_TYPES = {"brown", "black", "blue", "surface"}
+REVIEW_IMAGE_WIDTH = 184
+REVIEW_IMAGE_HEIGHT = 597
+
+
+class ReviewBox(BaseModel):
+    x: StrictInt = Field(ge=0)
+    y: StrictInt = Field(ge=0)
+    w: StrictInt = Field(gt=0)
+    h: StrictInt = Field(gt=0)
+
+
 class FinalReview(BaseModel):
-    label: Literal["normal", "defect"]
+    label: Literal["normal", "defect", "cancelled"]
+    defect_type: DefectType | None = None
+    boxes: list[ReviewBox] = Field(default_factory=list)
 
 
 @app.put("/inference/{request_id}/review")
@@ -505,37 +520,27 @@ def save_final_review(
     review: FinalReview,
     user: tuple[int, str] = Depends(get_current_user),
 ):
+    if review.label == "defect":
+        if not review.defect_type:
+            raise HTTPException(422, "최종 불량에는 결함 유형이 필요합니다.")
+        if any(box.x + box.w > REVIEW_IMAGE_WIDTH or box.y + box.h > REVIEW_IMAGE_HEIGHT
+               for box in review.boxes):
+            raise HTTPException(422, "박스는 184×597 이미지 범위 안에 있어야 합니다.")
+    elif review.defect_type or review.boxes:
+        raise HTTPException(422, "결함 유형과 박스는 최종 불량에만 입력할 수 있습니다.")
+
     user_id, _ = user
-    with db.connect_db() as conn:
-        record = conn.execute(
-            """
-            SELECT r.prediction, c.regions, r.reviewed_label, r.reviewed_at
-            FROM inference_requests AS r
-            LEFT JOIN classifier_results AS c ON c.request_id = r.id
-            WHERE r.id = %s AND r.user_id = %s
-            FOR UPDATE OF r
-            """,
-            (str(request_id), user_id),
-        ).fetchone()
-        if record is None:
-            raise HTTPException(status_code=404, detail="검사 기록을 찾을 수 없습니다.")
-
-        prediction, regions, label, reviewed_at = record
-        if prediction != "defect" or build_boxes(regions or [], 184, 597):
-            raise HTTPException(status_code=409, detail="결함 위치 미검출 건만 재검토할 수 있습니다.")
-
-        if label != review.label or reviewed_at is None:
-            label, reviewed_at = conn.execute(
-                """
-                UPDATE inference_requests
-                SET reviewed_label = %s, reviewed_at = CURRENT_TIMESTAMP
-                WHERE id = %s AND user_id = %s
-                RETURNING reviewed_label, reviewed_at
-                """,
-                (review.label, str(request_id), user_id),
-            ).fetchone()
-
-    return {"id": request_id, "reviewed_label": label, "reviewed_at": reviewed_at}
+    boxes = [box.model_dump() for box in review.boxes]
+    record = db.finalize_inference_review(request_id, user_id, review.label, review.defect_type, boxes)
+    if record is None:
+        raise HTTPException(404, "검사 기록을 찾을 수 없습니다.")
+    cancelled = review.label == "cancelled" and record["review_status"] == "cancelled"
+    finalized = record["review_status"] == "finalized" and (
+        record["reviewed_label"], record["reviewed_defect_type"], record["reviewed_boxes"]
+    ) == (review.label, review.defect_type, boxes)
+    if not (cancelled or finalized):
+        raise HTTPException(409, "이미 처리된 판정이거나 재검토 대상이 아닙니다.")
+    return {"id": request_id, **record}
 
 
 predict_requests = Counter(
@@ -935,34 +940,37 @@ async def predict(
 
     request_id = str(uuid.uuid4())
 
-    # 저장은 응답을 보낸 뒤에 하고, 실패해도 검사 결과에는 영향이 없다.
-    if db.ENABLED:
-        background_tasks.add_task(
-            db.save_inference,
-            {
-                "id": request_id,
-                "user_id": user_id,
-                "filename": file.filename or "",
-                "model_choice": "challenger" if registry_pair is not None else model_choice,
-                "prediction": prediction,
-                "total_latency_ms": round(
-                    (time.perf_counter() - started_at) * 1000
-                ),
-                "detector": {
-                    "model_name": selected_model_name,
-                    "anomaly_score": result["anomaly_score"],
-                    "is_defect": result["is_anomaly"],
-                    "latency_ms": detector_ms,
-                },
-                "classifier": {
-                    "model_name": classifier_name,
-                    "defect_type": defect["defect_type"],
-                    "confidence": defect["confidence"],
-                    "regions": defect["regions"],
-                    "latency_ms": classifier_ms,
-                } if classified else None,
-            },
-        )
+    boxes = build_boxes(defect["regions"], width, height)
+    review_required = prediction == "defect" and (
+        not boxes or defect["defect_type"] not in DEFECT_TYPES
+    )
+    record = {
+        "id": request_id,
+        "user_id": user_id,
+        "filename": file.filename or "",
+        "model_choice": "challenger" if registry_pair is not None else model_choice,
+        "prediction": prediction,
+        "total_latency_ms": round((time.perf_counter() - started_at) * 1000),
+        "detector": {
+            "model_name": selected_model_name,
+            "anomaly_score": result["anomaly_score"],
+            "is_defect": result["is_anomaly"],
+            "latency_ms": detector_ms,
+        },
+        "classifier": {
+            "model_name": classifier_name,
+            "defect_type": defect["defect_type"],
+            "confidence": defect["confidence"],
+            "regions": defect["regions"],
+            "latency_ms": classifier_ms,
+        } if classified else None,
+    }
+    if review_required:
+        # The browser can finalize or cancel as soon as it receives the request ID.
+        if not db.ENABLED or not await run_in_threadpool(db.stage_inference_review, record):
+            raise HTTPException(503, "재검토 대기 기록을 저장할 수 없습니다.")
+    elif db.ENABLED:
+        background_tasks.add_task(db.save_inference, record)
 
     return {
         "id": request_id,
@@ -976,8 +984,10 @@ async def predict(
         "defect_subtype": defect["defect_subtype"],
         "classifier_name": classifier_name if classified else None,
         "confidence": defect["confidence"],
-        "boxes": build_boxes(defect["regions"], width, height),
+        "boxes": boxes,
+        "review_required": review_required,
     }
+
 
 
 
