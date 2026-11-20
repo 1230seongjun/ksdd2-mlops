@@ -164,18 +164,7 @@
 #drop-zone #pick-files:not(:disabled):is(:hover,[aria-expanded="true"]){
   background:#c6dcff;border-color:var(--blue);color:#12347c
 }
-#image-add-control{position:relative;max-width:100%}
-#image-add-options{
-  position:absolute;z-index:3;inset-block-start:calc(100% + 5px);inset-inline-start:50%;
-  transform:translateX(-50%);min-width:100%;width:max-content;max-width:200px;
-  padding:4px;background:#fff;border:1px solid var(--line);border-radius:6px;
-  box-shadow:0 4px 12px #202b3c22
-}
-#image-add-options button{
-  display:block;width:100%;padding:6px 8px;text-align:left;
-  border:0;background:#fff;color:var(--ink)
-}
-#image-add-options button:is(:hover,:focus-visible){background:#dbeafe;color:#12347c}
+
 #category-select{
   display:none;width:100%;min-width:0;max-width:100%;margin:0 0 10px;
   padding:6px 8px;font:inherit
@@ -244,8 +233,9 @@
 }
 .history-datetime{min-width:0;margin:0;padding:0;border:0}
 .history-datetime legend{padding:0;margin:0 0 4px;font-size:calc(13px * var(--text-scale,1));font-weight:600}
-.history-datetime-controls{display:grid;grid-template-columns:minmax(0,1fr) 3.25rem 3.25rem;gap:4px}
-#history-search .history-datetime select{padding:6px 4px}
+.history-datetime-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(4.25rem, auto) minmax(4.25rem, auto);gap:6px}
+#history-search .history-datetime select{padding:6px 8px;font-family:inherit}
+@media(max-width:540px){.history-datetime-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.history-datetime-controls input{grid-column:1/-1}}
 #history-search .history-datetime input{padding:6px}
 @media(min-width:1200px){
   #history-search{grid-template-columns:minmax(9rem,1fr) minmax(8rem,2fr) repeat(2,minmax(6.5rem,1fr)) auto}
@@ -301,6 +291,21 @@
 #panel-training .training-table button{white-space:nowrap;padding:4px 8px}
 #panel-training .training-scroll{overflow-x:auto}
 @media(max-width:760px){#panel-training .training-grid{grid-template-columns:1fr}}
+
+#drop-zone{min-height:152px;padding:18px;box-sizing:border-box}
+#drop-zone.drag-over{background:#e0ecff;border-color:var(--blue)}
+#verdict-details summary{font-size:1.05em;font-weight:650}
+#verdict-extra{font-size:1.1em;line-height:1.6}
+#inspection-left .image-row .thumb,#inspection-center .image-row .thumb{display:block;width:auto;flex:0 0 auto;min-height:0;padding:6px}
+.image-row .filename{flex:1;min-width:0;overflow-wrap:anywhere;user-select:text}
+.image-row .badge{align-self:center}
+.review-image{position:relative;width:fit-content;max-width:100%;margin:auto}
+#review-overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#review-overlay rect{fill:#22c55e22;stroke:#17843d;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+#review-overlay rect.preview{stroke-dasharray:5 3}
+#review-annotation{margin:8px 0}
+#review-box-list{padding-left:22px}
+#review-box-list button{margin-left:6px}
 </style>
 </head>
 <body>
@@ -357,16 +362,10 @@
 <p class="hint" id="model-info" role="status" hidden></p>
 <p>PNG 또는 JPEG · 가로 184px × 세로 597px · 장당 5MB 이하</p>
 <div class="row" id="drop-zone">
-<div id="image-add-control">
-  <button class="secondary" id="pick-files" type="button" aria-expanded="false" aria-controls="image-add-options"><span aria-hidden="true">＋</span> 이미지 추가</button>
-  <div id="image-add-options" role="group" aria-label="이미지 추가 방식" hidden>
-    <button type="button" id="choose-image-files">이미지 파일 선택</button>
-    <button type="button" id="choose-image-folder">폴더 선택</button>
-  </div>
-</div>
-<p class="hint">이미지 또는 폴더 선택 · 끌어놓기 가능</p><p id="added-image-count" role="status" hidden></p></div>
-<input accept="image/png,image/jpeg" hidden="" id="files" multiple="" type="file"/>
-<input hidden id="image-folder" type="file" webkitdirectory multiple>
+<button class="secondary" id="pick-files" type="button"><span aria-hidden="true">＋</span> 이미지 추가</button>
+<p class="hint">이미지는 버튼으로 선택하거나 끌어놓으세요. 폴더는 끌어놓아 추가하세요.</p>
+<p id="added-image-count" role="status" hidden></p></div>
+<input accept="image/png,image/jpeg" hidden id="files" multiple type="file"/>
 <details hidden="" id="skipped">
 <summary id="skipped-summary"></summary>
 <ul id="skipped-list"></ul>
@@ -389,7 +388,10 @@
 <div id="inspection-center"><section class="card image-panel"><h2>이미지 상세</h2><div id="counts" class="inspection-stats" aria-label="검사 현황"></div><p class="hint" id="viewer-empty">
             표시할 이미지 없음
           </p><div class="viewer" hidden="" id="viewer">
-<canvas aria-label="바운딩 박스가 표시된 이미지" id="canvas-boxed"></canvas>
+<div class="review-image">
+  <canvas aria-label="바운딩 박스가 표시된 이미지" id="canvas-boxed"></canvas>
+  <svg id="review-overlay" viewBox="0 0 184 597" preserveAspectRatio="none" aria-label="결함 위치 표시" hidden></svg>
+</div>
 </div><div class="image-caption"><p id="selected-name">선택된 이미지 없음</p></div></section></div><aside aria-label="검사 판정 상세" class="card result-panel"><div class="panel">
 <h3>판정 상세</h3>
 <p id="verdict-message" role="status"></p>
@@ -403,6 +405,13 @@
     <button class="secondary" id="review-replace" type="button">교체 파일 선택</button>
     <button class="secondary" id="review-cancel" type="button">검사 취소</button>
     <input id="review-file" type="file" accept="image/png,image/jpeg" hidden>
+  </div>
+  <div id="review-annotation" hidden>
+    <label for="review-defect-type">확정 결함 유형</label>
+    <select id="review-defect-type"><option value="">유형 선택</option></select>
+    <p id="review-box-help" class="hint"></p>
+    <ol id="review-box-list"></ol>
+    <button id="review-save-defect" type="button" disabled>최종 불량 저장</button>
   </div>
   <p id="review-status" role="status"></p>
 </div>
@@ -598,7 +607,7 @@
       { id: "blue", label: "청색결함" },
       { id: "surface", label: "표면결함" }
     ];
-    const BUCKETS = [...TYPES, { id: "untyped", label: "유형 미확인" }, { id: "normal", label: "정상" }];
+    const BUCKETS = [...TYPES, { id: "normal", label: "정상" }];
     const FILTERS = [
       { id: "all", label: "전체" },
       ...BUCKETS,
@@ -621,7 +630,6 @@
     const modelDropdowns = ["detector", "classifier"];
     let renderToken = 0;
     let adding = false;
-    let rememberedSelection = null;
     let lastCompletedItem = null;
     let inspectionBatch = null;
     let pauseRequested = false;
@@ -644,7 +652,7 @@
       );
     }
 
-    const bucketLabel = (id) => BUCKETS.find((b) => b.id === id)?.label ?? "유형 없음";
+    const bucketLabel = (id) => id === "review" ? "재검토" : BUCKETS.find((b) => b.id === id)?.label ?? "유형 없음";
 
     // ---------- 그리기 ----------
     // 결함 박스 색상 설정
@@ -691,7 +699,8 @@
 
     async function drawThumb(item) {
       const bitmap = await createImageBitmap(item.file);
-      paint(item.canvas, bitmap, THUMB_SCALE, item.state === "done" ? item.data.boxes : []);
+      const boxes = item.state === "done" ? item.data.reviewed_boxes ?? item.data.boxes : [];
+      paint(item.canvas, bitmap, THUMB_SCALE, boxes);
       bitmap.close();
     }
 
@@ -715,26 +724,62 @@
       if (item.state === "running") return "검사 중";
       if (item.state === "error") return "검사 실패";
       if (item.state === "size-error") return "이미지 크기 오류";
+      if (item.data.reviewed_label) return item.data.reviewed_label === "normal" ? "최종 정상" : "최종 불량";
       return item.data.is_anomaly ? "불량 의심" : "정상";
     }
 
     function needsReview(item) {
-      return item?.state === "done" && item.data.is_anomaly && !item.data.boxes.length;
+      return item?.state === "done" && item.data.review_required
+        && !item.data.reviewed_label && !item.reviewDismissed;
     }
 
     function inReview(item) {
       return Boolean(item && !item.reviewDismissed && (item.state === "size-error" || needsReview(item)));
     }
 
+    const reviewOverlay = $("review-overlay");
+    const reviewType = $("review-defect-type");
+    let renderedItem = null;
+    let boxDrag = null;
+    for (const type of TYPES) reviewType.add(new Option(type.label, type.id));
+
+    function drawReviewBoxes(item) {
+      const draft = item?.reviewDraft;
+      const saved = item?.data?.reviewed_boxes || [];
+      const visible = renderedItem === item && Boolean(draft?.type || saved.length);
+      reviewOverlay.toggleAttribute("hidden", !visible);
+      reviewOverlay.style.pointerEvents = draft?.type && !reviewType.disabled ? "auto" : "none";
+      reviewOverlay.replaceChildren();
+      if (!visible) return;
+      const boxes = [...(draft?.boxes ?? saved)];
+      if (boxDrag?.item === item && boxDrag.preview) {
+        if (draft.editing == null) boxes.push(boxDrag.preview);
+        else boxes[draft.editing] = boxDrag.preview;
+      }
+      boxes.forEach((box, index) => {
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        for (const [attr, val] of Object.entries({x: box.x, y: box.y, width: box.w, height: box.h})) {
+          rect.setAttribute(attr, val);
+        }
+        if (draft?.editing === index || box === boxDrag?.preview) rect.classList.add("preview");
+        reviewOverlay.append(rect);
+      });
+    }
+
     function renderReview(item) {
       const show = inReview(item);
       $("final-review").hidden = !show;
-      if (!show) return;
+      if (!show) {
+        drawReviewBoxes(item);
+        return;
+      }
 
       const sizeError = item.state === "size-error";
       const busy = running || adding || Boolean(inspectionBatch) || Boolean(item.reviewPending);
       const canJudge = needsReview(item) && Boolean(item.data.id);
-      $("review-reason").textContent = sizeError ? item.reason : "결함 위치 미검출";
+      const draft = item.reviewDraft;
+      $("review-reason").textContent = sizeError ? item.reason
+        : item.data.boxes.length ? "결함 유형을 확인하세요." : "모델이 결함 위치를 찾지 못했습니다.";
       for (const id of ["review-normal", "review-defect"]) {
         $(id).hidden = sizeError;
         $(id).disabled = busy || !canJudge;
@@ -745,64 +790,162 @@
       $("review-replace").disabled = busy;
       $("review-cancel").disabled = busy;
       $("review-status").textContent = item.reviewResult === item.data ? item.reviewMessage || "" : "";
+      $("review-annotation").hidden = !draft || sizeError;
+      reviewType.value = draft?.type || "";
+      reviewType.disabled = busy || !canJudge;
+      $("review-save-defect").disabled = busy || !canJudge || !draft?.type || draft.editing != null;
+      $("review-box-help").textContent = draft?.editing != null
+        ? `박스 ${draft.editing + 1}의 위치를 다시 드래그하세요.`
+        : "결함 유형을 선택하세요. 위치를 남기려면 이미지 위에서 박스를 그리세요.";
+      const list = $("review-box-list");
+      list.replaceChildren();
+      for (const [index, box] of (draft?.boxes ?? []).entries()) {
+        const row = document.createElement("li");
+        row.textContent = `(${box.x}, ${box.y}) · ${box.w}×${box.h}px`;
+        for (const action of ["수정", "삭제"]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "secondary";
+          button.textContent = action;
+          button.disabled = busy;
+          button.setAttribute("aria-label", `박스 ${index + 1} ${action}`);
+          button.addEventListener("click", () => {
+            if (action === "수정") {
+              draft.editing = draft.editing === index ? null : index;
+            } else {
+              draft.boxes.splice(index, 1);
+              draft.editing = null;
+            }
+            renderReview(item);
+          });
+          row.append(button);
+        }
+        list.append(row);
+      }
+      drawReviewBoxes(item);
     }
+
+    function reviewPoint(event) {
+      const rect = reviewOverlay.getBoundingClientRect();
+      return {
+        x: Math.round(Math.min(WIDTH, Math.max(0, (event.clientX - rect.left) * WIDTH / rect.width))),
+        y: Math.round(Math.min(HEIGHT, Math.max(0, (event.clientY - rect.top) * HEIGHT / rect.height))),
+      };
+    }
+
+    function boxBetween(start, end) {
+      return {x: Math.min(start.x, end.x), y: Math.min(start.y, end.y),
+        w: Math.abs(end.x - start.x), h: Math.abs(end.y - start.y)};
+    }
+
+    reviewOverlay.addEventListener("pointerdown", (event) => {
+      if (boxDrag || event.button !== 0 || !selected?.reviewDraft?.type || reviewType.disabled) return;
+      boxDrag = {id: event.pointerId, item: selected, start: reviewPoint(event), preview: null};
+      reviewOverlay.setPointerCapture(event.pointerId);
+    });
+    reviewOverlay.addEventListener("pointermove", (event) => {
+      if (boxDrag?.id !== event.pointerId || boxDrag.item !== selected) return;
+      boxDrag.preview = boxBetween(boxDrag.start, reviewPoint(event));
+      drawReviewBoxes(selected);
+    });
+    reviewOverlay.addEventListener("pointerup", (event) => {
+      if (boxDrag?.id !== event.pointerId || boxDrag.item !== selected) return;
+      const box = boxBetween(boxDrag.start, reviewPoint(event));
+      boxDrag = null;
+      if (box.w && box.h) {
+        const draft = selected.reviewDraft;
+        if (draft.editing == null) draft.boxes.push(box);
+        else draft.boxes[draft.editing] = box;
+        draft.editing = null;
+      }
+      renderReview(selected);
+    });
+    reviewOverlay.addEventListener("lostpointercapture", () => {
+      boxDrag = null;
+      drawReviewBoxes(selected);
+    });
 
     async function saveReview(label) {
       const item = selected;
-      if (!inReview(item) || !needsReview(item) || !item.data.id ||
-          running || adding || inspectionBatch || item.reviewPending) return;
+      if (!needsReview(item) || !item.data.id || running || adding || inspectionBatch || item.reviewPending) return;
+      const draft = item.reviewDraft;
+      if (label === "defect" && (!draft?.type || draft.editing != null)) return;
+      const payload = label === "defect" ? {label, defect_type: draft.type, boxes: draft.boxes} : {label};
       const result = item.data;
       item.reviewPending = true;
       item.reviewResult = result;
-      item.reviewMessage = "최종 판정 저장 중…";
+      item.reviewMessage = "검사 판정 저장 중…";
       renderReview(item);
       try {
         const response = await fetch(`/api/inference/${encodeURIComponent(result.id)}/review`, {
           method: "PUT",
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({label}),
+          body: JSON.stringify(payload),
         });
         if (response.status === 401) {
           window.dispatchEvent(new Event("inspection-session-expired"));
           throw new Error("세션이 만료되었습니다.");
         }
-        if (response.status === 404) {
-          throw new Error("검사 기록을 찾을 수 없습니다. 잠시 뒤 다시 시도하세요.");
-        }
-        if (!response.ok) throw new Error("최종 판정을 저장하지 못했습니다.");
         const review = await response.json();
-        result.reviewed_label = review.reviewed_label;
-        result.reviewed_at = review.reviewed_at;
-        item.reviewMessage = "최종 판정을 저장했습니다.";
+        if (!response.ok) {
+          throw new Error(typeof review.detail === "string" ? review.detail : "검사 판정을 저장하지 못했습니다.");
+        }
+        Object.assign(result, review);
+        item.reviewDraft = null;
+        item.reviewDismissed = review.review_status === "cancelled";
+        item.bucket = bucketOf(result);
+        updateBadge(item);
+        if (item.reviewDismissed) {
+          items = items.filter(entry => entry !== item);
+          if (lastCompletedItem === item) lastCompletedItem = null;
+          item.row.remove();
+          if (selected === item) select(null);
+        } else {
+          drawThumb(item).catch(() => {});
+          if (selected === item) renderViewer();
+        }
+        renderCounts();
+        applyFilter();
+        setStatus(item.reviewDismissed ? "검사를 취소했습니다." : "최종 판정을 저장했습니다.");
       } catch (error) {
         item.reviewMessage = error.message;
       } finally {
         item.reviewPending = false;
+        syncControls();
         if (item === selected) renderVerdict(item);
       }
     }
 
     $("review-normal").addEventListener("click", () => saveReview("normal"));
-    $("review-defect").addEventListener("click", () => saveReview("defect"));
+    $("review-defect").addEventListener("click", () => {
+      if (!needsReview(selected)) return;
+      selected.reviewDraft ??= {type: "", boxes: [], editing: null};
+      renderReview(selected);
+      reviewType.focus();
+    });
+    reviewType.addEventListener("change", () => {
+      selected.reviewDraft.type = reviewType.value;
+      renderReview(selected);
+    });
+    $("review-save-defect").addEventListener("click", () => saveReview("defect"));
     $("review-reinspect").addEventListener("click", () => {
-      if (!inReview(selected) || !needsReview(selected) || $("review-reinspect").disabled) return;
+      if (!needsReview(selected) || $("review-reinspect").disabled) return;
       inspectAll([selected]);
     });
-
     $("review-cancel").addEventListener("click", () => {
       const item = selected;
       if (!inReview(item) || $("review-cancel").disabled) return;
-      if (item.state === "size-error") {
-        items = items.filter(entry => entry !== item);
-        if (rememberedSelection === item) rememberedSelection = null;
-        item.row.remove();
-      } else {
-        item.reviewDismissed = true;
+      if (item.state !== "size-error") {
+        saveReview("cancelled");
+        return;
       }
+      items = items.filter(entry => entry !== item);
+      item.row.remove();
+      select(null);
       renderCounts();
       applyFilter();
       syncControls();
-      setStatus("재검토 목록에서 제외했습니다.");
+      setStatus("크기 오류 이미지를 제외했습니다.");
     });
 
     let replacementTarget = null;
@@ -821,19 +964,18 @@
       adding = true;
       syncControls();
       try {
-        if (!IMAGE_TYPES.includes(file.type)) throw new Error("PNG 또는 JPEG 파일을 선택하세요.");
+        if (!isImageFile(file)) throw new Error("PNG 또는 JPEG 파일을 선택하세요.");
         if (items.some(entry => entry !== item && entry.key === file.name)) {
           throw new Error("같은 이름의 파일이 이미 목록에 있습니다.");
         }
-        const corrected = makeItem(file, file.name);
+        const corrected = makeItem(withImageType(file), file.name);
         await checkImage(corrected);
         if (corrected.state === "size-error") throw new Error(corrected.reason);
         items[items.indexOf(item)] = corrected;
         item.row.replaceWith(corrected.row);
-        if (rememberedSelection === item) rememberedSelection = null;
         if (selected === item) {
           $("type-filter").value = "pending";
-          await select(corrected);
+          select(null);
         }
         setStatus("파일을 교체했습니다. 검사 시작을 눌러 주세요.");
       } catch (error) {
@@ -849,11 +991,12 @@
 
     function verdictRows(item) {
       const result = item?.state === "done" ? item.data : null;
+      const prediction = result?.reviewed_label ?? result?.prediction;
+      const boxes = result?.reviewed_boxes ?? result?.boxes ?? [];
       const rows = [
-        ["결함 종류", !result ? "—" : !result.is_anomaly ? "해당 없음"
-          : item.bucket === "untyped" ? "유형 미확인" : bucketLabel(item.bucket)],
-        ["결함 위치", !result ? "—" : !result.is_anomaly ? "해당 없음"
-          : result.boxes.length ? `${result.boxes.length}곳` : "표시할 위치 없음"],
+        ["결함 종류", !result ? "—" : prediction === "normal" ? "해당 없음" : bucketLabel(item.bucket)],
+        ["결함 위치", !result ? "—" : prediction === "normal" ? "해당 없음"
+          : boxes.length ? `${boxes.length}곳` : "표시할 위치 없음"],
       ];
       if (!result) return rows;
       if (Object.hasOwn(result, "reviewed_label")) {
@@ -902,6 +1045,7 @@
     async function renderViewer() {
       const item = selected;
       const token = ++renderToken;
+      renderedItem = null;
       const done = item?.state === "done";
 
       $("viewer-empty").hidden = Boolean(item);
@@ -911,8 +1055,11 @@
 
       if (!item) return;
 
-      $("canvas-boxed").dataset.boxes = String(Boolean(done && item.data?.boxes.length));
-      $("canvas-boxed").dataset.tone = done && item.bucket === "untyped" ? "untyped" : done && item.data.is_anomaly ? "defect" : "";
+      const modelBoxes = done && !item.data.reviewed_label ? item.data.boxes : [];
+      const visibleBoxes = item.data?.reviewed_boxes ?? modelBoxes;
+      $("canvas-boxed").dataset.boxes = String(Boolean(visibleBoxes.length));
+      $("canvas-boxed").dataset.tone = done && (item.data.reviewed_label ?? item.data.prediction) === "defect"
+        ? "defect" : "";
       const bitmap = await createImageBitmap(item.file);
       if (token !== renderToken) {
         bitmap.close();
@@ -920,14 +1067,17 @@
       }
 
       const scale = Math.min(1, 720 / Math.max(bitmap.width, bitmap.height));
-      paint($("canvas-boxed"), bitmap, scale, done ? item.data.boxes : [],
-        done && item.data.is_anomaly ? bucketLabel(item.bucket) : undefined);
+      paint($("canvas-boxed"), bitmap, scale, modelBoxes,
+        modelBoxes.length ? bucketLabel(item.bucket) : undefined);
       bitmap.close();
+      renderedItem = item;
+      drawReviewBoxes(item);
     }
 
     function select(item) {
       selected?.btn.classList.remove("active");
       selected = item;
+      boxDrag = null;
       item?.btn.classList.add("active");
       syncControls();
       return renderViewer();
@@ -935,10 +1085,11 @@
 
     // ---------- 리스트와 필터 ----------
     function matches(item, filter) {
+      if (item.reviewDismissed) return false;
       if (filter === "review") return inReview(item);
       if (item.state === "size-error") return false;
       if (filter === "all") return true;
-      if (filter === "known-defect") return item.state === "done" && item.data.is_anomaly && item.bucket !== "untyped";
+      if (filter === "known-defect") return item.state === "done" && TYPES.some(type => type.id === item.bucket);
       if (filter === "incomplete") return ["ready", "running"].includes(item.state);
       if (filter === "pending") return item.state === "ready";
       if (filter === "error") return item.state === "error";
@@ -957,12 +1108,6 @@
       }
 
       document.querySelectorAll("[data-category]").forEach(b => b.setAttribute("aria-pressed",String(b.dataset.category===filter)));
-      if (!selected || !matches(selected, filter)) {
-        const next = rememberedSelection && items.includes(rememberedSelection) && matches(rememberedSelection, filter)
-          ? rememberedSelection
-          : items.find((item) => matches(item, filter)) || null;
-        if (selected !== next) select(next);
-      }
       $("list-empty").hidden = shown > 0;
       $("list-empty").textContent = items.length
         ? "해당 종류의 이미지가 없습니다."
@@ -989,11 +1134,11 @@
 
     function renderCounts() {
       const total = items.filter(item => item.state !== "size-error").length;
-      const normal = items.filter(item => item.state === "done" && !item.data.is_anomaly).length;
-      const untyped = items.filter(item => item.state === "done" && item.bucket === "untyped").length;
-      const defect = items.filter(item => item.state === "done" && item.data.is_anomaly).length - untyped;
+      const normal = items.filter(item => item.state === "done" && item.bucket === "normal").length;
+      const review = items.filter(item => item.state === "done" && item.bucket === "review").length;
+      const defect = items.filter(item => item.state === "done" && TYPES.some(type => type.id === item.bucket)).length;
       const failed = items.filter(item => item.state === "error").length;
-      const processed = normal + untyped + defect + failed;
+      const processed = normal + review + defect + failed;
       const share = count => total ? (100 * count / total).toFixed(1).replace(/\.0$/, "") : "0";
       const summary = document.createElement("strong");
       summary.textContent = `전체 처리 ${share(processed)}% (${processed}/${total})`;
@@ -1005,7 +1150,7 @@
       for (const [label, count, color, filter] of [
         ["정상", normal, "#237a50", "normal"],
         ["불량 의심 · 유형 확인", defect, "#be3e36", "known-defect"],
-        ["유형 미확인", untyped, "#ad6800", "untyped"],
+        ["재검토", review, "#ad6800", "review"],
         ["검사 실패", failed, "#7041a1", "error"],
         ["처리 전·진행 중", total - processed, "#e5e9ef", "incomplete"],
       ]) {
@@ -1020,7 +1165,7 @@
         swatch.style.backgroundColor = color;
         entry.title = caption;
         entry.setAttribute("aria-label", caption);
-        const shortLabels = {normal: "정상", "known-defect": "불량", untyped: "미확인", error: "실패", incomplete: "대기"};
+        const shortLabels = {normal: "정상", "known-defect": "불량", review: "재검토", error: "실패", incomplete: "대기"};
         const metric = document.createElement("small");
         metric.textContent = ` ${share(count)}% (${count})`;
         entry.append(swatch, shortLabels[filter], metric);
@@ -1071,7 +1216,6 @@
       inspectButton.textContent = adding ? "이미지 확인 중" : running ? "검사 실행 중" : inspectionBatch ? "검사 재개" : !items.length ? "검사 이미지 없음" : !choice ? "모델 버전 선택" : reinspect ? "재검사" : "검사 시작";
 
       $("pick-files").disabled = running || adding;
-      if ($("pick-files").disabled && !$("image-add-options").hidden) toggleImageAddOptions(false);
       $("clear-button").hidden = !action.hidden;
       $("clear-button").disabled = adding || !items.length;
       renderReview(selected);
@@ -1101,17 +1245,12 @@
       const filename = document.createElement("span");
       filename.className = "filename";
       filename.textContent = key;
-      item.btn.append(item.canvas, filename, item.badge);
-      item.btn.addEventListener("click", () => {
-        const follow = $("follow-progress");
-        follow.checked = !follow.checked && rememberedSelection === item && selected === item;
-        rememberedSelection = follow.checked ? null : item;
-        select(item);
-        if (follow.checked) follow.dispatchEvent(new Event("change"));
-      });
+      item.btn.append(item.canvas);
+      item.btn.addEventListener("click", () => select(item));
 
-      item.row = document.createElement("div"); item.row.className = "image-row";
-      item.row.append(item.btn);
+      item.row = document.createElement("div");
+      item.row.className = "image-row";
+      item.row.append(item.btn, filename, item.badge);
       return item;
     }
 
@@ -1139,6 +1278,16 @@
       }
     }
 
+    function isImageFile(file) {
+      return IMAGE_TYPES.includes(file.type) || (!file.type && /\.(png|jpe?g)$/i.test(file.name));
+    }
+
+    function withImageType(file) {
+      if (file.type) return file;
+      const type = /\.png$/i.test(file.name) ? "image/png" : "image/jpeg";
+      return new File([file], file.name, {type, lastModified: file.lastModified});
+    }
+
     async function addFiles(files) {
       if (running || adding) {
         setStatus("현재 검사 재개 후 이미지 추가 가능", true);
@@ -1151,7 +1300,7 @@
       const fresh = [];
 
       for (const file of files) {
-        if (!IMAGE_TYPES.includes(file.type)) {
+        if (!isImageFile(file)) {
           continue;
         }
 
@@ -1159,7 +1308,7 @@
         if (known.has(key)) continue;
 
         known.add(key);
-        fresh.push(makeItem(file, key));
+        fresh.push(makeItem(withImageType(file), key));
       }
 
       setStatus("");
@@ -1236,7 +1385,7 @@
     }
 
     function canReinspect(item) {
-      return item.state === "done" || item.state === "error";
+      return !item.reviewDismissed && !item.reviewPending && (item.state === "done" || item.state === "error");
     }
 
     function imageSelectionOption(item, index) {
@@ -1276,22 +1425,15 @@
     function deleteSelectedImages() {
       if (running || adding || !deleteSelection.size) return;
 
+      if ([...deleteSelection].some(item => item.reviewPending)) return;
       const count = deleteSelection.size;
-      const selectedIndex = items.indexOf(selected);
       const removedSelected = deleteSelection.has(selected);
-      const filter = $("type-filter").value;
       items = items.filter((item) => !deleteSelection.has(item));
       for (const item of deleteSelection) {
-        if (rememberedSelection === item) rememberedSelection = null;
         if (lastCompletedItem === item) lastCompletedItem = null;
         item.row.remove();
       }
-      if (removedSelected) {
-        const next = items.slice(selectedIndex).find((item) => matches(item, filter))
-          || items.find((item) => matches(item, filter))
-          || null;
-        select(next);
-      }
+      if (removedSelected) select(null);
 
       $("delete-dialog").close();
       renderSummary();
@@ -1319,20 +1461,10 @@
     }
 
     function bucketOf(data) {
-      if (!data.is_anomaly) return "normal";
-      const aliases = {
-        "갈적색결함": "brown", "갈적색": "brown",
-        "청색결함": "blue", "청색": "blue", "밝은청색결함": "blue",
-        "어두운청색결함": "blue", "밝은청색": "blue", "어두운청색": "blue",
-        "lightblue": "blue", "darkblue": "blue",
-        "흑색결함": "black", "흑색": "black", "표면결함": "surface", "표면": "surface",
-      };
-      for (const raw of [data.defect_type, data.defect_subtype]) {
-        const value = String(raw || "").normalize("NFKC").trim().toLowerCase().replace(/[\s_-]+/g, "");
-        if (TYPES.some((type) => type.id === value)) return value;
-        if (Object.hasOwn(aliases, value)) return aliases[value];
-      }
-      return "untyped";
+      if ((data.reviewed_label ?? data.prediction) === "normal") return "normal";
+      if (data.review_required && !data.reviewed_label) return "review";
+      const type = data.reviewed_defect_type ?? data.defect_type;
+      return TYPES.some(option => option.id === type) ? type : "review";
     }
 
     let healthRequest = 0;
@@ -1438,6 +1570,7 @@
       try {
         item.data = await predict(item.file, choice);
         item.reviewDismissed = false;
+        item.reviewDraft = null;
         item.lastChoice = choice;
         item.bucket = bucketOf(item.data);
         item.state = "done";
@@ -1459,11 +1592,7 @@
 
       const followCompleted = item.state === "done" && $("follow-progress").checked
         && matches(item, $("type-filter").value);
-      if (followCompleted) {
-        await select(item);
-      } else if (item === selected) {
-        renderViewer();
-      }
+      if (item === selected) renderViewer();
       renderCounts();
       applyFilter();
       if (followCompleted) followItem(item);
@@ -1488,7 +1617,6 @@
       pauseRequested = false;
       running = true;
       ++healthRequest;
-      $("added-image-count").hidden = true;
       syncControls();
       renderCounts();
 
@@ -1539,8 +1667,10 @@
     }
 
     function needsInspection(item, choice) {
-      return item.state === "ready" || item.state === "error"
-        || (item.state === "done" && choice && item.lastChoice !== choice);
+      return !item.reviewDismissed && !item.reviewPending && (
+        item.state === "ready" || item.state === "error" ||
+        (item.state === "done" && choice && item.lastChoice !== choice)
+      );
     }
 
     function renderVersionOptions(role, versions) {
@@ -1703,61 +1833,57 @@
     }
     $("follow-progress").addEventListener("change", () => {
       if (!$("follow-progress").checked) return;
-      rememberedSelection = null;
-      if (lastCompletedItem?.state === "done" && matches(lastCompletedItem, $("type-filter").value)) {
-        select(lastCompletedItem);
-        followItem(lastCompletedItem);
-      }
+      if (lastCompletedItem?.state === "done") followItem(lastCompletedItem);
     });
     const drop = $("drop-zone");
     drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("drag-over");});
-    drop.addEventListener("dragleave",()=>drop.classList.remove("drag-over"));
-    async function readEntry(entry, prefix="") {
-      if (entry.isFile) return [await new Promise((resolve,reject)=>entry.file(file=>{Object.defineProperty(file,"relativePath",{value:prefix+file.name});resolve(file);},reject))];
-      const reader=entry.createReader(), files=[];
-      while(true){const batch=await new Promise((resolve,reject)=>reader.readEntries(resolve,reject));if(!batch.length)break;for(const child of batch)files.push(...await readEntry(child,prefix+entry.name+"/"));}
-      return files;
+    drop.addEventListener("dragleave", event => {
+      if (!drop.contains(event.relatedTarget)) drop.classList.remove("drag-over");
+    });
+    async function readEntry(entry, prefix = "") {
+      if (entry.isFile) {
+        const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+        Object.defineProperty(file, "relativePath", {value: prefix + file.name});
+        return [file];
+      }
+      if (!entry.isDirectory) return [];
+      const reader = entry.createReader();
+      const files = [];
+      for (;;) {
+        const batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+        if (!batch.length) return files;
+        for (const child of batch) files.push(...await readEntry(child, prefix + entry.name + "/"));
+      }
     }
-    drop.addEventListener("drop",async e=>{
-      e.preventDefault();drop.classList.remove("drag-over");if(running||adding)return;
-      const entries=[...e.dataTransfer.items].filter(i=>i.kind==="file").map(i=>i.webkitGetAsEntry?.());
-      const fallback=[...e.dataTransfer.files];
-      adding=true;syncControls();
-      try { const files=[];if(entries.length && entries.every(Boolean)){for(const entry of entries)files.push(...await readEntry(entry));}else files.push(...fallback);
-        adding=false; await addFiles(files);
-      }catch(error){setStatus(`파일 읽기 실패: ${error.message}`,true);}finally{adding=false;syncControls();}
+
+    drop.addEventListener("drop", async event => {
+      event.preventDefault();
+      drop.classList.remove("drag-over");
+      if (running || adding) return;
+      $("added-image-count").hidden = true;
+      const sources = Array.from(event.dataTransfer.items)
+        .filter(item => item.kind === "file")
+        .map(item => ({entry: item.webkitGetAsEntry?.(), file: item.getAsFile()}));
+      const fallback = Array.from(event.dataTransfer.files);
+      adding = true;
+      syncControls();
+      try {
+        const files = [];
+        for (const {entry, file} of sources) {
+          if (entry) files.push(...await readEntry(entry));
+          else if (file) files.push(file);
+        }
+        adding = false;
+        await addFiles(sources.length ? files : fallback);
+      } catch (error) {
+        setStatus(`파일 읽기 실패: ${error.message}`, true);
+      } finally {
+        adding = false;
+        syncControls();
+      }
     });
     // ---------- 시작 ----------
-    const imageAddButton = $("pick-files");
-    const imageAddOptions = $("image-add-options");
-    function toggleImageAddOptions(open) {
-      imageAddOptions.hidden = !open;
-      imageAddButton.setAttribute("aria-expanded", String(open));
-    }
-    imageAddButton.addEventListener("click", () => toggleImageAddOptions(imageAddOptions.hidden));
-    for (const [button, input] of [
-      ["choose-image-files", "files"],
-      ["choose-image-folder", "image-folder"]
-    ]) {
-      $(button).addEventListener("click", () => {
-        toggleImageAddOptions(false);
-        imageAddButton.focus();
-        if (!imageAddButton.disabled) $(input).click();
-      });
-    }
-    document.addEventListener("click", (event) => {
-      if (!imageAddOptions.hidden && !$("image-add-control").contains(event.target)) {
-        toggleImageAddOptions(false);
-      }
-    });
-    $("image-add-control").addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !imageAddOptions.hidden) {
-        toggleImageAddOptions(false);
-        imageAddButton.focus();
-      }
-    });
-    // Reuse the same change handler as the image-file picker.
-    $("image-folder").addEventListener("change", handlePickedImages);
+    $("pick-files").addEventListener("click", () => $("files").click());
 
     async function handlePickedImages(event) {
       const list = Array.from(event.target.files);
@@ -2456,6 +2582,11 @@
         historyDetailData.replaceChildren(
           models,
           regions,
+          ...(record.reviewed_boxes?.length ? [
+            historyCard("작업자 결함 위치 (x, y, w, h)", record.reviewed_boxes.map(
+              (box, index) => [`박스 ${index + 1}`, [box.x, box.y, box.w, box.h].join(", ")]
+            ))
+          ] : []),
           historyCard("처리 시간", [
             ["전체", duration(record.total_latency_ms)],
             ["탐지", duration(record.detector_latency_ms)],
@@ -2463,7 +2594,8 @@
           ]),
           historyCard("기록 및 검토", [
             ["요청 ID", record.id],
-            ["모델 판정", ({normal: "정상", defect: "불량"})[record.prediction] ?? "—"],
+            ["모델 판정", ({normal: "정상", defect: "불량"})[record.model_prediction ?? record.prediction] ?? "—"],
+            ["모델 분류 유형", defectNames[record.model_defect_type] ?? "—"],
             ["최종 판정", ({normal: "정상", defect: "불량"})[record.reviewed_label] ?? "미확정"],
             ["최종 판정 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
           ])
@@ -2625,6 +2757,7 @@
 </script>
 </body>
 </html>
+
 
 
 
