@@ -394,6 +394,18 @@
 <h3>판정 상세</h3>
 <p id="verdict-message" role="status"></p>
 <dl id="info"></dl>
+<div id="final-review" hidden>
+  <p id="review-reason"></p>
+  <div class="row">
+    <button class="secondary" id="review-normal" type="button">최종 정상</button>
+    <button class="secondary" id="review-defect" type="button">최종 불량</button>
+    <button class="secondary" id="review-reinspect" type="button">재검사</button>
+    <button class="secondary" id="review-replace" type="button">교체 파일 선택</button>
+    <button class="secondary" id="review-cancel" type="button">검사 취소</button>
+    <input id="review-file" type="file" accept="image/png,image/jpeg" hidden>
+  </div>
+  <p id="review-status" role="status"></p>
+</div>
 <details id="verdict-details" hidden><summary>판정 근거</summary><div id="verdict-extra"></div></details>
 <button class="secondary" disabled id="download-image" type="button">이미지 JSON 저장</button>
 <details open id="json-panel"><summary>응답 JSON</summary><pre id="json"></pre></details>
@@ -590,6 +602,7 @@
     const FILTERS = [
       { id: "all", label: "전체" },
       ...BUCKETS,
+      { id: "review", label: "재검토" },
       { id: "pending", label: "미검사" },
       { id: "error", label: "실패" }
     ];
@@ -639,8 +652,8 @@
     const BOX_OUTLINE = "#171717";
 
     function paint(canvas, bitmap, scale, boxes, defectLabel) {
-      canvas.width = Math.round(WIDTH * scale);
-      canvas.height = Math.round(HEIGHT * scale);
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
 
       const ctx = canvas.getContext("2d");
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
@@ -686,7 +699,8 @@
       const text = {
         ready: "대기",
         running: "검사 중",
-        error: "실패"
+        error: "실패",
+        "size-error": "크기 오류"
       }[item.state];
 
       item.btn.dataset.result = item.state === "done" ? (item.data.is_anomaly ? "defect" : "normal") : item.state;
@@ -700,8 +714,138 @@
       if (item.state === "ready") return "검사 대기";
       if (item.state === "running") return "검사 중";
       if (item.state === "error") return "검사 실패";
+      if (item.state === "size-error") return "이미지 크기 오류";
       return item.data.is_anomaly ? "불량 의심" : "정상";
     }
+
+    function needsReview(item) {
+      return item?.state === "done" && item.data.is_anomaly && !item.data.boxes.length;
+    }
+
+    function inReview(item) {
+      return Boolean(item && !item.reviewDismissed && (item.state === "size-error" || needsReview(item)));
+    }
+
+    function renderReview(item) {
+      const show = inReview(item);
+      $("final-review").hidden = !show;
+      if (!show) return;
+
+      const sizeError = item.state === "size-error";
+      const busy = running || adding || Boolean(inspectionBatch) || Boolean(item.reviewPending);
+      const canJudge = needsReview(item) && Boolean(item.data.id);
+      $("review-reason").textContent = sizeError ? item.reason : "결함 위치 미검출";
+      for (const id of ["review-normal", "review-defect"]) {
+        $(id).hidden = sizeError;
+        $(id).disabled = busy || !canJudge;
+      }
+      $("review-reinspect").hidden = sizeError;
+      $("review-reinspect").disabled = busy || !selectedModelChoice();
+      $("review-replace").hidden = !sizeError;
+      $("review-replace").disabled = busy;
+      $("review-cancel").disabled = busy;
+      $("review-status").textContent = item.reviewResult === item.data ? item.reviewMessage || "" : "";
+    }
+
+    async function saveReview(label) {
+      const item = selected;
+      if (!inReview(item) || !needsReview(item) || !item.data.id ||
+          running || adding || inspectionBatch || item.reviewPending) return;
+      const result = item.data;
+      item.reviewPending = true;
+      item.reviewResult = result;
+      item.reviewMessage = "최종 판정 저장 중…";
+      renderReview(item);
+      try {
+        const response = await fetch(`/api/inference/${encodeURIComponent(result.id)}/review`, {
+          method: "PUT",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({label}),
+        });
+        if (response.status === 401) {
+          window.dispatchEvent(new Event("inspection-session-expired"));
+          throw new Error("세션이 만료되었습니다.");
+        }
+        if (response.status === 404) {
+          throw new Error("검사 기록을 찾을 수 없습니다. 잠시 뒤 다시 시도하세요.");
+        }
+        if (!response.ok) throw new Error("최종 판정을 저장하지 못했습니다.");
+        const review = await response.json();
+        result.reviewed_label = review.reviewed_label;
+        result.reviewed_at = review.reviewed_at;
+        item.reviewMessage = "최종 판정을 저장했습니다.";
+      } catch (error) {
+        item.reviewMessage = error.message;
+      } finally {
+        item.reviewPending = false;
+        if (item === selected) renderVerdict(item);
+      }
+    }
+
+    $("review-normal").addEventListener("click", () => saveReview("normal"));
+    $("review-defect").addEventListener("click", () => saveReview("defect"));
+    $("review-reinspect").addEventListener("click", () => {
+      if (!inReview(selected) || !needsReview(selected) || $("review-reinspect").disabled) return;
+      inspectAll([selected]);
+    });
+
+    $("review-cancel").addEventListener("click", () => {
+      const item = selected;
+      if (!inReview(item) || $("review-cancel").disabled) return;
+      if (item.state === "size-error") {
+        items = items.filter(entry => entry !== item);
+        if (rememberedSelection === item) rememberedSelection = null;
+        item.row.remove();
+      } else {
+        item.reviewDismissed = true;
+      }
+      renderCounts();
+      applyFilter();
+      syncControls();
+      setStatus("재검토 목록에서 제외했습니다.");
+    });
+
+    let replacementTarget = null;
+    $("review-replace").addEventListener("click", () => {
+      replacementTarget = selected;
+      $("review-file").click();
+    });
+    $("review-file").addEventListener("change", async (event) => {
+      const item = replacementTarget;
+      replacementTarget = null;
+      const [file] = event.target.files;
+      event.target.value = "";
+      if (!file || !items.includes(item) || item.state !== "size-error" ||
+          adding || running || inspectionBatch) return;
+
+      adding = true;
+      syncControls();
+      try {
+        if (!IMAGE_TYPES.includes(file.type)) throw new Error("PNG 또는 JPEG 파일을 선택하세요.");
+        if (items.some(entry => entry !== item && entry.key === file.name)) {
+          throw new Error("같은 이름의 파일이 이미 목록에 있습니다.");
+        }
+        const corrected = makeItem(file, file.name);
+        await checkImage(corrected);
+        if (corrected.state === "size-error") throw new Error(corrected.reason);
+        items[items.indexOf(item)] = corrected;
+        item.row.replaceWith(corrected.row);
+        if (rememberedSelection === item) rememberedSelection = null;
+        if (selected === item) {
+          $("type-filter").value = "pending";
+          await select(corrected);
+        }
+        setStatus("파일을 교체했습니다. 검사 시작을 눌러 주세요.");
+      } catch (error) {
+        item.reviewResult = item.data;
+        item.reviewMessage = error.message;
+      } finally {
+        adding = false;
+        renderCounts();
+        applyFilter();
+        syncControls();
+      }
+    });
 
     function verdictRows(item) {
       const result = item?.state === "done" ? item.data : null;
@@ -715,7 +859,7 @@
       if (Object.hasOwn(result, "reviewed_label")) {
         const labels = {normal: "정상", defect: "불량"};
         const review = result.reviewed_label;
-        rows.push(["검수 상태", review ? `작업자 확인 · ${labels[review] ?? review}` : "미검수"]);
+        rows.push(["최종 판정", review ? labels[review] ?? review : "미확정"]);
       }
       return rows;
     }
@@ -750,6 +894,7 @@
         row.textContent = text;
         return row;
       }));
+      renderReview(item);
       $("verdict-details").hidden = !extra.some(Boolean);
       $("json").textContent = result ? JSON.stringify(result, null, 2) : "응답 없음";
     }
@@ -774,7 +919,8 @@
         return;
       }
 
-      paint($("canvas-boxed"), bitmap, 1, done ? item.data.boxes : [],
+      const scale = Math.min(1, 720 / Math.max(bitmap.width, bitmap.height));
+      paint($("canvas-boxed"), bitmap, scale, done ? item.data.boxes : [],
         done && item.data.is_anomaly ? bucketLabel(item.bucket) : undefined);
       bitmap.close();
     }
@@ -789,6 +935,8 @@
 
     // ---------- 리스트와 필터 ----------
     function matches(item, filter) {
+      if (filter === "review") return inReview(item);
+      if (item.state === "size-error") return false;
       if (filter === "all") return true;
       if (filter === "known-defect") return item.state === "done" && item.data.is_anomaly && item.bucket !== "untyped";
       if (filter === "incomplete") return ["ready", "running"].includes(item.state);
@@ -840,7 +988,7 @@
     }
 
     function renderCounts() {
-      const total = items.length;
+      const total = items.filter(item => item.state !== "size-error").length;
       const normal = items.filter(item => item.state === "done" && !item.data.is_anomaly).length;
       const untyped = items.filter(item => item.state === "done" && item.bucket === "untyped").length;
       const defect = items.filter(item => item.state === "done" && item.data.is_anomaly).length - untyped;
@@ -926,6 +1074,7 @@
       if ($("pick-files").disabled && !$("image-add-options").hidden) toggleImageAddOptions(false);
       $("clear-button").hidden = !action.hidden;
       $("clear-button").disabled = adding || !items.length;
+      renderReview(selected);
       for (const role of modelDropdowns) {
         const dropdown = $(`${role}-dropdown`);
         const locked = running || adding;
@@ -978,7 +1127,11 @@
 
       try {
         if (bitmap.width !== WIDTH || bitmap.height !== HEIGHT) {
-          throw new Error(`크기 ${bitmap.width}×${bitmap.height} (184×597만 가능)`);
+          item.state = "size-error";
+          item.reason = `현재 ${bitmap.width}×${bitmap.height}px · 필요 ${WIDTH}×${HEIGHT}px`;
+          updateBadge(item);
+          paint(item.canvas, bitmap, 180 / Math.max(bitmap.width, bitmap.height), []);
+          return;
         }
         paint(item.canvas, bitmap, THUMB_SCALE, []);
       } finally {
@@ -1015,7 +1168,7 @@
         try {
           await checkImage(item);
           items.push(item);
-          inspectionBatch?.targets.push(item);
+          if (item.state === "ready") inspectionBatch?.targets.push(item);
         } catch (error) {
           skipped.push({ key: item.key, reason: error.message });
         }
@@ -1023,11 +1176,14 @@
 
       const addedCount = $("added-image-count");
       addedCount.hidden = false;
-      addedCount.textContent = `${items.length - previousCount}장 추가`;
+      const sizeErrors = fresh.filter(item => item.state === "size-error").length;
+      addedCount.textContent = `${items.length - previousCount - sizeErrors}장 추가`
+        + (sizeErrors ? ` · 재검토에 크기 오류 ${sizeErrors}장` : "");
       items.sort((a, b) => a.key.localeCompare(b.key));
       $("list").replaceChildren(...items.map((i) => i.row));
 
       adding = false;
+      if (sizeErrors && !items.some(item => item.state === "ready")) $("type-filter").value = "review";
       renderSummary();
       renderCounts();
       applyFilter();
@@ -1281,6 +1437,7 @@
 
       try {
         item.data = await predict(item.file, choice);
+        item.reviewDismissed = false;
         item.lastChoice = choice;
         item.bucket = bucketOf(item.data);
         item.state = "done";
@@ -2306,8 +2463,9 @@
           ]),
           historyCard("기록 및 검토", [
             ["요청 ID", record.id],
-            ["검토 결과", record.reviewed_label ?? "미검토"],
-            ["검토 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
+            ["모델 판정", ({normal: "정상", defect: "불량"})[record.prediction] ?? "—"],
+            ["최종 판정", ({normal: "정상", defect: "불량"})[record.reviewed_label] ?? "미확정"],
+            ["최종 판정 시간", record.reviewed_at ? historyDate.format(new Date(record.reviewed_at)) : null],
           ])
         );
         historyDetailData.hidden = false;
@@ -2467,5 +2625,6 @@
 </script>
 </body>
 </html>
+
 
 

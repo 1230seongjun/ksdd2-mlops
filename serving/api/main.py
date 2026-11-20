@@ -13,6 +13,7 @@ from datetime import date, datetime, time as midnight, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 from io import BytesIO
+from uuid import UUID
 from contextlib import asynccontextmanager
 
 from PIL import Image, UnidentifiedImageError
@@ -494,6 +495,49 @@ def read_inference_history(
             "total": total, "total_pages": total_pages}
 
 
+class FinalReview(BaseModel):
+    label: Literal["normal", "defect"]
+
+
+@app.put("/inference/{request_id}/review")
+def save_final_review(
+    request_id: UUID,
+    review: FinalReview,
+    user: tuple[int, str] = Depends(get_current_user),
+):
+    user_id, _ = user
+    with db.connect_db() as conn:
+        record = conn.execute(
+            """
+            SELECT r.prediction, c.regions, r.reviewed_label, r.reviewed_at
+            FROM inference_requests AS r
+            LEFT JOIN classifier_results AS c ON c.request_id = r.id
+            WHERE r.id = %s AND r.user_id = %s
+            FOR UPDATE OF r
+            """,
+            (str(request_id), user_id),
+        ).fetchone()
+        if record is None:
+            raise HTTPException(status_code=404, detail="검사 기록을 찾을 수 없습니다.")
+
+        prediction, regions, label, reviewed_at = record
+        if prediction != "defect" or build_boxes(regions or [], 184, 597):
+            raise HTTPException(status_code=409, detail="결함 위치 미검출 건만 재검토할 수 있습니다.")
+
+        if label != review.label or reviewed_at is None:
+            label, reviewed_at = conn.execute(
+                """
+                UPDATE inference_requests
+                SET reviewed_label = %s, reviewed_at = CURRENT_TIMESTAMP
+                WHERE id = %s AND user_id = %s
+                RETURNING reviewed_label, reviewed_at
+                """,
+                (review.label, str(request_id), user_id),
+            ).fetchone()
+
+    return {"id": request_id, "reviewed_label": label, "reviewed_at": reviewed_at}
+
+
 predict_requests = Counter(
     "defectcatch_predict_requests_total",
     "Number of HTTP responses for prediction requests",
@@ -934,5 +978,6 @@ async def predict(
         "confidence": defect["confidence"],
         "boxes": build_boxes(defect["regions"], width, height),
     }
+
 
 
