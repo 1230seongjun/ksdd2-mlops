@@ -65,7 +65,7 @@ def insert_inference(conn, record, created_at=None):
     conn.execute(
         "INSERT INTO detector_results "
         "(request_id, model_name, model_version, anomaly_score, "
-        "is_defect, latency_ms) VALUES (%s, %s, %s, %s, %s, %s)",
+        "is_defect, latency_ms, threshold) VALUES (%s, %s, %s, %s, %s, %s, %s)",
         (
             record["id"],
             detector["model_name"],
@@ -73,6 +73,7 @@ def insert_inference(conn, record, created_at=None):
             detector["anomaly_score"],
             detector["is_defect"],
             detector["latency_ms"],
+            detector.get("threshold"),
         ),
     )
     if classifier is not None:
@@ -183,14 +184,20 @@ def list_history_workers(conn):
             """
             SELECT id AS worker_id, split_part(email, '@', 1) AS worker_account
             FROM users
-            WHERE role = 'worker'
+            WHERE role IN ('worker', 'admin')
             ORDER BY lower(split_part(email, '@', 1)), id
             """
         )
         return cur.fetchall()
 
 def list_inference_requests(conn, user_id, role, *, filename=None, prediction=None,
-                            start=None, end=None, offset=0, limit=50, worker_id=None):
+                            start=None, end=None, offset=0, limit=50, worker_id=None,
+                            reviewed=None, anomaly_min=None, anomaly_max=None,
+                            confidence_min=None, confidence_max=None):
+    model_joins = """
+            LEFT JOIN detector_results AS d ON d.request_id = r.id
+            LEFT JOIN classifier_results AS c ON c.request_id = r.id
+    """
     conditions = """
             WHERE r.review_status IN ('not_required', 'finalized')
               AND (%(role)s = 'admin' OR r.user_id = %(user_id)s)
@@ -198,12 +205,21 @@ def list_inference_requests(conn, user_id, role, *, filename=None, prediction=No
               AND (%(filename)s::text IS NULL OR
                    strpos(lower(r.filename), lower(%(filename)s::text)) > 0)
               AND (%(prediction)s::text IS NULL OR COALESCE(r.reviewed_label, r.prediction) = %(prediction)s)
+              AND (%(reviewed)s::text IS NULL OR CASE
+                   WHEN %(reviewed)s = 'unreviewed' THEN r.reviewed_label IS NULL
+                   ELSE r.reviewed_label = %(reviewed)s END)
+              AND (%(anomaly_min)s::double precision IS NULL OR d.anomaly_score >= %(anomaly_min)s)
+              AND (%(anomaly_max)s::double precision IS NULL OR d.anomaly_score <= %(anomaly_max)s)
+              AND (%(confidence_min)s::double precision IS NULL OR c.confidence >= %(confidence_min)s)
+              AND (%(confidence_max)s::double precision IS NULL OR c.confidence <= %(confidence_max)s)
               AND (%(start)s::timestamptz IS NULL OR r.created_at >= %(start)s)
               AND (%(end)s::timestamptz IS NULL OR r.created_at < %(end)s)
     """
     params = dict(
         role=role, user_id=user_id, worker_id=worker_id, filename=filename,
         prediction=prediction, start=start, end=end, offset=offset, limit=limit,
+        reviewed=reviewed, anomaly_min=anomaly_min, anomaly_max=anomaly_max,
+        confidence_min=confidence_min, confidence_max=confidence_max,
     )
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
@@ -226,6 +242,7 @@ def list_inference_requests(conn, user_id, role, *, filename=None, prediction=No
                 d.model_name AS detector_name,
                 d.model_version AS detector_version,
                 d.anomaly_score,
+                d.threshold AS detector_threshold,
                 d.is_defect,
                 d.latency_ms AS detector_latency_ms,
                 c.model_name AS classifier_name,
@@ -239,16 +256,15 @@ def list_inference_requests(conn, user_id, role, *, filename=None, prediction=No
                 c.latency_ms AS classifier_latency_ms
             FROM inference_requests AS r
             LEFT JOIN users AS u ON u.id = r.user_id
-            LEFT JOIN detector_results AS d ON d.request_id = r.id
-            LEFT JOIN classifier_results AS c ON c.request_id = r.id
-            """ + conditions + """
+            """ + model_joins + conditions + """
             ORDER BY r.created_at DESC, r.id DESC
             LIMIT %(limit)s OFFSET %(offset)s
             """,
             params,
         )
         records = cur.fetchall()
-        cur.execute("SELECT count(*) AS total FROM inference_requests AS r " + conditions, params)
+        cur.execute("SELECT count(*) AS total FROM inference_requests AS r " + model_joins + conditions, params)
         return records, cur.fetchone()["total"]
+
 
 
