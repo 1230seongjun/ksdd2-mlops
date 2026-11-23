@@ -20,7 +20,7 @@ Nginx는 정적 HTML을 제공하고 `/api/` 접두어를 제거해 FastAPI에 �
 | --- | --- |
 | [compose.service.yaml](compose.service.yaml) | API·Nginx·Prometheus·Grafana 실행과 연결 설정 |
 | [nginx/default.conf](nginx/default.conf) | TLS, HTML 제공, API·Grafana 프록시 |
-| [prometheus/prometheus.yml](prometheus/prometheus.yml) | API 지표 수집 설정 |
+| [monitoring/prometheus/prometheus.yml](monitoring/prometheus/prometheus.yml) | API 지표 수집 설정 |
 | [웹 UI](../../serving/web/index.html) | 검사·결과 다운로드·인증·이력 화면 |
 | [추론 API 문서](../../serving/api/README.md) | API 계약과 인증·이력 저장 구조 |
 | [DB 스키마](../mlops/db/) | 검사·계정 스키마와 마이그레이션 |
