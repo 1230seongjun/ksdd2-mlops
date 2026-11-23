@@ -237,7 +237,7 @@ def get_current_user(
     return user
 
 class TrainingJobPayload(BaseModel):
-    model: Literal["anomaly", "classifier"]
+    model: Literal["anomaly", "classifier", "both"]
     fold: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] | None = None
     register_model: bool = False
 
