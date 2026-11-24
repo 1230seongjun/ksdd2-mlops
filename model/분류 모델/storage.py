@@ -40,3 +40,7 @@ def download_dataset(config: Config) -> None:
         if downloaded + skipped == 0:
             raise FileNotFoundError(f"버킷 {config.object_storage_bucket} 의 {prefix} 에서 이미지를 찾지 못했습니다")
         print(f"[{folder_name}] 새로 받음 {downloaded}장, 이미 있어서 건너뜀 {skipped}장")
+    if "bbox" in (config.label_type, config.eval_label_type):
+        config.bbox_json.parent.mkdir(parents=True, exist_ok=True)
+        client.download_file(config.object_storage_bucket, config.object_storage_bbox_key, str(config.bbox_json))   # 라벨을 고쳐도 크기가 같을 수 있어 매번 새로 받는다
+        print(f"[박스] {config.object_storage_bbox_key} → {config.bbox_json}")

@@ -1,0 +1,11 @@
+mlflow==3.6.0
+segmentation-models-pytorch
+numpy
+pandas
+pillow
+pyyaml
+scipy
+scikit-learn
+matplotlib
+boto3
+python-dotenv

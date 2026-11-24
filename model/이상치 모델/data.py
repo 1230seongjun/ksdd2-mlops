@@ -5,7 +5,7 @@ import torch
 from PIL import Image
 from torchvision import transforms
 
-from config import Config
+from config import Config, InferenceSettings
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp"}
 NORMAL_LABEL = 0
@@ -23,12 +23,14 @@ def preprocess_image(image: Image.Image) -> Image.Image:
     return image
 
 
-def image_to_tensor(image: Image.Image) -> torch.Tensor:
-    return image_transform(preprocess_image(image.convert("RGB")))
+def image_to_tensor(image: Image.Image, config: Config | InferenceSettings) -> torch.Tensor:
+    """RGB 로 바꾸고 설정한 크기로 늘리거나 줄여 텐서로 만든다 (비율은 무시). 크기가 이미 같으면 그대로다."""
+    image = preprocess_image(image.convert("RGB"))
+    return image_transform(image.resize((config.image_width, config.image_height), Image.Resampling.BILINEAR))
 
 
-def load_image(path: Path) -> torch.Tensor:
-    return image_to_tensor(Image.open(path))
+def load_image(path: Path, config: Config | InferenceSettings) -> torch.Tensor:
+    return image_to_tensor(Image.open(path), config)
 
 
 def split_dataset(config: Config) -> dict[str, tuple[list[Path], np.ndarray]]:

@@ -32,7 +32,6 @@ class FeatureExtractor(nn.Module):
         self.layer2 = backbone.layer2
         self.layer3 = backbone.layer3
 
-    @torch.no_grad()
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         layer2_features = self.layer2(self.early_layers(images))
         layer3_features = self.layer3(layer2_features)
@@ -46,6 +45,7 @@ class FeatureExtractor(nn.Module):
         return torch.cat([layer2_features, layer3_features], dim=1)  # (배치, 채널, 높이, 너비)
 
 
+@torch.no_grad()
 def extract_tensor_features(extractor: FeatureExtractor, images: list[torch.Tensor], config: Config | InferenceSettings
                             ) -> list[torch.Tensor]:
     """이미지 텐서 묶음(배치) 하나에서 이미지마다 (패치 수, 채널 수) 모양의 특징 텐서를 만든다."""
@@ -58,7 +58,7 @@ def extract_patch_features(extractor: FeatureExtractor, paths: list[Path], confi
     """이미지 파일마다 (패치 수, 채널 수) 모양의 특징 텐서를 반환한다."""
     features_per_image = []
     for start in range(0, len(paths), config.batch_size):
-        batch = [load_image(path) for path in paths[start:start + config.batch_size]]
+        batch = [load_image(path, config) for path in paths[start:start + config.batch_size]]
         features_per_image += extract_tensor_features(extractor, batch, config)
     return features_per_image
 
@@ -139,7 +139,7 @@ class PatchCoreDetector:
         """이미 읽어 둔 이미지(PIL)의 점수. 추론 서버가 요청으로 받은 이미지에 쓴다."""
         scores = []
         for start in range(0, len(images), self.config.batch_size):
-            batch = [image_to_tensor(image) for image in images[start:start + self.config.batch_size]]
+            batch = [image_to_tensor(image, self.config) for image in images[start:start + self.config.batch_size]]
             for features in extract_tensor_features(self.extractor, batch, self.config):
                 scores.append(compute_anomaly_score(features, self.memory_bank, self.config))
         return np.array(scores)
@@ -152,6 +152,7 @@ class PatchCoreDetector:
         torch.save(self.memory_bank.cpu(), directory / "memory_bank.pt")
         torch.save(self.extractor.state_dict(), directory / "extractor.pt")
         info = {**MODEL_INFO, "threshold": float(self.threshold),
+                "image_height": self.config.image_height, "image_width": self.config.image_width,
                 "batch_size": self.config.batch_size, "query_chunk_size": self.config.query_chunk_size}
         (directory / "model_info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -167,5 +168,6 @@ class PatchCoreDetector:
     def load_for_inference(cls, directory: Path, device: str = "cpu") -> "PatchCoreDetector":
         """저장된 모델 정보만으로 불러온다 (학습용 설정 파일이 필요 없다)."""
         info = json.loads((directory / "model_info.json").read_text(encoding="utf-8"))
-        settings = InferenceSettings(batch_size=info["batch_size"], query_chunk_size=info["query_chunk_size"], device=device)
+        settings = InferenceSettings(image_height=info["image_height"], image_width=info["image_width"],
+                                     batch_size=info["batch_size"], query_chunk_size=info["query_chunk_size"], device=device)
         return cls.load(directory, settings)

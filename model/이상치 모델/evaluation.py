@@ -8,7 +8,7 @@ from sklearn.metrics import (average_precision_score, precision_recall_curve,
 
 from data import DEFECT_LABEL, NORMAL_LABEL
 
-plt.rcParams["font.family"] = "Malgun Gothic"
+plt.rcParams["font.family"] = ["NanumGothic", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 
 

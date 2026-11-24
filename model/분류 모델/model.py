@@ -39,14 +39,61 @@ def predicted_color(prediction_map: np.ndarray) -> int:
     return int(np.bincount(painted).argmax()) if painted.size else 0
 
 
+MERGE_GAP = 10   # 같은 색 박스 사이 간격이 이 픽셀 이하면 하나로 합침 (WISE 박스 만들 때와 같은 값)
+
+
+def box_gap(a: tuple, b: tuple) -> int:
+    """박스 (x0, y0, x1, y1) 사이 빈 칸 (겹치면 0)"""
+    return max(max(a[0], b[0]) - min(a[2], b[2]), max(a[1], b[1]) - min(a[3], b[3]), 0)
+
+
+def merge_boxes(boxes: list[tuple]) -> list[tuple]:
+    """가까운 박스를 더 이상 안 바뀔 때까지 합침"""
+    boxes = list(boxes)
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                if box_gap(boxes[i], boxes[j]) <= MERGE_GAP:
+                    a, b = boxes[i], boxes.pop(j)
+                    boxes[i] = (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
+                    merged = True
+                    break
+            if merged:
+                break
+    return sorted(boxes, key=lambda box: (box[1], box[0]))
+
+
+def predicted_regions(prediction_map: np.ndarray, probs: np.ndarray) -> list[dict]:
+    """색마다 칠한 덩어리(8방향 연결)에 박스 1개, 가까운 박스는 합침.
+    bbox = COCO [x, y, 너비, 높이] (WISE 학습 박스와 같음), score = 박스 안 그 색 픽셀의 그 색 확률 평균"""
+    from scipy import ndimage
+    regions = []
+    for color in np.unique(prediction_map[prediction_map > 0]):
+        painted = prediction_map == color
+        labeled, _ = ndimage.label(painted, structure=np.ones((3, 3)))
+        raw = [(s[1].start, s[0].start, s[1].stop, s[0].stop) for s in ndimage.find_objects(labeled)]
+        for x0, y0, x1, y1 in merge_boxes(raw):
+            inside = painted[y0:y1, x0:x1]
+            regions.append({"bbox": [int(x0), int(y0), int(x1 - x0), int(y1 - y0)],
+                            "score": round(float(probs[color, y0:y1, x0:x1][inside].mean()), 4)})
+    return regions
+
+
 @torch.no_grad()
-def classify_images(model: torch.nn.Module, images: list[Image.Image], config: Config | InferenceSettings) -> list[tuple[int, int]]:
-    """이미지마다 (예측 색 번호, 결함으로 칠한 픽셀 수). 색 번호 0 = 아무것도 안 칠함"""
+def classify_images_with_regions(model: torch.nn.Module, images: list[Image.Image], config: Config | InferenceSettings) -> list[tuple[int, float | None, list[dict]]]:
+    """이미지마다 (예측 색 번호, confidence, regions).
+    confidence = 이미지 색으로 칠한 픽셀들의 그 색 softmax 확률 평균 (보정 안 한 모니터링용 값). 안 칠했으면 None"""
     height, width = config.image_size
     results = []
     for start in range(0, len(images), config.batch_size):
         batch = np.stack([pad(image_to_array(image, config), config) for image in images[start:start + config.batch_size]])
         tensor = torch.from_numpy(batch.transpose(0, 3, 1, 2)).to(config.device)
-        maps = model(tensor).argmax(1).cpu().numpy()[:, :height, :width]   # 패딩 잘라냄
-        results += [(predicted_color(prediction), int((prediction > 0).sum())) for prediction in maps]
+        probs = model(tensor).softmax(1).cpu().numpy()[:, :, :height, :width]   # 패딩 잘라냄
+        for prob in probs:
+            prediction = prob.argmax(0)
+            color = predicted_color(prediction)
+            confidence = round(float(prob[color][prediction == color].mean()), 4) if color else None
+            results.append((color, confidence, predicted_regions(prediction, prob)))
     return results
