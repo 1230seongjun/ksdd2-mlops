@@ -33,6 +33,10 @@ services:
       - ./tls:/etc/nginx/tls:ro
     depends_on:
       - api
+    networks:
+      default: {}
+      grafana_auth:
+        ipv4_address: 172.30.250.2
 
   prometheus:
     image: prom/prometheus:latest
@@ -50,12 +54,32 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_SERVER_ROOT_URL: "http://133.186.218.8:8080/grafana/"
+      GF_SERVER_ROOT_URL: "https://133.186.218.8/grafana/"
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
+      GF_AUTH_PROXY_HEADER_PROPERTY: "username"
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
+      GF_AUTH_PROXY_WHITELIST: "172.30.250.2"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: "Viewer"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+    networks:
+      default: {}
+      grafana_auth:
+        aliases:
+          - grafana-auth-backend
+
+networks:
+  grafana_auth:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.250.0/29
 
 volumes:
   prometheus-data:
