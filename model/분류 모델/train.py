@@ -1,4 +1,7 @@
 import argparse
+import dataclasses
+import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -34,22 +37,33 @@ def run_params(config: Config, fold: int, df: pd.DataFrame, train_df: pd.DataFra
     }
 
 
-def register_model(model: torch.nn.Module, config: Config) -> None:
+def record_job_result(**values) -> None:
+    if result_file := os.environ.get("TRAINING_RESULT_FILE"):
+        with Path(result_file).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(values) + "\n")
+
+
+def register_model(model: torch.nn.Module, config: Config):
     """가중치, 설정, 코드를 MLflow 모델 레지스트리에 새 버전으로 등록한다."""
     signature = ModelSignature(
         inputs=Schema([TensorSpec(np.dtype("uint8"), (-1, -1, -1, 3))]),   # RGB 이미지 (장수, 높이, 너비, 3)
-        outputs=Schema([ColSpec("long", "color_id"), ColSpec("string", "color"), ColSpec("long", "painted_pixels")]),
+        outputs=Schema([ColSpec("long", "color_id"), ColSpec("string", "color"), ColSpec("double", "confidence", required=False), ColSpec("string", "regions")]),
     )
     requirements = [f"torch=={torch.__version__.split('+')[0]}", f"torchvision=={torchvision.__version__.split('+')[0]}",
-                    f"segmentation-models-pytorch=={smp.__version__}", "pillow", "numpy", "pandas", "pyyaml"]
+                    f"segmentation-models-pytorch=={smp.__version__}", "pillow", "numpy", "pandas", "pyyaml", "scipy"]
+    mlflow.set_tag("confidence_definition", "pixel_mean_prob_v1")   # confidence 계산 방식 (model.py classify_images_with_regions)
     with tempfile.TemporaryDirectory() as folder:
         save_classifier(model, config, Path(folder))
-        mlflow.pyfunc.log_model(
+        tracking_result = bool(os.environ.get("TRAINING_RESULT_FILE"))
+        model_info = mlflow.pyfunc.log_model(
             name="model", python_model=str(CODE_DIR / "mlflow_model.py"), artifacts={"classifier": folder},
             code_paths=[str(CODE_DIR / name) for name in ("config.py", "data.py", "model.py")],
             signature=signature, pip_requirements=requirements,
-            registered_model_name=config.registered_model_name,
+            registered_model_name=None if tracking_result else config.registered_model_name,
         )
+        if tracking_result:
+            return mlflow.register_model(model_info.model_uri, config.registered_model_name)
+        return None
 
 
 def main(config: Config, fold: int) -> None:
@@ -78,7 +92,8 @@ def main(config: Config, fold: int) -> None:
 
     mlflow.set_tracking_uri(config.mlflow_tracking_uri)
     mlflow.set_experiment(config.mlflow_experiment)
-    with mlflow.start_run(run_name=f"{config.run_name}_fold{fold}"):
+    with mlflow.start_run(run_name=f"{config.run_name}_fold{fold}") as run:
+        record_job_result(run_id=run.info.run_id, experiment_id=run.info.experiment_id)
         mlflow.log_params(run_params(config, fold, df, train_df, val_df))
 
         best = None   # (점수, epoch, 지표, 정답색, 예측색, 가중치)
@@ -121,14 +136,32 @@ def main(config: Config, fold: int) -> None:
 
         if config.save_model:
             model.load_state_dict(best_weights)
-            register_model(model, config)
+            try:
+                version = register_model(model, config)
+            except Exception:
+                record_job_result(registration_status="failed")
+                raise
+            if version is not None:
+                record_job_result(
+                    registration_status="registered",
+                    registered_model_name=version.name,
+                    registered_model_version=str(version.version),
+                )
     print(f"MLflow 기록 완료: {config.mlflow_experiment} / {config.run_name}_fold{fold}")
+
+
+def with_overrides(config: Config, arguments: argparse.Namespace) -> Config:
+    overrides = {"mlflow_experiment": arguments.experiment, "run_name": arguments.run_name, "save_model": arguments.register}
+    return dataclasses.replace(config, **{key: value for key, value in overrides.items() if value is not None})
 
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(errors="replace")   # cp949 콘솔은 MLflow 가 찍는 이모지를 못 써서 학습 끝에 에러가 난다
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml")
+    parser.add_argument("--experiment")
+    parser.add_argument("--run-name")
+    parser.add_argument("--register", action=argparse.BooleanOptionalAction)
     parser.add_argument("--fold", type=int, default=0)
     arguments = parser.parse_args()
-    main(load_config(arguments.config), arguments.fold)
+    main(with_overrides(load_config(arguments.config), arguments), arguments.fold)

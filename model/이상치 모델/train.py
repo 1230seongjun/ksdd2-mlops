@@ -1,5 +1,9 @@
 import argparse
+import dataclasses
+import json
+import os
 import hashlib
+import sys
 import tempfile
 from pathlib import Path
 
@@ -14,12 +18,11 @@ from mlflow.types import ColSpec, Schema, TensorSpec
 from config import Config, load_config
 from data import DEFECT_LABEL, NORMAL_LABEL, split_dataset
 from evaluation import evaluate, plot_pr_curve, save_errors, save_scores, select_threshold
+from finetune import fine_tune, fine_tune_params
 from model import MODEL_INFO, PatchCoreDetector
 from storage import download_dataset
 
-import sys
-
-CODE_DIR = Path(__file__).resolve().parent   # serving.py 등 모델과 함께 올릴 코드가 있는 폴더
+CODE_DIR = Path(__file__).resolve().parent   # mlflow_model.py 등 모델과 함께 올릴 코드가 있는 폴더
 
 
 # ---------- MLflow ----------
@@ -36,6 +39,7 @@ def run_params(config: Config, dataset_split: dict) -> dict:
         **MODEL_INFO,
         "coreset_pool_size": config.coreset_pool_size, "coreset_projection_dim": config.coreset_projection_dim,
         "max_memory_bank_size": config.max_memory_bank_size,
+        "image_height": config.image_height, "image_width": config.image_width,
         "threshold_method": "val_recall", "target_recall": config.target_recall, "batch_size": config.batch_size,
         "split_seed": config.random_seed, "model_seed": config.model_seed, "device": config.device,
         "split_hash": hashlib.md5("\n".join(names).encode()).hexdigest()[:8],
@@ -56,7 +60,13 @@ def log_split_result(split_name: str, paths: list[Path], labels: np.ndarray, sco
         mlflow.log_artifacts(folder, artifact_path=split_name)
 
 
-def register_model(detector: PatchCoreDetector, config: Config) -> None:
+def record_job_result(**values) -> None:
+    if result_file := os.environ.get("TRAINING_RESULT_FILE"):
+        with Path(result_file).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(values) + "\n")
+
+
+def register_model(detector: PatchCoreDetector, config: Config):
     """모델(메모리 뱅크, 임계값, 백본 가중치, 코드)을 MLflow 모델 레지스트리에 새 버전으로 등록한다."""
     signature = ModelSignature(
         inputs=Schema([TensorSpec(np.dtype("uint8"), (-1, -1, -1, 3))]),   # RGB 이미지 (장수, 높이, 너비, 3)
@@ -66,12 +76,16 @@ def register_model(detector: PatchCoreDetector, config: Config) -> None:
                     "pillow", "numpy", "pandas"]
     with tempfile.TemporaryDirectory() as folder:
         detector.save(Path(folder))
-        mlflow.pyfunc.log_model(
+        tracking_result = bool(os.environ.get("TRAINING_RESULT_FILE"))
+        model_info = mlflow.pyfunc.log_model(
             name="model", python_model=str(CODE_DIR / "mlflow_model.py"), artifacts={"detector": folder},
             code_paths=[str(CODE_DIR / name) for name in ("config.py", "data.py", "model.py")],
             signature=signature, pip_requirements=requirements,
-            registered_model_name=config.registered_model_name,
+            registered_model_name=None if tracking_result else config.registered_model_name,
         )
+        if tracking_result:
+            return mlflow.register_model(model_info.model_uri, config.registered_model_name)
+        return None
 
 
 # ---------- 실행 ----------
@@ -85,16 +99,20 @@ def main(config: Config) -> None:
         print(f"{split_name}: 이미지 {len(paths)}장 (결함 {int(labels.sum())}장)")
 
     setup_mlflow(config)
-    with mlflow.start_run(run_name=config.run_name):
+    with mlflow.start_run(run_name=config.run_name) as run:
+        record_job_result(run_id=run.info.run_id, experiment_id=run.info.experiment_id)
         mlflow.log_params(run_params(config, dataset_split))
 
         detector = PatchCoreDetector(config)
         train_paths, _ = dataset_split["train"]
+        val_paths, val_labels = dataset_split["val"]
+        mlflow.log_params(fine_tune_params(config))
+        if config.fine_tune_stage > 0:
+            fine_tune(detector, train_paths, val_paths, val_labels, config)
         detector.fit(train_paths)
         print("memory bank 크기:", tuple(detector.memory_bank.shape))
         mlflow.log_param("memory_bank_size", len(detector.memory_bank))
 
-        val_paths, val_labels = dataset_split["val"]
         val_scores = detector.score(val_paths)
         detector.threshold = float(select_threshold(val_labels, val_scores, config.target_recall))
         print(f"임계값 (검증 데이터, recall>={config.target_recall}): {detector.threshold:.4f}")
@@ -104,7 +122,17 @@ def main(config: Config) -> None:
         mlflow.log_metric("threshold", detector.threshold)
 
         if config.save_model:
-            register_model(detector, config)
+            try:
+                version = register_model(detector, config)
+            except Exception:
+                record_job_result(registration_status="failed")
+                raise
+            if version is not None:
+                record_job_result(
+                    registration_status="registered",
+                    registered_model_name=version.name,
+                    registered_model_version=str(version.version),
+                )
 
         if config.evaluate_test:   # 최종 모델 확정 후 한 번만
             test_paths, test_labels = dataset_split["test"]
@@ -114,8 +142,17 @@ def main(config: Config) -> None:
     print(f"MLflow 기록 완료: {config.mlflow_experiment} / {config.run_name}")
 
 
+def with_overrides(config: Config, arguments: argparse.Namespace) -> Config:
+    overrides = {"mlflow_experiment": arguments.experiment, "run_name": arguments.run_name, "save_model": arguments.register}
+    return dataclasses.replace(config, **{key: value for key, value in overrides.items() if value is not None})
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(errors="replace")   # cp949 콘솔은 MLflow 가 찍는 이모지를 못 써서 학습 끝에 에러가 난다
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml")
-    main(load_config(parser.parse_args().config))
+    parser.add_argument("--experiment")
+    parser.add_argument("--run-name")
+    parser.add_argument("--register", action=argparse.BooleanOptionalAction)
+    arguments = parser.parse_args()
+    main(with_overrides(load_config(arguments.config), arguments))

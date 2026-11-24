@@ -18,6 +18,8 @@ class Config:
     object_storage_bucket: str
     object_storage_prefix: str
     cache_dir: Path
+    image_height: int
+    image_width: int
     normal_train_ratio: float
     normal_validation_ratio: float
     anomaly_validation_ratio: float
@@ -36,6 +38,15 @@ class Config:
     run_name: str
     save_model: bool
     registered_model_name: str
+    fine_tune_stage: int
+    fine_tune_epochs: int
+    fine_tune_batch_size: int
+    layer3_learning_rate: float
+    layer2_learning_rate: float
+    head_learning_rate: float
+    anchor_weight: float
+    fake_defect_probability: float
+    max_fake_defects: int
 
     @property
     def dataset_dir(self) -> Path:
@@ -50,9 +61,12 @@ class Config:
     def anomaly_dir(self) -> Path:
         return self.dataset_dir / self.anomaly_dir_name
 
+
 @dataclass(frozen=True)
 class InferenceSettings:
     """점수만 계산할 때(추론 서버) 필요한 설정. 학습용 설정(Config)과 같은 이름의 값만 가진다."""
+    image_height: int
+    image_width: int
     batch_size: int
     query_chunk_size: int
     device: str

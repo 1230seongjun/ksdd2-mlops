@@ -1,4 +1,6 @@
 import hashlib
+import json
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -46,11 +48,37 @@ def read_binary_mask(path) -> np.ndarray:
     return np.asarray(Image.open(path).convert("L")) > 127   # RGBA 마스크도 흑백 1채널로
 
 
-def load_mask(row: pd.Series, config: Config) -> np.ndarray:
-    """픽셀값 = 클래스 번호 (0 배경, 1~ 색). 두 색 섞인 이미지는 색별 마스크를 합침. 정상은 전부 0"""
+@lru_cache
+def load_boxes(path: Path) -> dict[str, list]:
+    """WISE 에서 내보낸 COCO JSON → {이미지 번호: [[x, y, 너비, 높이], ...]}"""
+    with open(path, encoding="utf-8") as file:
+        coco = json.load(file)
+    names = {image["id"]: Path(image["file_name"]).stem for image in coco["images"]}
+    boxes = {name: [] for name in names.values()}
+    for annotation in coco["annotations"]:
+        boxes[names[annotation["image_id"]]].append(annotation["bbox"])
+    return boxes
+
+
+def load_box_mask(row: pd.Series, labels: list[str], config: Config) -> np.ndarray:
+    """박스 안을 그 이미지의 색 번호로 칠한 마스크.
+    두 색 섞인 이미지는 박스마다 색을 하나 정해야 해서, 색별 마스크 픽셀이 박스 안에 가장 많은 색을 쓴다"""
+    mask = np.zeros(config.image_size, np.int64)
+    for x, y, width, height in load_boxes(config.bbox_json)[row["id"]]:
+        box = slice(round(y), round(y + height)), slice(round(x), round(x + width))
+        label = labels[0] if len(labels) == 1 else max(labels, key=lambda name: read_binary_mask(
+            config.mask_dir / f"{row['id']}_GT({config.part_mask_names[name]}).png")[box].sum())
+        mask[box] = config.classes.index(label)
+    return mask
+
+
+def load_mask(row: pd.Series, config: Config, label_type: str = "mask") -> np.ndarray:
+    """픽셀값 = 클래스 번호 (0 배경, 1~ 색). 두 색 섞인 이미지는 색별 마스크를 합침. 정상은 전부 0. label_type 이 bbox 면 박스로 칠한 마스크"""
     if row["label"] == config.normal_dir_name:
         return np.zeros(config.image_size, np.int64)
     labels = [row["label"]] + [label for label in str(row["also"]).split("+") if label in config.label_dir_names]
+    if label_type == "bbox":
+        return load_box_mask(row, labels, config)
     if len(labels) == 1:
         return read_binary_mask(row["mask"]).astype(np.int64) * config.classes.index(row["label"])
     mask = np.zeros(config.image_size, np.int64)
@@ -63,7 +91,6 @@ def load_mask(row: pd.Series, config: Config) -> np.ndarray:
 # ---------- 분할 ----------
 def load_defect_items(config: Config) -> pd.DataFrame:
     """결함 이미지 목록. 두 폴더에 같이 있는 이미지는 1장으로 세고, 처음 나온 폴더를 label, 나머지를 also 에 적는다."""
-    from sklearn.model_selection import StratifiedKFold, train_test_split   # 추론 서버에는 필요 없어서 여기서 불러온다
     rows = [{"id": path.stem, "label": label, "image": str(path), "mask": str(config.mask_dir / f"{path.stem}_GT.png")}
             for label in config.label_dir_names for path in list_image_paths(config.dataset_dir / label)]
     if not rows:
@@ -72,6 +99,9 @@ def load_defect_items(config: Config) -> pd.DataFrame:
     missing = [mask for mask in df["mask"] if not Path(mask).exists()]
     if missing:
         raise FileNotFoundError(f"마스크 {len(missing)}장이 없습니다. 예: {missing[0]}")
+    missing = [name for name in df["id"] if name not in load_boxes(config.bbox_json)] if "bbox" in (config.label_type, config.eval_label_type) else []
+    if missing:
+        raise FileNotFoundError(f"박스 JSON 에 없는 이미지 {len(missing)}장. 예: {missing[0]} ({config.bbox_json})")
     also = df.groupby("id")["label"].apply(lambda labels: "+".join(labels.iloc[1:]))
     df = df.drop_duplicates("id").reset_index(drop=True)
     df["also"] = df["id"].map(also)
@@ -80,7 +110,7 @@ def load_defect_items(config: Config) -> pd.DataFrame:
 
 def assign_defect_splits(df: pd.DataFrame, config: Config) -> pd.DataFrame:
     """결함: 라벨 비율을 유지(층화)하며 test 를 떼고, 나머지를 fold 로 나눈다."""
-    from sklearn.model_selection import StratifiedKFold, train_test_split
+    from sklearn.model_selection import StratifiedKFold, train_test_split   # 추론 서버에는 필요 없어서 여기서 불러온다
     rest, test = train_test_split(df.index, test_size=config.test_ratio, stratify=df["label"], random_state=config.random_seed)
     df["split"] = ""
     df.loc[test, "split"] = "test"
@@ -125,6 +155,7 @@ class SegDataset(Dataset):
         self.df = df.reset_index(drop=True)
         self.config = config
         self.train = train
+        self.label_type = config.label_type if train else config.eval_label_type   # 학습 정답 / 검증 정답을 따로 고른다
 
     def __len__(self) -> int:
         return len(self.df)
@@ -132,7 +163,7 @@ class SegDataset(Dataset):
     def __getitem__(self, index: int):
         row = self.df.iloc[index]
         image = image_to_array(Image.open(row["image"]), self.config)
-        mask = load_mask(row, self.config)
+        mask = load_mask(row, self.config, self.label_type)
         if self.train:
             if np.random.rand() < 0.5:
                 image, mask = image[:, ::-1], mask[:, ::-1]   # 좌우 뒤집기

@@ -1,13 +1,14 @@
 import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 import yaml
 
-import os
-
 PAD_MULTIPLE = 32   # U-Net 은 입력 크기가 32의 배수여야 한다
+
+
 def padded(height: int, width: int) -> tuple[int, int]:
     return math.ceil(height / PAD_MULTIPLE) * PAD_MULTIPLE, math.ceil(width / PAD_MULTIPLE) * PAD_MULTIPLE
 
@@ -21,10 +22,14 @@ class Config:
     normal_dir_name: str | None
     mask_dir_name: str
     part_mask_names: dict[str, str]
+    label_type: str
+    eval_label_type: str
+    bbox_json: Path
     object_storage_endpoint: str
     object_storage_region: str
     object_storage_bucket: str
     object_storage_prefix: str
+    object_storage_bbox_key: str
     cache_dir: Path
     test_ratio: float
     n_folds: int
@@ -74,7 +79,8 @@ class Config:
     @property
     def padded_size(self) -> tuple[int, int]:
         return padded(self.image_height, self.image_width)
-        
+
+
 @dataclass(frozen=True)
 class InferenceSettings:
     """색 분류만 할 때(추론 서버) 필요한 설정. 학습용 설정(Config)과 같은 이름의 값만 가진다."""
@@ -115,7 +121,10 @@ def load_config(path: str | Path = "config.yaml") -> Config:
         raise ValueError(f"data_source 는 local 또는 object_storage 여야 합니다: {values['data_source']}")
     if values["data_source"] == "object_storage" and not values["object_storage_endpoint"]:
         raise ValueError("data_source 가 object_storage 이면 object_storage_endpoint 를 채워야 합니다")
-    for key in ("data_dir", "cache_dir"):
+    for key in ("label_type", "eval_label_type"):
+        if values[key] not in ("mask", "bbox"):
+            raise ValueError(f"{key} 는 mask 또는 bbox 여야 합니다: {values[key]}")
+    for key in ("data_dir", "cache_dir", "bbox_json"):
         values[key] = (path.parent / values[key]).resolve()
     values["label_dir_names"] = tuple(values["label_dir_names"])
     values["mlflow_tracking_uri"] = os.environ.get("MLFLOW_TRACKING_URI", values["mlflow_tracking_uri"])
