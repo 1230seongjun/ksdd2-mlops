@@ -38,13 +38,19 @@ KSDD2 표면 결함 이상 탐지 프로젝트의 MLOps 인프라 구성 및 운
 
 ```text
 infra/mlops/
-├── experiments-ui/       # MLflow 실험 대시보드
+├── db/                            # 추론 DB 관련 SQL 및 문서
+│   ├── 001_inference_schema.sql   # 추론 결과 저장 스키마
+│   ├── 002_accounts.sql           # 계정 관련 SQL
+│   ├── 003_grafana_reader.sql     # Grafana 읽기 전용 권한 설정
+│   ├── 004_inference_review.sql   # 검사 결과 검토 관련 SQL
+│   └── README.md                  # DB 상세 문서
+├── experiments-ui/                # MLflow 실험 대시보드
 ├── mlflow/
-│   ├── Dockerfile        # MLflow 컨테이너 이미지 설정
-│   └── requirements.txt  # MLflow 의존성
-├── .env.example          # 환경변수 예시
-├── compose.mlops.yaml    # MLflow 및 PostgreSQL 구성
-└── README.md             # MLOps 인프라 설명서
+│   ├── Dockerfile                 # MLflow 컨테이너 이미지 설정
+│   └── requirements.txt           # MLflow 의존성
+├── .env.example                   # 환경변수 예시
+├── compose.mlops.yaml             # MLflow 및 PostgreSQL 구성
+└── README.md                      # MLOps 인프라 설명서
 ```
 
 CI/CD 관련 워크플로와 배포 스크립트는 프로젝트 루트의 `.github/` 디렉터리에서 관리합니다.
@@ -64,6 +70,8 @@ CI/CD 관련 워크플로와 배포 스크립트는 프로젝트 루트의 `.git
 - MLflow Backend Store 연결
 - 실험 및 모델 관련 메타데이터 저장
 - Docker Volume 기반 데이터 영속성 구성
+- 서비스 서버의 FastAPI가 검사 결과를 저장할 수 있도록 추론 DB 스키마 구성
+- MLflow DB 백업 복원 후 테이블 34개와 실험 19개 확인 (복원 검증 당시 기준)
 
 ### NHN Object Storage
 
@@ -83,6 +91,7 @@ CI/CD 관련 워크플로와 배포 스크립트는 프로젝트 루트의 `.git
 - `.env` 파일은 GitHub에 업로드하지 않습니다.
 - GitHub Actions에 필요한 민감 정보는 GitHub Secrets를 사용합니다.
 - MLflow 관리 화면은 SSH 포트포워딩을 통해 접근합니다.
+- Grafana에는 추론 DB의 검사 결과를 조회할 수 있는 읽기 전용 계정을 부여했습니다.
 - PostgreSQL 데이터는 Docker Volume에 저장하여 컨테이너 재생성 시에도 보존하도록 구성합니다.
 - 운영 환경 변경 시 서비스 중단 여부를 확인한 뒤 배포합니다.
 
