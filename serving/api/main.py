@@ -337,6 +337,19 @@ def stop_training_job(job_id: str):
     return call_training_gpu("POST", training_job_path(job_id) + "/stop")
 
 
+@app.get("/auth/grafana-proxy", include_in_schema=False)
+def authorize_grafana(
+    user: tuple[int, str] = Depends(get_current_user),
+) -> Response:
+    user_id, role = user
+    if role not in {"admin", "worker"}:
+        raise HTTPException(status_code=403, detail="Grafana 접근 권한이 없습니다.")
+    return Response(
+        status_code=204,
+        headers={"X-DefectCatch-User": f"defectcatch-{user_id}"},
+    )
+
+
 @app.get("/auth/me")
 def read_current_user(
     user: tuple[int, str] = Depends(get_current_user),

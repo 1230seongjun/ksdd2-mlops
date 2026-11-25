@@ -917,6 +917,7 @@
     }
 
     let healthRequest = 0;
+    let modelPreparation = null;
 
     function setInspectionServiceState(message, tone = "") {
       const label = $("inspection-service-label");
@@ -927,7 +928,7 @@
     }
 
     async function checkInspectionService() {
-      if (running) return;
+      if (running || modelPreparation) return;
       const request = ++healthRequest;
       setInspectionServiceState("검사 서버 확인 중");
 
@@ -976,16 +977,56 @@
       return normalize(JSON.parse(body));
     }
 
-    async function prepareRegistryModel(choice) {
-      if (!choice.startsWith("registry-")) return true;
+    function prepareRegistryModel(choice) {
+      if (!choice.startsWith("registry-")) return Promise.resolve(true);
+      if (modelPreparation?.choice === choice) return modelPreparation.promise;
 
+      modelPreparation?.controller.abort();
+      ++healthRequest;
+      const controller = new AbortController();
+      const preparation = {choice, controller};
+      modelPreparation = preparation;
+      preparation.promise = pollModelPreparation(choice, controller.signal)
+        .catch((error) => {
+          if (controller.signal.aborted) return false;
+          throw error;
+        })
+        .finally(() => {
+          if (modelPreparation === preparation) modelPreparation = null;
+        });
+      return preparation.promise;
+    }
+
+    async function prepareSelectedModel() {
+      if (running) return;
+      const choice = selectedModelChoice();
+      if (!choice) {
+        checkInspectionService();
+        return;
+      }
+
+      try {
+        await prepareRegistryModel(choice);
+      } catch (error) {
+        if (running || selectedModelChoice() !== choice) return;
+        if (error.httpStatus === 401) {
+          setInspectionServiceState("다시 로그인한 뒤 모델을 확인하세요.", "error");
+          window.dispatchEvent(new Event("inspection-session-expired"));
+        } else {
+          setInspectionServiceState(error.message, "connection");
+        }
+      }
+    }
+
+    async function pollModelPreparation(choice, signal) {
       setInspectionServiceState("선택 모델 확인 중…", "loading");
       const deadline = Date.now() + 300000;
-      while (!pauseRequested && Date.now() < deadline) {
+      while (!signal.aborted && Date.now() < deadline) {
         const response = await fetch(`/api/models/${encodeURIComponent(choice)}/prepare`, {
           method: "POST",
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
         });
+        if (signal.aborted) return false;
         if (!response.ok) {
           const message = response.status === 409
             ? "선택한 모델 버전을 다시 확인하세요."
@@ -994,9 +1035,10 @@
         }
 
         const { status } = await response.json();
+        if (signal.aborted) return false;
         if (status === "ready") {
-          if (!pauseRequested) setInspectionServiceState("선택 모델 준비 완료", "ready");
-          return !pauseRequested;
+          setInspectionServiceState("선택 모델 준비 완료", "ready");
+          return true;
         }
         if (status === "failed") throw new Error("모델 로드 실패");
         if (!["loading", "busy"].includes(status)) throw new Error("모델 준비 상태 확인 실패");
@@ -1004,7 +1046,7 @@
 
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
-      if (pauseRequested) return false;
+      if (signal.aborted) return false;
       throw new Error("모델 준비 시간 초과");
     }
 
@@ -1154,12 +1196,7 @@
           $(`${role}-dropdown`).open = false;
           $(`${role}-dropdown`).querySelector("summary").focus();
           syncControls();
-          if (inspectionBatch) {
-            ++healthRequest;
-            setInspectionServiceState("검사 일시 중단 · 재개 시 선택 모델 확인");
-          } else {
-            checkInspectionService();
-          }
+          prepareSelectedModel();
         });
         label.append(input, status === "READY" ? `v${version}` : `v${version} · ${status}`);
         return label;
@@ -1181,8 +1218,14 @@
         if (!Array.isArray(data.detectors) || !Array.isArray(data.classifiers)) {
           throw new Error("Invalid model version list");
         }
+        const previousChoice = selectedModelChoice();
         renderVersionOptions("detector", data.detectors);
         renderVersionOptions("classifier", data.classifiers);
+        if (!running && previousChoice && !selectedModelChoice()) {
+          modelPreparation?.controller.abort();
+          modelPreparation = null;
+          checkInspectionService();
+        }
         message.hidden = true;
         syncControls();
       } catch {
@@ -1210,6 +1253,7 @@
       if (adding || !inspectionBatch || pauseRequested) return;
       if (running) {
         pauseRequested = true;
+        modelPreparation?.controller.abort();
         setStatus("");
         syncControls();
         return;
@@ -1383,7 +1427,7 @@
       $("reinspect-dialog").showModal();
     }
     $("cancel-reinspect").addEventListener("click", () => $("reinspect-dialog").close());
-    $("inspection-service-recheck").addEventListener("click", checkInspectionService);
+    $("inspection-service-recheck").addEventListener("click", prepareSelectedModel);
     document.querySelector('[data-tab="inspect"]').addEventListener("click", checkInspectionService);
     window.addEventListener("session-ready", checkInspectionService);
     $("clear-button").addEventListener("click", openDeleteDialog);
@@ -1402,3 +1446,4 @@
     renderViewer();
     window.addEventListener("session-ready", loadModelInfo, { once: true });
   })();
+
