@@ -71,6 +71,7 @@ services:
     networks:
       default: {}
       grafana_auth:
+        ipv4_address: 172.30.250.3
         aliases:
           - grafana-auth-backend
 
