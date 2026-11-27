@@ -36,10 +36,10 @@ services:
 networks:
   app-db:
     name: ksdd2-app-db
-    # 대역을 직접 정한다. 서버 네트워크가 10.x 를 쓰면 Podman 이 자동으로 고를 대역이 없어서 만들기에 실패한다
+    # 대역을 직접 정한다 (Podman 자동 대역이 모자라서). kind 실습용 172.30.0.0/16 과 겹치지 않게 192.168.2xx 를 쓴다
     ipam:
       config:
-        - subnet: 172.30.10.0/24
+        - subnet: 192.168.210.0/24
 
 volumes:
   postgres_data:

@@ -101,7 +101,7 @@ services:
       GF_AUTH_PROXY_HEADER_PROPERTY: "username"
       GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
       GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
-      GF_AUTH_PROXY_WHITELIST: "172.30.250.2"   # 웹 티어의 nginx 만 로그인 사용자를 넘겨줄 수 있게
+      GF_AUTH_PROXY_WHITELIST: "192.168.250.2"   # 웹 티어의 nginx 만 로그인 사용자를 넘겨줄 수 있게
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_AUTO_ASSIGN_ORG_ROLE: "Viewer"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
@@ -110,7 +110,7 @@ services:
     networks:
       default: {}
       grafana-auth:
-        ipv4_address: 172.30.250.3
+        ipv4_address: 192.168.250.3
         aliases:
           - grafana-auth-backend
 
@@ -118,15 +118,15 @@ networks:
   # 앱 티어 안의 서비스끼리만 쓰는 네트워크 (podman-compose 는 default 를 적어 줘야 만든다)
   default:
     name: ksdd2-app-internal
-    # 대역을 직접 정한다. 서버 네트워크가 10.x 를 쓰면 Podman 이 자동으로 고를 대역이 없어서 만들기에 실패한다
+    # 대역을 직접 정한다 (Podman 자동 대역이 모자라서). kind 실습용 172.30.0.0/16 과 겹치지 않게 192.168.2xx 를 쓴다
     ipam:
       config:
-        - subnet: 172.30.30.0/24
+        - subnet: 192.168.230.0/24
   web-app:
     name: ksdd2-web-app
     ipam:
       config:
-        - subnet: 172.30.20.0/24
+        - subnet: 192.168.220.0/24
   app-db:
     external: true
     name: ksdd2-app-db
@@ -136,7 +136,7 @@ networks:
     internal: true
     ipam:
       config:
-        - subnet: 172.30.250.0/29
+        - subnet: 192.168.250.0/29
 
 volumes:
   mlflow_artifacts:
