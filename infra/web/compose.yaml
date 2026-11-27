@@ -1,0 +1,29 @@
+# 웹 티어: nginx (검사 화면, TLS, /api·/grafana 를 애플리케이션 티어로 전달)
+#
+# 외부(사용자)에게 열리는 곳은 이 티어뿐이고, DB 티어로 가는 네트워크에는 붙지 않는다
+# 실행: scripts/local.sh up   (애플리케이션 티어가 먼저 떠 있어야 함)
+name: ksdd2-web
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - ../../serving/web:/usr/share/nginx/html:ro
+      - ./tls:/etc/nginx/tls:ro   # scripts/local.sh init 이 만든 자체 서명 인증서
+    networks:
+      web-app: {}
+      grafana-auth:
+        ipv4_address: 172.30.250.2
+
+networks:
+  web-app:
+    external: true
+    name: ksdd2-web-app
+  grafana-auth:
+    external: true
+    name: ksdd2-grafana-auth

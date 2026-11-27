@@ -62,9 +62,9 @@ erDiagram
 
 | 파일 | 정의하는 내용 |
 | --- | --- |
-| [`001_inference_schema.sql`](./001_inference_schema.sql) | 검사 요청, 탐지 결과, 분류 결과 테이블 |
-| [`002_accounts.sql`](./002_accounts.sql) | 계정, 초대, 세션과 검사 요청의 사용자 연결 |
-| [`003_grafana_reader.sql`](./003_grafana_reader.sql) | Grafana의 검사 이력 테이블 읽기 권한 |
+| [`001_inference_schema.sql`](./schema/001_inference_schema.sql) | 검사 요청, 탐지 결과, 분류 결과 테이블 |
+| [`002_accounts.sql`](./schema/002_accounts.sql) | 계정, 초대, 세션과 검사 요청의 사용자 연결 |
+| [`003_grafana_reader.sql`](./schema/003_grafana_reader.sql) | Grafana의 검사 이력 테이블 읽기 권한 |
 
 SQL 파일은 스키마와 권한을 정의한다. 실제 적용 결과는 `psql` 조회로 확인한다.
 

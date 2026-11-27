@@ -1,3 +1,5 @@
+> 이 문서는 NHN 운영 당시(기능별 스택) 기록입니다. 현재 로컬 실행 구성은 루트 README의 "로컬 실행"을 참고하세요.
+
 # MLOps Server
 
 KSDD2 표면 결함 이상 탐지 프로젝트의 MLOps 인프라 구성 및 운영 문서입니다.
@@ -44,7 +46,6 @@ infra/mlops/
 │   ├── 003_grafana_reader.sql     # Grafana 읽기 전용 권한 설정
 │   ├── 004_inference_review.sql   # 검사 결과 검토 관련 SQL
 │   └── README.md                  # DB 상세 문서
-├── experiments-ui/                # MLflow 실험 대시보드
 ├── mlflow/
 │   ├── Dockerfile                 # MLflow 컨테이너 이미지 설정
 │   └── requirements.txt           # MLflow 의존성

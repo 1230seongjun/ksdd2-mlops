@@ -30,9 +30,13 @@ venv/
 .idea/
 .DS_Store
 
-# MLOps secrets
-infra/mlops/.env
 
 # Vim 임시 파일
 *.swp
 *.swo
+
+# 자체 서명 인증서 (scripts/local.sh init 이 생성)
+infra/web/tls/
+
+# 학습 서버 작업 기록·로그
+model/runs/

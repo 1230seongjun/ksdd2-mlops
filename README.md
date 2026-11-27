@@ -322,6 +322,8 @@ flowchart LR
 
 ## 🔄 CI/CD
 
+> 아래는 NHN 환경에서 쓰던 GitHub Actions + NCR 배포 기록입니다. 로컬 실행에서는 쓰지 않으며 워크플로 파일은 삭제했습니다.
+
 ```mermaid
 flowchart LR
   pr[PR] --> ci[CI<br/>스모크 테스트] --> review[팀원 1명 승인] --> merge[main 병합]
@@ -348,30 +350,86 @@ flowchart LR
 ## 📁 저장소 구조
 
 ```
-.github/
-├── workflows/        CI(ci.yaml) · 배포(deploy.yaml) · 점검용 워크플로
-└── scripts/          서버 배포 스크립트 (deploy_stack.sh)
-infra/
-├── mlops/            MLflow · PostgreSQL · 실험 대시보드
-└── service/          Nginx · Prometheus · Grafana · 알림(monitoring/)
+infra/                3티어 구성 (scripts/local.sh 가 DB → 앱 → 웹 순서로 실행)
+├── web/              웹 티어: Nginx (검사 화면, TLS, /api·/grafana 전달)
+├── app/              애플리케이션 티어: 추론 API · 학습 서버 · MLflow · Prometheus · Grafana
+└── db/               DB 티어: PostgreSQL (스키마, 백업)
+scripts/local.sh      로컬 실행 명령 모음
 serving/
 ├── api/              추론 API (FastAPI)
 ├── web/              검사 화면 (로그인 · 검사 이력)
-└── tests/            PR마다 실행하는 스모크 테스트
+└── tests/            스모크 테스트
 model/
 ├── 이상치 모델/       이상 탐지 학습 (PatchCore)
 ├── 분류 모델/         결함 유형 분류 학습 (U-Net)
+├── gpu_training_api.py  학습 서버 (재학습 버튼이 호출)
+├── fetch_dataset.py  데이터셋 반입
 └── common.yaml       두 모델 공통 설정
 docs/                 README 이미지
 ```
 
-> 각 스택의 실행 방법과 설정은 폴더별 README(`infra/mlops`, `infra/service`, `serving/api`)에 있습니다.
+> DB 스키마는 `infra/db/README.md`, API 계약은 `serving/api/README.md`에 있습니다. `infra/app/README.md`, `infra/web/README.md`는 NHN 운영 당시 기록입니다.
 
 <br>
 
 ---
 
 ## 🚀 시작하기
+
+### 로컬 실행 (팀 공용 환경)
+
+외부 서비스 없이 한 대에서 3티어(웹 / 애플리케이션 / DB)로 전체 스택을 띄웁니다. Docker나 Podman 중 하나만 있으면 됩니다.
+
+```mermaid
+flowchart LR
+    U["브라우저"] -->|"HTTPS 8443"| W
+    subgraph web["웹 티어 (infra/web)"]
+        W["Nginx<br/>검사 화면 · TLS"]
+    end
+    subgraph app["애플리케이션 티어 (infra/app)"]
+        A["추론 API"] --> M["MLflow"]
+        A --> T["학습 서버"] --> M
+        G["Grafana"] --> P["Prometheus"] --> A
+    end
+    subgraph db["DB 티어 (infra/db)"]
+        D[("PostgreSQL")]
+    end
+    W -->|"web-app 네트워크"| A
+    W -->|"/grafana"| G
+    A -->|"app-db 네트워크"| D
+    M --> D
+```
+
+웹 티어는 `web-app` 네트워크에만, DB 티어는 `app-db` 네트워크에만 붙어 있어서 웹 티어에서 DB로 가는 경로가 없습니다. 외부에 열리는 포트는 웹 티어(8080, 8443)와 개발용 MLflow(5000)뿐이고, 모두 `127.0.0.1`에만 열립니다.
+
+```bash
+scripts/local.sh up                        # .env·인증서 생성 → 빌드·실행 (처음엔 이미지 빌드로 시간이 걸림)
+scripts/local.sh admin admin@example.com   # 관리자 계정 (처음 한 번)
+scripts/local.sh fetch-data                # 팀 데이터셋을 data/ 에 내려받기 (처음 한 번, model/.env 에 버킷 키 필요)
+```
+
+그다음 검사 화면에 관리자로 로그인해 **재학습**을 실행하고("모델 등록" 체크) 끝나면 `scripts/local.sh restart-api`를 실행합니다. 새로 만든 MLflow에는 모델이 없어서, 이 과정을 거쳐야 검사가 동작합니다.
+
+| 주소 | 용도 |
+| --- | --- |
+| https://localhost:8443 | 검사 화면 (자체 서명 인증서) |
+| http://127.0.0.1:5000 | MLflow |
+| https://localhost:8443/grafana/ | Grafana (검사 화면 로그인 후) |
+
+| 명령 | 내용 |
+| --- | --- |
+| `scripts/local.sh status` | 컨테이너·모델 준비 상태 |
+| `scripts/local.sh logs trainer` | 서비스 로그 (`nginx`, `api`, `postgres` 등) |
+| `scripts/local.sh backup` | DB 백업 (`~/backups/postgres`) |
+| `scripts/local.sh down` / `reset` | 중지 (데이터 유지) / 볼륨까지 삭제 |
+
+- 포트는 이 컴퓨터 안(`127.0.0.1`)에만 열립니다. 원격 서버에 띄웠다면 SSH 터널로 접속합니다 (`ssh -L 8443:localhost:8443 -L 5000:localhost:5000 <계정>@<서버>`).
+- 학습은 학습 서버 컨테이너(`trainer`)에서 CPU로 실행합니다. `model/` 폴더를 그대로 연결해서 코드를 고치면 바로 반영됩니다.
+- 처음 학습할 때 사전학습 가중치(torchvision, segmentation-models-pytorch)를 인터넷에서 한 번 받습니다.
+- Grafana 알림을 Slack 등 외부 메신저로 보내는 설정(`infra/app/monitoring/grafana/backend_alerts.py`)은 선택 사항입니다. 카카오 중계는 제거했으므로 실행한다면 `--no-kakao`를 붙입니다.
+- Podman은 `podman compose`가 docker-compose를 실행기로 쓰는 구성을 권장합니다 (`systemctl --user enable --now podman.socket` 후 docker-compose 설치).
+
+> 필요한 것: Docker 또는 Podman(Compose v2), openssl, curl. Windows는 WSL2에서 실행합니다.
 
 ### 모델 학습 (GPU 서버 · 학습 PC)
 

@@ -1,0 +1,130 @@
+# 애플리케이션 티어: 추론 API, 학습 서버, MLflow, 모니터링(Prometheus, Grafana)
+#
+# - 웹 티어(nginx)와는 web-app 네트워크로, DB 티어(postgres)와는 app-db 네트워크로만 연결된다
+# - 티어 안의 서비스끼리는 이 프로젝트의 기본 네트워크로 통신한다
+# 실행: scripts/local.sh up   (DB 티어가 먼저 떠 있어야 함)
+name: ksdd2-app
+
+services:
+  api:
+    build: ../../serving/api
+    image: ksdd2-api:local
+    restart: unless-stopped
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MODEL_URI: "${MODEL_URI}"
+      CLASSIFIER_MODEL_URI: "${CLASSIFIER_MODEL_URI:-}"
+      CHALLENGER_MODEL_URI: "${CHALLENGER_MODEL_URI:-}"
+      CHALLENGER_CLASSIFIER_MODEL_URI: "${CHALLENGER_CLASSIFIER_MODEL_URI:-}"
+      INFERENCE_DB_HOST: postgres
+      INFERENCE_DB_PORT: "5432"
+      INFERENCE_DB_NAME: inference
+      INFERENCE_DB_USER: ${DB_USER}
+      INFERENCE_DB_PASSWORD: ${DB_PASSWORD}
+      # 관리자 화면의 재학습 버튼이 호출하는 학습 서버
+      GPU_TRAINING_URL: "http://trainer:8100"
+      GPU_TRAINING_TOKEN: "${GPU_TRAINING_TOKEN}"
+    networks:
+      - default
+      - web-app   # 웹 티어(nginx)의 /api 요청을 받음
+      - app-db    # 검사 이력 DB
+
+  # 학습 서버: 관리자 화면에서 학습을 요청받아 이 컨테이너 안에서 CPU 로 학습하고 MLflow 에 기록한다
+  # 코드는 model/ 폴더를 그대로 연결하고, 데이터는 scripts/local.sh fetch-data 로 받은 폴더를 읽는다
+  trainer:
+    build: ../../model
+    image: ksdd2-trainer:local
+    restart: unless-stopped
+    env_file: ../../model/.env
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      DATASET_ROOT: /data
+      GPU_TRAINING_TOKEN: "${GPU_TRAINING_TOKEN}"
+    volumes:
+      - ../../model:/app/model
+      - ${DATASET_DIR:-../../data}:/data
+      - trainer_cache:/root/.cache   # 처음 학습할 때 받는 사전학습 가중치를 보관
+    networks:
+      - default
+
+  mlflow:
+    build: ./mlflow
+    image: ksdd2-mlflow:local
+    restart: unless-stopped
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+      - --backend-store-uri
+      - postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@postgres:5432/mlflow
+      - --artifacts-destination
+      - /mlartifacts   # 모델 파일은 볼륨에 저장
+      - --serve-artifacts
+      - --allowed-hosts
+      - "localhost:5000,127.0.0.1:5000,mlflow:5000"
+    ports:
+      - "127.0.0.1:5000:5000"   # 개발용으로 MLflow 화면만 직접 연다
+    volumes:
+      - mlflow_artifacts:/mlartifacts
+    networks:
+      - default
+      - app-db    # MLflow 메타데이터 DB
+
+  prometheus:
+    image: prom/prometheus:latest   # TODO(버전 고정): 팀에서 쓰는 버전을 정해 latest 대신 적는다
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/conf/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus/conf:ro
+      - prometheus-data:/prometheus
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:latest   # TODO(버전 고정): 팀에서 쓰는 버전을 정해 latest 대신 적는다
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_SERVER_ROOT_URL: "https://localhost:8443/grafana/"
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
+      GF_AUTH_PROXY_HEADER_PROPERTY: "username"
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
+      GF_AUTH_PROXY_WHITELIST: "172.30.250.2"   # 웹 티어의 nginx 만 로그인 사용자를 넘겨줄 수 있게
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: "Viewer"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      default: {}
+      grafana-auth:
+        ipv4_address: 172.30.250.3
+        aliases:
+          - grafana-auth-backend
+
+networks:
+  web-app:
+    name: ksdd2-web-app
+  app-db:
+    external: true
+    name: ksdd2-app-db
+  # nginx 와 grafana 만 붙는 내부 네트워크. grafana 는 이 네트워크의 nginx 주소만 믿는다
+  grafana-auth:
+    name: ksdd2-grafana-auth
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.250.0/29
+
+volumes:
+  mlflow_artifacts:
+  prometheus-data:
+  grafana-data:
+  trainer_cache:

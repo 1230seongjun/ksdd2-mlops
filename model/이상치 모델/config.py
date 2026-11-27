@@ -89,6 +89,10 @@ def load_config(path: str | Path = "config.yaml") -> Config:
     missing = [key.upper() for key in Config.__dataclass_fields__ if key not in values]
     if missing:
         raise KeyError(f"설정에 없는 키: {', '.join(missing)} (모델 폴더의 config.yaml 이나 {common_path} 에 있어야 합니다)")
+    dataset_root = os.environ.get("DATASET_ROOT")   # 반입한 데이터 폴더 (scripts/local.sh fetch-data 가 채움). 있으면 버킷 대신 이 폴더를 읽는다
+    if dataset_root:
+        values["data_source"] = "local"
+        values["data_dir"] = str(Path(dataset_root) / "anomaly")
     if values["data_source"] not in ("local", "object_storage"):
         raise ValueError(f"data_source 는 local 또는 object_storage 여야 합니다: {values['data_source']}")
     if values["data_source"] == "object_storage" and not values["object_storage_endpoint"]:
@@ -98,4 +102,6 @@ def load_config(path: str | Path = "config.yaml") -> Config:
     if values["device"] == "auto":
         values["device"] = "cuda" if torch.cuda.is_available() else "cpu"
     values["mlflow_tracking_uri"] = os.environ.get("MLFLOW_TRACKING_URI", values["mlflow_tracking_uri"])
+    for key in ("object_storage_endpoint", "object_storage_region", "object_storage_bucket"):   # 환경마다 다른 저장소 주소는 환경변수로 덮어쓸 수 있게
+        values[key] = os.environ.get(key.upper(), values[key])
     return Config(**values)
