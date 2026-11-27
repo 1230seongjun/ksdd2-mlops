@@ -5,8 +5,10 @@
 set -euo pipefail
 umask 077
 
-ENGINE="${ENGINE:-$(command -v docker >/dev/null 2>&1 && echo docker || echo podman)}"
-PG="${PG_CONTAINER:-ksdd2-db-postgres-1}"
+ENGINE="${ENGINE:-$(command -v podman >/dev/null 2>&1 && echo podman || echo docker)}"
+# compose 실행기마다 컨테이너 이름 규칙이 달라서, compose 가 붙이는 라벨로 찾는다
+PG="${PG_CONTAINER:-$("$ENGINE" ps --filter label=com.docker.compose.project=ksdd2-db --filter label=com.docker.compose.service=postgres --format '{{.Names}}' | head -1)}"
+[ -n "$PG" ] || { echo "postgres 컨테이너를 찾지 못했습니다 (PG_CONTAINER=<이름> 으로 지정 가능)" >&2; exit 1; }
 DB_USER="${DB_USER:-mlflow}"
 DBS=(mlflow inference)
 ROOT="${BACKUP_DIR:-$HOME/backups/postgres}"

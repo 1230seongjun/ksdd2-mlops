@@ -5,6 +5,11 @@
 # 실행: scripts/local.sh up   (DB 티어가 먼저 떠 있어야 함)
 name: ksdd2-app
 
+# podman-compose 는 기본으로 프로젝트의 서비스를 pod 하나에 묶는데, 그러면 서비스마다 다른 네트워크(티어)에 붙일 수 없어서 끈다
+# (docker compose 는 x- 로 시작하는 항목을 무시한다)
+x-podman:
+  in_pod: false
+
 services:
   api:
     build: ../../serving/api
@@ -110,6 +115,9 @@ services:
           - grafana-auth-backend
 
 networks:
+  # 앱 티어 안의 서비스끼리만 쓰는 네트워크 (podman-compose 는 default 를 적어 줘야 만든다)
+  default:
+    name: ksdd2-app-internal
   web-app:
     name: ksdd2-web-app
   app-db:

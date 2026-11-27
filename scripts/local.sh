@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 한 대에서 3티어(DB / 애플리케이션 / 웹)로 전체 스택을 띄운다. Docker, Podman 둘 다 지원.
+# 한 대에서 3티어(DB / 애플리케이션 / 웹)로 전체 스택을 띄운다. Podman(podman-compose), Docker 둘 다 지원.
 #
 #   DB 티어   infra/db    PostgreSQL                                  (외부 포트 없음)
 #   앱 티어   infra/app   추론 API, 학습 서버, MLflow, Prometheus, Grafana
@@ -21,7 +21,7 @@
 #   scripts/local.sh down               전부 내린다 (데이터는 남김)
 #   scripts/local.sh reset              전부 내리고 DB·모델 파일 볼륨까지 지운다
 #
-# Compose 명령은 자동으로 고른다 (docker compose → podman compose). 직접 정하려면 COMPOSE="podman compose" scripts/local.sh up
+# Compose 실행기는 자동으로 고른다 (podman-compose → docker compose). 직접 정하려면 COMPOSE="docker compose" scripts/local.sh up
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,21 +30,24 @@ APP_DIR="$ROOT/infra/app"
 WEB_DIR="$ROOT/infra/web"
 MODEL_DIR="$ROOT/model"
 
+# Compose 실행기: Podman 이 있으면 podman-compose, 없으면 docker compose
+# podman-compose 는 서비스를 pod 하나로 묶지 않게(--in-pod=false) 해서 티어별 네트워크를 쓸 수 있게 한다
 if [ -n "${COMPOSE:-}" ]; then
     read -r -a COMPOSE_CMD <<< "$COMPOSE"
+elif command -v podman >/dev/null 2>&1 && command -v podman-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(podman-compose --in-pod=false)
 elif docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
-elif podman compose version >/dev/null 2>&1; then
-    COMPOSE_CMD=(podman compose)
 else
-    echo "docker compose 나 podman compose 를 찾지 못했습니다" >&2
+    echo "podman-compose 나 docker compose 를 찾지 못했습니다" >&2
     exit 1
 fi
 
-tier() { local dir="$1"; shift; "${COMPOSE_CMD[@]}" --project-directory "$dir" -f "$dir/compose.yaml" "$@"; }
-db()  { tier "$DB_DIR" "$@"; }
-app() { tier "$APP_DIR" "$@"; }
-web() { tier "$WEB_DIR" "$@"; }
+# 티어 폴더로 들어가서 실행한다 (그 폴더의 .env 를 읽고, 프로젝트 이름을 티어별로 고정)
+tier() { local name="$1" dir="$2"; shift 2; (cd "$dir" && "${COMPOSE_CMD[@]}" -p "ksdd2-$name" -f compose.yaml "$@"); }
+db()  { tier db  "$DB_DIR"  "$@"; }
+app() { tier app "$APP_DIR" "$@"; }
+web() { tier web "$WEB_DIR" "$@"; }
 
 env_value() { grep "^$2=" "$1" | cut -d= -f2-; }
 
@@ -100,9 +103,23 @@ wait_for() {
     return 1
 }
 
+wait_db() {
+    # DB 가 접속을 받을 때까지 기다린다 (compose 실행기마다 --wait 지원이 달라서 직접 확인)
+    for _ in $(seq 60); do
+        if db exec -T postgres sh -c 'pg_isready -q -U "$POSTGRES_USER" -d mlflow' >/dev/null 2>&1; then
+            echo "준비됨: DB"
+            return 0
+        fi
+        sleep 2
+    done
+    echo "시간 초과: DB" >&2
+    return 1
+}
+
 up() {
     init
-    db up -d --wait          # DB 가 접속을 받을 때까지 기다린다
+    db up -d
+    wait_db
     app up -d --build
     wait_for "MLflow" "http://127.0.0.1:5000/health"
     web up -d

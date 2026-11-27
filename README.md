@@ -427,9 +427,9 @@ scripts/local.sh fetch-data                # 팀 데이터셋을 data/ 에 내�
 - 학습은 학습 서버 컨테이너(`trainer`)에서 CPU로 실행합니다. `model/` 폴더를 그대로 연결해서 코드를 고치면 바로 반영됩니다.
 - 처음 학습할 때 사전학습 가중치(torchvision, segmentation-models-pytorch)를 인터넷에서 한 번 받습니다.
 - Grafana 알림을 Slack 등 외부 메신저로 보내는 설정(`infra/app/monitoring/grafana/backend_alerts.py`)은 선택 사항입니다. 카카오 중계는 제거했으므로 실행한다면 `--no-kakao`를 붙입니다.
-- Podman은 `podman compose`가 docker-compose를 실행기로 쓰는 구성을 권장합니다 (`systemctl --user enable --now podman.socket` 후 docker-compose 설치).
+- Podman이 있으면 `podman-compose`로 실행하고(서비스를 pod 하나로 묶지 않게 `--in-pod=false`), 없으면 `docker compose`를 씁니다. 이미지와 컨테이너는 OCI 표준(Podman: crun/runc)으로 만들고 실행합니다.
 
-> 필요한 것: Docker 또는 Podman(Compose v2), openssl, curl. Windows는 WSL2에서 실행합니다.
+> 필요한 것: Podman + podman-compose, 또는 Docker(Compose v2). openssl, curl. Windows는 WSL2에서 실행합니다.
 
 ### 모델 학습 (GPU 서버 · 학습 PC)
 
