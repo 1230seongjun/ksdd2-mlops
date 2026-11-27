@@ -118,8 +118,15 @@ networks:
   # 앱 티어 안의 서비스끼리만 쓰는 네트워크 (podman-compose 는 default 를 적어 줘야 만든다)
   default:
     name: ksdd2-app-internal
+    # 대역을 직접 정한다. 서버 네트워크가 10.x 를 쓰면 Podman 이 자동으로 고를 대역이 없어서 만들기에 실패한다
+    ipam:
+      config:
+        - subnet: 172.30.30.0/24
   web-app:
     name: ksdd2-web-app
+    ipam:
+      config:
+        - subnet: 172.30.20.0/24
   app-db:
     external: true
     name: ksdd2-app-db
