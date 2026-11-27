@@ -5,7 +5,8 @@ dnf install -y podman && dnf install -y epel-release && dnf install -y podman-co
 # 또는 pip install podman-compose
 # Ubuntu
 apt install -y podman podman-compose
-#########################################################
+
+
 VM 한 대에서 3티어로 전체 스택을 띄웁니다. 외부 클라우드 서비스는 쓰지 않습니다.
 
 | 티어 | 폴더 | 구성 |
