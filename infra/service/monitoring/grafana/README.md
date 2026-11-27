@@ -1,6 +1,8 @@
 # Grafana
 
-현재 Grafana 데이터는 Compose의 grafana-data 볼륨에 저장된다.
+| 파일 | 역할 |
+| --- | --- |
+| [dashboards/backend-flow.json](dashboards/backend-flow.json) | 대시보드 "백엔드 처리 흐름 (실시간)". 가져올 때 Prometheus와 PostgreSQL(`inference` DB) 데이터 소스를 고릅니다 |
+| [backend_alerts.py](backend_alerts.py) | 알림 수신자(Slack · 카카오톡) · 경로 · 규칙 13개를 Grafana API로 만들거나 갱신합니다. 여러 번 실행해도 됩니다 |
 
-데이터 소스와 대시보드의 파일 관리 방식은
-현재 Grafana 설정을 확인한 뒤 결정한다.
+설정 순서와 인증 방식은 [모니터링 README](../README.md)에 있습니다.

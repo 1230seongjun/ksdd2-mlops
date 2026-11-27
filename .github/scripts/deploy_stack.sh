@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# 셀프 호스티드 러너에서 스택 하나를 배포한다 (deploy.yaml 이 호출)
+# [운영 당시 기록] 셀프 호스티드 러너에서 스택 하나를 배포하던 스크립트
+#   프로젝트 종료 후 러너를 정리해 지금 워크플로는 이 스크립트를 호출하지 않는다.
+#   호출하던 원래 deploy.yaml 은 태그 v1.0-operated 에 있다.
 #   사용법: bash .github/scripts/deploy_stack.sh <mlops|service>
 #   순서: 배포 파일 백업 → 파일 동기화 → 이미지 태그 갱신 → pull → up → 헬스체크 → 실패 시 파일·컨테이너 복원
 #         → 성공 시 정리 (우리 이미지는 이번·직전 태그만 남김, 배포 백업은 최근 KEEP_BACKUPS 개만 남김)

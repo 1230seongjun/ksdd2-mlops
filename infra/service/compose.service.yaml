@@ -29,7 +29,8 @@ services:
     image: nginx:stable-alpine
     restart: unless-stopped
     ports:
-      - "8080:80"
+      # 8080 은 서버 안에서만 쓰는 헬스체크용이라 127.0.0.1 에만 연다. 외부 접속은 443(HTTPS) 하나
+      - "127.0.0.1:8080:80"
       - "443:443"
     volumes:
       - ./nginx:/etc/nginx/conf.d:ro
@@ -44,7 +45,7 @@ services:
         ipv4_address: 172.30.250.2
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.15.1   # 운영 당시 실행 버전으로 고정 (latest 는 재배포마다 버전이 바뀜)
     restart: unless-stopped
     ports:
       - "127.0.0.1:9090:9090"
@@ -55,7 +56,7 @@ services:
       - ./monitoring/prometheus:/etc/prometheus/conf:ro
       - prometheus-data:/prometheus
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.3.0    # 운영 당시 실행 버전으로 고정
     restart: unless-stopped
     environment:
       GF_SECURITY_ALLOW_EMBEDDING: "true"
