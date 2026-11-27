@@ -9,7 +9,7 @@ NHN Cloud AI 팩토리 MLOps 부트캠프 팀 프로젝트 · 2026.10.29 – 11.
 <br>
 
 [![CI](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/ci.yaml/badge.svg)](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/ci.yaml)
-[![Deploy](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/deploy.yaml/badge.svg)](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/deploy.yaml)
+[![Build](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/deploy.yaml/badge.svg)](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/deploy.yaml)
 ![Dataset License](https://img.shields.io/badge/Dataset-CC_BY--NC--SA_4.0-lightgrey?style=flat-square)
 
 
@@ -28,7 +28,7 @@ NHN Cloud AI 팩토리 MLOps 부트캠프 팀 프로젝트 · 2026.10.29 – 11.
 
 <br>
 
-[소개](#-프로젝트-소개) · [검사 방식](#-검사-방식) · [모델](#-모델) · [아키텍처](#-아키텍처) · [CI/CD](#-cicd) · [시작하기](#-시작하기) · [로드맵](#-로드맵) · [팀](#-팀)
+[소개](#-프로젝트-소개) · [검사 방식](#-검사-방식) · [모델](#-모델) · [아키텍처](#-아키텍처) · [CI/CD](#-cicd) · [실행 전에](#-실행-전에-알아둘-것) · [시작하기](#-시작하기) · [로드맵](#-로드맵) · [팀](#-팀)
 
 </div>
 
@@ -322,6 +322,8 @@ flowchart LR
 
 ## 🔄 CI/CD
 
+> 프로젝트 종료(2026-11-25) 후 클라우드 서버와 셀프 호스티드 러너를 정리했습니다. 지금 저장소의 Actions는 **PR 스모크 테스트와 이미지 빌드 검증**만 실행합니다. 아래는 **운영 당시의 파이프라인**이며, 당시 코드는 태그 [`v1.0-operated`](https://github.com/1230seongjun/ksdd2-mlops/tree/v1.0-operated/.github)에 그대로 남아 있습니다.
+
 ```mermaid
 flowchart LR
   pr[PR] --> ci[CI<br/>스모크 테스트] --> review[팀원 1명 승인] --> merge[main 병합]
@@ -330,16 +332,14 @@ flowchart LR
   dm --> ds[deploy-service<br/>service 러너]
 ```
 
-| 규칙 | 내용 |
+| 규칙 | 운영 당시 내용 |
 |---|---|
 | 🛡️ **main 보호** | 직접 push 금지 · PR 필수 · CI 통과 · 작성자가 아닌 팀원 1명 승인 |
 | 🏷️ **이미지 태그** | 커밋 SHA 앞 7자리만 사용 (`latest` 미사용) |
-| 🚀 **배포** | 인스턴스별 셀프 호스티드 러너가 `deploy_stack.sh`로 배포. MLOps 스택을 먼저 배포 |
-| ↩️ **롤백** | 헬스체크 실패 시 직전 태그(`.env.prev`)로 자동 복원 |
+| 🚀 **배포** | 인스턴스별 셀프 호스티드 러너가 [`deploy_stack.sh`](.github/scripts/deploy_stack.sh)로 배포. MLOps 스택을 먼저 배포 |
+| ↩️ **롤백** | 헬스체크 실패 시 직전 태그(`.env.prev`, 직전 배포의 이미지 태그를 적어 둔 파일)로 자동 복원 |
 | 🧹 **정리** | 서버는 현재 · 직전 태그만 남김, NCR은 30일 기준 정리 정책 |
-| 🖐️ **수동 실행** | `all` · `api` · `mlflow` · `experiments-ui` · `deploy-only` |
-
-> 셀프 호스티드 러너는 PR에서 실행하지 않습니다 (main push와 수동 실행만).
+| 🔒 **러너 보호** | 셀프 호스티드 러너는 PR에서 실행하지 않음 (main push와 수동 실행만) |
 
 <br>
 
@@ -349,10 +349,10 @@ flowchart LR
 
 ```
 .github/
-├── workflows/        CI(ci.yaml) · 배포(deploy.yaml) · 점검용 워크플로
-└── scripts/          서버 배포 스크립트 (deploy_stack.sh)
+├── workflows/        CI 스모크 테스트(ci.yaml) · 이미지 빌드 검증(deploy.yaml)
+└── scripts/          운영 당시 서버 배포 · 롤백 스크립트 (deploy_stack.sh)
 infra/
-├── mlops/            MLflow · PostgreSQL · 실험 대시보드
+├── mlops/            MLflow · PostgreSQL · 실험 대시보드 · DB 백업(backup/)
 └── service/          Nginx · Prometheus · Grafana · 알림(monitoring/)
 serving/
 ├── api/              추론 API (FastAPI)
@@ -361,11 +361,50 @@ serving/
 model/
 ├── 이상치 모델/       이상 탐지 학습 (PatchCore)
 ├── 분류 모델/         결함 유형 분류 학습 (U-Net)
+├── 주간 자동 학습/     cron 정기 재학습
+├── gpu_training_api.py  GPU 서버 재학습 API
 └── common.yaml       두 모델 공통 설정
 docs/                 README 이미지
 ```
 
-> 각 스택의 실행 방법과 설정은 폴더별 README(`infra/mlops`, `infra/service`, `serving/api`)에 있습니다.
+> 각 스택의 실행 방법과 설정은 폴더별 README(`infra/mlops`, `infra/service`, `serving/api`, `model`)에 있습니다.
+
+<br>
+
+---
+
+## 🧰 실행 전에 알아둘 것
+
+이 저장소는 **NHN Cloud 위에서 실제로 운영했던 구성**을 담고 있습니다. 저장소만 받아서는 전체를 바로 실행할 수 없고, 아래 자원이 필요합니다.
+
+| 필요한 것 | 용도 | 대체 방법 |
+|---|---|---|
+| 클라우드 VPC (Public · Private 서브넷) | 인스턴스 배치 | 다른 클라우드나 VM 여러 대 |
+| 컨테이너 레지스트리 | 빌드한 이미지 저장 (운영 당시 NHN Container Registry) | Docker Hub, GHCR 등 |
+| S3 호환 Object Storage 버킷 | MLflow 모델 파일, 학습 데이터 | MinIO 등 S3 호환 스토리지 |
+| 학습 데이터 | KolektorSDD2 (라이선스상 저장소에 미포함) | [원본](https://www.vicos.si/resources/kolektorsdd2/)을 내려받아 버킷에 업로드 |
+| 학습된 모델 | 저장소에 미포함 | `model/`로 직접 학습해 MLflow에 등록 |
+
+- **저장소만으로 할 수 있는 것:** 코드 · 설정 구조 확인, 데이터를 준비한 뒤 모델 학습, CI 스모크 테스트
+- **클라우드 자원이 있어야 하는 것:** 서비스 운영, 자동 배포, 재학습 자동화
+
+### ⚙️ 설정값 한눈에 보기
+
+실제 값은 저장소에 없습니다. 각 위치의 `.env.example`을 `.env`로 복사해 채웁니다. 운영 당시 쓰던 GitHub Secrets(레지스트리 · 버킷 키)는 프로젝트 종료 후 삭제했습니다.
+
+| 변수 | 파일 | 의미 | 얻는 곳 |
+|---|---|---|---|
+| `MLFLOW_PRIVATE_IP` | `infra/mlops/.env` | mlops 인스턴스 사설 IP. DB · MLflow를 이 IP에만 공개 | 인스턴스 정보 |
+| `OBJECT_STORAGE_GATEWAY_IP` | `infra/mlops/.env` | Service Gateway 사설 IP. Object Storage를 인터넷 대신 내부망으로 접근 | Network > Service Gateway |
+| `POSTGRES_*` | `infra/mlops/.env` | DB 계정. `_URLENCODED`는 MLflow 접속 URL에 넣을 인코딩 값 | 직접 정함 |
+| `AWS_*` · `MLFLOW_S3_ENDPOINT_URL` · `MLFLOW_ARTIFACT_BUCKET` | `infra/mlops/.env` | Object Storage 키 · 주소 · 버킷. S3 호환이라 AWS 변수 이름 사용 | Object Storage > S3 API 자격 증명 |
+| `MLFLOW_TRACKING_URI` | `infra/service/.env` · `model/.env` | MLflow 주소 | mlops 사설 IP:5000 |
+| `INFERENCE_DB_*` | `infra/service/.env` | 검사 결과 · 계정 DB 접속 정보 | mlops `.env`와 맞춤 |
+| `GPU_TRAINING_URL` · `GPU_TRAINING_TOKEN` | `infra/service/.env` · `model/.env` | 재학습 서버 주소 · 인증 토큰 (양쪽 같은 값) | 직접 생성 |
+| `GF_ROOT_URL` | `infra/service/.env` | 브라우저에서 접속할 Grafana 주소 | 서비스 도메인 |
+| `OBJECT_STORAGE_ACCESS_KEY` · `_SECRET_KEY` | `model/.env` | 학습 데이터 버킷 키 | Object Storage > S3 API 자격 증명 |
+| `KAKAO_*` · `RELAY_TOKEN` · `ALERT_LINK` | `infra/service/monitoring/kakao-relay/.env` | 카카오톡 알림 | 카카오 개발자 콘솔 |
+| `NCR_REGISTRY` · `REGISTRY_PATH` · `*_TAG` | 각 `.env` | 이미지 주소 · 배포한 버전 | 운영 당시 배포 스크립트가 자동 기록 |
 
 <br>
 
@@ -376,11 +415,12 @@ docs/                 README 이미지
 ### 모델 학습 (GPU 서버 · 학습 PC)
 
 ```bash
+# <...>는 각자의 환경 값입니다. mlops 인스턴스는 Private 서브넷이라 Public 인스턴스를 거쳐 접속합니다.
 # 1. MLflow 접속용 SSH 터널 (service-instance를 거쳐 mlops-instance로)
 ssh -J <service 계정>@<service 주소> -L 5000:127.0.0.1:5000 <mlops 계정>@<mlops 사설 주소>
 
-# 2. 모델 폴더에 .env 준비 (저장소에 올리지 않음)
-#    OBJECT_STORAGE_ACCESS_KEY, OBJECT_STORAGE_SECRET_KEY, MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+# 2. model/.env 준비 (저장소에 올리지 않음)
+cp model/.env.example model/.env   # 값 채우기: 버킷 키, MLFLOW_TRACKING_URI=http://127.0.0.1:5000
 
 # 3-a. 이상 탐지 학습 → 검증 지표 기록 (SAVE_MODEL: true 면 Registry 등록)
 cd "model/이상치 모델"
@@ -394,14 +434,9 @@ python summary.py
 
 > 필요 패키지: PyTorch · torchvision · MLflow 3.6 · scikit-learn · boto3 · python-dotenv (분류 모델은 segmentation-models-pytorch · scipy 추가)
 
-### 배포
+### 배포 (운영 당시)
 
-| 방법 | 언제 |
-|---|---|
-| **자동** | `main`에 병합되면 바뀐 이미지만 빌드해 두 스택을 순서대로 배포 |
-| **수동** | Actions → `Build and deploy` → 대상(`all` · `api` · `deploy-only` 등) 선택 |
-
-배포가 끝나면 브라우저에서 `https://<서비스 주소>`로 접속해 로그인합니다.
+운영 당시에는 `main`에 병합되면 바뀐 이미지만 빌드해 MLOps → 서비스 순서로 자동 배포했습니다. 서버를 정리한 지금은 비활성화돼 있으며, 방식은 [CI/CD](#-cicd)에 정리했습니다.
 
 <br>
 
@@ -417,7 +452,7 @@ python summary.py
 - [x] 검사 결과 DB 기반 성능 저하 감지 → Slack · 카카오톡 알림 (12개 규칙)
 - [x] 작업자 · 관리자 권한 분리, 재검토 라벨링 · 새 이미지 Object Storage 저장
 - [x] GPU 서버 재학습 (cron 주 1회 · 관리자 버튼) → MLflow 등록 → 자동 배포
-- [ ] PostgreSQL 일일 백업 자동화 (수동 백업 · MLflow DB 복구 테스트는 완료)
+- [x] PostgreSQL 일일 백업 자동화 (cron · Object Storage 업로드 · 복구 테스트)
 - [ ] 자동 배포 전 성능 검증 게이트 (기존 모델보다 나쁠 때 배포 중단)
 - [ ] 성능 저하 시 직전 모델로 자동 롤백
 - [ ] 재검토 라벨 반영 시 학습 데이터 캐시 동기화 (삭제 · 이동 반영)
@@ -430,7 +465,7 @@ python summary.py
 
 | 위치 | 담는 값 |
 |---|---|
-| **GitHub Secrets** | NCR 주소와 접속 키 |
+| **GitHub Secrets** | 운영 당시 레지스트리 주소 · 접속 키, 학습 데이터 버킷 키 (프로젝트 종료 후 삭제) |
 | **서버 `.env`** | DB 비밀번호, Object Storage 키, 카카오 알림 토큰, 재학습 API 토큰 등 (권한 600) |
 | **서버 `tls/`** | HTTPS 인증서 (서버에만 두고 배포 동기화에서 제외) |
 

@@ -6,13 +6,17 @@ services:
     restart: unless-stopped
 
     environment:
+      # 재학습 서버(선택). 비워 두면 관리자 화면의 재학습 버튼만 동작하지 않습니다.
       GPU_TRAINING_URL: "${GPU_TRAINING_URL:-}"
       GPU_TRAINING_TOKEN: "${GPU_TRAINING_TOKEN:-}"
       MLFLOW_TRACKING_URI: "${MLFLOW_TRACKING_URI:?MLFLOW_TRACKING_URI is not set in .env}"
+      # 시작할 때 불러오는 기본 모델(MLflow Registry 이름/버전). 실제 검사 모델은 화면에서 Registry 버전 중 고를 수 있습니다.
       MODEL_URI: "models:/Zero-Defects/2"
       CLASSIFIER_MODEL_URI: "models:/Zero-Defects-Classifier/1"
+      # 비교용 후보 모델(선택). 비우면 사용하지 않습니다.
       CHALLENGER_MODEL_URI: ""
       CHALLENGER_CLASSIFIER_MODEL_URI: ""
+      # 검사 결과·계정 DB. 비우면 DB 저장 없이 판정만 반환합니다.
       INFERENCE_DB_HOST: ${INFERENCE_DB_HOST:-}
       INFERENCE_DB_PORT: ${INFERENCE_DB_PORT:-}
       INFERENCE_DB_NAME: ${INFERENCE_DB_NAME:-}
@@ -35,6 +39,7 @@ services:
       - api
     networks:
       default: {}
+      # Grafana 인증 프록시 전용 내부망. Grafana는 이 IP에서 온 요청만 로그인 헤더를 믿습니다(GF_AUTH_PROXY_WHITELIST).
       grafana_auth:
         ipv4_address: 172.30.250.2
 
@@ -54,7 +59,8 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_SERVER_ROOT_URL: "https://133.186.218.8/grafana/"
+      # 브라우저에서 접속하는 Grafana 주소. 예: https://example.com/grafana/
+      GF_SERVER_ROOT_URL: "${GF_ROOT_URL:?GF_ROOT_URL is not set in .env}"
       GF_AUTH_PROXY_ENABLED: "true"
       GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
       GF_AUTH_PROXY_HEADER_PROPERTY: "username"
@@ -70,12 +76,14 @@ services:
       - grafana-data:/var/lib/grafana
     networks:
       default: {}
+      # IP와 별칭을 고정해 두어야 재부팅 후에도 Nginx와 IP가 겹치지 않고, Nginx가 이 이름으로 찾아옵니다.
       grafana_auth:
         ipv4_address: 172.30.250.3
         aliases:
           - grafana-auth-backend
 
 networks:
+  # 외부와 연결되지 않는 /29 내부망 (Nginx 1개 + Grafana 1개만 사용)
   grafana_auth:
     internal: true
     ipam:

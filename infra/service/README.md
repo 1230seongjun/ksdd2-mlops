@@ -12,7 +12,7 @@ flowchart LR
     A -->|"계정·세션·검사 결과"| D["PostgreSQL inference"]
 ```
 
-Nginx는 정적 HTML을 제공하고 `/api/` 접두어를 제거해 FastAPI에 요청을 전달합니다. FastAPI가 MLflow에서 모델을 불러와 서비스 서버에서 추론합니다. 현재 서비스 Compose의 `champion` 선택지는 탐지 모델 `models:/Zero-Defects/2`와 분류 모델 `models:/Zero-Defects-Classifier/1`을 사용합니다. 실제 선택지와 준비 상태는 `/api/models`로 확인합니다.
+Nginx는 정적 HTML을 제공하고 `/api/` 접두어를 제거해 FastAPI에 요청을 전달합니다. FastAPI가 MLflow에서 모델을 불러와 서비스 서버에서 추론합니다. 서비스 Compose의 `champion` 선택지는 시작할 때 기본으로 불러오는 모델로, 탐지 모델 `models:/Zero-Defects/2`와 분류 모델 `models:/Zero-Defects-Classifier/1`입니다. 실제 검사 모델은 화면에서 Registry에 등록된 버전 중 고를 수 있습니다. 실제 선택지와 준비 상태는 `/api/models`로 확인합니다.
 
 서비스용 `inference` DB에는 검사 결과와 계정·세션이 저장됩니다. MLflow는 별도 `mlflow` DB에 실험·등록 모델 메타데이터를 저장합니다. 운영 검증 당시 두 DB는 MLOps 인스턴스의 PostgreSQL에서 동작했습니다. 서비스 서버 측 DB로의 이전 절차와 검증 기준은 아래에 정리했습니다.
 
@@ -21,27 +21,27 @@ Nginx는 정적 HTML을 제공하고 `/api/` 접두어를 제거해 FastAPI에 �
 | [compose.service.yaml](compose.service.yaml) | API·Nginx·Prometheus·Grafana 실행과 연결 설정 |
 | [nginx/default.conf](nginx/default.conf) | TLS, HTML 제공, API·Grafana 프록시 |
 | [monitoring/prometheus/prometheus.yml](monitoring/prometheus/prometheus.yml) | API 지표 수집 설정 |
-| [웹 UI](../../serving/web/index.html) | 검사·결과 다운로드·인증·이력 화면 |
+| [웹 UI](../../serving/web/zerodefect-ui.html) | 검사·결과 다운로드·인증·이력 화면 |
 | [추론 API 문서](../../serving/api/README.md) | API 계약과 인증·이력 저장 구조 |
 | [DB 스키마](../mlops/db/) | 검사·계정 스키마와 마이그레이션 |
 | [배포 워크플로](../../.github/workflows/deploy.yaml) · [배포 스크립트](../../.github/scripts/deploy_stack.sh) | 변경 감지, 이미지 빌드·배포, 상태 검사와 복구 |
 
 ## 배포와 접속
 
-운영 파일은 `/opt/bulryangzero/service`에 둡니다. Compose 프로젝트 이름은 `ksdd2-mlops`입니다. Nginx는 `nginx/`, `web/`, `tls/`를 읽기 전용으로 마운트합니다. `web/`에는 저장소의 `serving/web/`가 배포됩니다.
+운영 파일은 `/opt/bulryangzero/service`(배포 스크립트가 관리하는 서버의 실행본 폴더)에 둡니다. 설정값은 같은 폴더의 `.env`에 두며, 항목은 [.env.example](.env.example)에 있습니다. Compose 프로젝트 이름은 `ksdd2-mlops`입니다. Nginx는 `nginx/`, `web/`, `tls/`를 읽기 전용으로 마운트합니다. `web/`에는 저장소의 `serving/web/`가 배포됩니다.
 
 | 접근 경로 | 용도 |
 | --- | --- |
 | HTTPS `443` | 검사 화면과 API |
-| HTTP `8080` | 기존 호스트 바인딩. 배포 스크립트는 서버 로컬의 `/api/ready`를 검사 |
+| HTTP `8080` | 배포 스크립트의 헬스체크용 (서버 로컬의 `/api/ready` 검사) |
 | `127.0.0.1:9090`, `127.0.0.1:3000` | 서비스 서버의 Prometheus, Grafana |
 | Nginx `/grafana/` | Grafana 프록시 |
 
 팀 검증에는 자체 서명 IP 인증서를 사용했습니다. 브라우저는 인증서를 신뢰하는 환경에서 접속하며, CLI는 검증한 공개 PEM을 `curl --cacert`로 지정할 수 있습니다. 개인키와 DB 자격 증명은 서버에 보관합니다.
 
-`main` 반영 시 GitHub Actions가 변경 범위에 따라 API 이미지 빌드·NCR 등록과 서비스 스택 배포를 수행합니다. UI·서비스 설정만 바뀌면 기존 이미지를 사용해 파일과 Compose 설정을 반영합니다. 워크플로의 수동 실행은 `target`으로 대상을 선택합니다. 배포 스크립트는 파일·이미지를 백업하고, 준비 검사가 실패하면 이전 구성으로 복구를 시도합니다. DB 데이터 복구는 별도입니다.
+운영 당시에는 `main` 반영 시 GitHub Actions가 변경 범위에 따라 API 이미지 빌드·NCR 등록과 서비스 스택 배포를 수행했습니다. UI·서비스 설정만 바뀌면 기존 이미지를 사용해 파일과 Compose 설정을 반영했습니다. 배포 스크립트는 파일·이미지를 백업하고, 준비 검사가 실패하면 이전 구성으로 복구했습니다. DB 데이터 복구는 별도입니다.
 
-**자동 배포 전 확인:** 현재 `rsync --delete` 제외 목록에 `tls/`가 없습니다. 인증서와 개인키의 보존 경로를 정한 뒤 배포·롤백 모두에서 확인합니다. Grafana의 외부 URL은 현재 HTTP `:8080` 기준이므로 HTTPS의 `/grafana/` 경로와 패널을 재검증합니다.
+> 프로젝트 종료 후 서버와 셀프 호스티드 러너를 정리해 자동 배포는 비활성화했습니다. 위 내용은 운영 당시 방식입니다.
 
 ## 추론 DB 연결과 저장 검증
 
@@ -62,7 +62,7 @@ curl -fsS http://127.0.0.1:8080/api/models
 curl -fsS http://127.0.0.1:9090/api/v1/targets
 ```
 
-후보 API와 새 UI를 수동 반영한 환경에서 외부 HTTPS, 비로그인 401, 관리자 로그인과 계정 조회, 관리자·작업자 검사 저장을 확인했습니다. 운영에서 관리자·작업자 조회 범위의 직접 대조, 새 DB 복원과 전환, 최신 변경의 자동 배포 재현은 추가 검증 대상입니다.
+외부 HTTPS, 비로그인 401, 관리자 로그인과 계정 조회, 관리자·작업자 검사 저장을 운영 환경에서 확인했습니다.
 
 | 증상 | 확인할 근거 |
 | --- | --- |
