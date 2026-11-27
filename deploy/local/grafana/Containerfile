@@ -1,0 +1,15 @@
+# 로컬 실행용 Grafana 이미지: 데이터 소스 · 대시보드를 자동 등록
+# 대시보드 원본은 infra/service/monitoring/grafana/dashboards/ 하나만 두고, 빌드할 때 데이터 소스 UID 만 바꿔 넣습니다.
+#   podman build -f deploy/local/grafana/Containerfile -t ghcr.io/1230seongjun/ksdd2-mlops/grafana:latest .
+FROM docker.io/grafana/grafana:13.3.0
+COPY deploy/local/grafana/provisioning/ /etc/grafana/provisioning/
+COPY infra/service/monitoring/grafana/dashboards/ /tmp/dashboards/
+USER root
+RUN mkdir -p /etc/grafana/dashboards \
+ && for f in /tmp/dashboards/*.json; do \
+      sed -e 's/\${DS_PROMETHEUS}/prometheus/g' -e 's/\${DS_INFERENCE}/inference/g' "$f" \
+        > "/etc/grafana/dashboards/$(basename "$f")"; \
+    done \
+ && rm -rf /tmp/dashboards \
+ && chown -R 472:0 /etc/grafana/dashboards
+USER 472

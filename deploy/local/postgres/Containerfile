@@ -1,0 +1,6 @@
+# 로컬 실행용 PostgreSQL 이미지: 처음 뜰 때 inference DB 와 스키마를 자동으로 만듭니다.
+# 스키마 원본은 infra/mlops/db/*.sql 하나만 두고 그대로 복사합니다.
+#   podman build -f deploy/local/postgres/Containerfile -t ghcr.io/1230seongjun/ksdd2-mlops/postgres:latest .
+FROM docker.io/library/postgres:16
+COPY infra/mlops/db/*.sql /schema/
+COPY deploy/local/postgres/10-inference.sh /docker-entrypoint-initdb.d/10-inference.sh

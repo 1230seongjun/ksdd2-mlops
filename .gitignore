@@ -36,3 +36,10 @@ infra/mlops/.env
 # Vim 임시 파일
 *.swp
 *.swo
+
+# 로컬 실행: 직접 받은 데이터 (KolektorSDD2 는 재배포 금지)와 공개 버킷에 올릴 모델 내보내기 결과
+models-public/
+*.zip
+KolektorSDD2/
+ksdd2-subset/
+samples/

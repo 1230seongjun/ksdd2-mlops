@@ -1,107 +1,99 @@
 name: Build images
 
-# 프로젝트 종료 후 셀프 호스티드 러너와 NCR을 정리해, 이 워크플로는 이미지 빌드 검증만 합니다.
-# 운영 당시의 자동 배포·롤백 파이프라인은 태그 v1.0-operated 의 deploy.yaml 과
-# .github/scripts/deploy_stack.sh 에 남아 있습니다.
+# 이미지를 빌드해 GHCR(GitHub Container Registry, OCI 레지스트리)에 게시합니다.
+#   - PR: 빌드만 검증 (push 안 함)
+#   - main: ghcr.io/<저장소>/<이미지>:latest 와 :<커밋 SHA 7자리> 로 push
+# 로컬 실행 매니페스트(deploy/local/ksdd2.yaml)가 이 이미지들을 받아 씁니다.
+#
+# 운영 당시(NHN Cloud)의 NCR push · 셀프 호스티드 러너 자동 배포 · 롤백 파이프라인은
+# 태그 v1.0-operated 의 deploy.yaml 과 .github/scripts/deploy_stack.sh 에 남아 있습니다.
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - "serving/api/**"
+      - "serving/**"
       - "infra/mlops/mlflow/**"
       - "infra/mlops/experiments-ui/**"
+      - "infra/mlops/db/**"
+      - "infra/service/monitoring/grafana/dashboards/**"
+      - "model/**"
+      - "deploy/local/**"
+      - ".github/workflows/deploy.yaml"
   push:
     branches: [main]
     paths:
-      - "serving/api/**"
+      - "serving/**"
       - "infra/mlops/mlflow/**"
       - "infra/mlops/experiments-ui/**"
+      - "infra/mlops/db/**"
+      - "infra/service/monitoring/grafana/dashboards/**"
+      - "model/**"
+      - "deploy/local/**"
+      - ".github/workflows/deploy.yaml"
   workflow_dispatch:
-    inputs:
-      target:
-        description: "빌드 검증 대상"
-        type: choice
-        default: all
-        options: [all, api, mlflow, experiments-ui]
 
 permissions:
   contents: read
-  pull-requests: read
+  packages: write
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      images: ${{ steps.pick.outputs.images }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Detect changes
-        id: filter
-        if: github.event_name != 'workflow_dispatch'
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            api:
-              - "serving/api/**"
-            mlflow:
-              - "infra/mlops/mlflow/**"
-            experiments_ui:
-              - "infra/mlops/experiments-ui/**"
-
-      - name: Pick images
-        id: pick
-        env:
-          EVENT: ${{ github.event_name }}
-          TARGET: ${{ inputs.target }}
-          F_API: ${{ steps.filter.outputs.api }}
-          F_MLFLOW: ${{ steps.filter.outputs.mlflow }}
-          F_UI: ${{ steps.filter.outputs.experiments_ui }}
-        run: |
-          imgs=""
-          if [ "$EVENT" = "workflow_dispatch" ]; then
-            case "$TARGET" in
-              all)            imgs="api mlflow experiments-ui" ;;
-              api)            imgs="api" ;;
-              mlflow)         imgs="mlflow" ;;
-              experiments-ui) imgs="experiments-ui" ;;
-            esac
-          else
-            if [ "$F_API" = "true" ];    then imgs="$imgs api"; fi
-            if [ "$F_MLFLOW" = "true" ]; then imgs="$imgs mlflow"; fi
-            if [ "$F_UI" = "true" ];     then imgs="$imgs experiments-ui"; fi
-          fi
-          images=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' $imgs)
-          echo "images=$images" >> "$GITHUB_OUTPUT"
-          echo "빌드 검증 대상: $images"
-
   build:
-    needs: changes
-    if: needs.changes.outputs.images != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        image: ${{ fromJSON(needs.changes.outputs.images) }}
+        include:
+          - image: api
+            context: serving/api
+            file: serving/api/Dockerfile
+          - image: mlflow
+            context: infra/mlops/mlflow
+            file: infra/mlops/mlflow/Dockerfile
+          - image: experiments-ui
+            context: infra/mlops/experiments-ui
+            file: infra/mlops/experiments-ui/Dockerfile
+          # 아래 4개는 로컬 실행용. 저장소 파일을 함께 넣어야 해서 빌드 컨텍스트가 저장소 최상단
+          - image: web
+            context: .
+            file: deploy/local/web/Containerfile
+          - image: grafana
+            context: .
+            file: deploy/local/grafana/Containerfile
+          - image: postgres
+            context: .
+            file: deploy/local/postgres/Containerfile
+          - image: trainer
+            context: .
+            file: deploy/local/trainer/Containerfile
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set build context
+      - name: Image name
         run: |
-          case "${{ matrix.image }}" in
-            mlflow)         echo "CONTEXT=infra/mlops/mlflow"         >> "$GITHUB_ENV" ;;
-            api)            echo "CONTEXT=serving/api"                >> "$GITHUB_ENV" ;;
-            experiments-ui) echo "CONTEXT=infra/mlops/experiments-ui" >> "$GITHUB_ENV" ;;
-          esac
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build (no push)
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (push on main)
         uses: docker/build-push-action@v6
         with:
-          context: ${{ env.CONTEXT }}
-          push: false
-          tags: bulryangzero/${{ matrix.image }}:${{ github.sha }}
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ env.SHORT_SHA }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}

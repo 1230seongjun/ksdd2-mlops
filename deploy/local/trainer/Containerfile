@@ -1,0 +1,54 @@
+# 로컬 실행용 학습 서버: 운영의 GPU 학습 서버(model/gpu_training_api.py + run_training.sh)를 그대로 CPU 로 실행합니다.
+# 검사 화면의 "재학습" 버튼 → 추론 API → 이 서버(127.0.0.1:8100) → train.py → MLflow 등록
+#   podman build -f deploy/local/trainer/Containerfile -t ghcr.io/1230seongjun/ksdd2-mlops/trainer:latest .
+FROM docker.io/library/python:3.11-slim
+
+# PyTorch 는 추론 API 이미지(serving/api/Dockerfile)와 같은 CPU 버전으로 고정
+# (학습한 모델을 추론 쪽에서 그대로 불러와야 하므로 버전을 맞춤)
+RUN pip install --no-cache-dir \
+    torch==2.11.0 torchvision==0.26.0 \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# 학습 코드와 추론 API 의 나머지 의존성 (MLflow 3.6.0 등)
+COPY model/requirements.txt /tmp/model-requirements.txt
+COPY serving/api/requirements.txt /tmp/api-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/model-requirements.txt -r /tmp/api-requirements.txt \
+ && rm /tmp/*-requirements.txt
+
+# 사전학습 백본(Wide ResNet50-2, ImageNet V1) 가중치를 미리 받아 둠 → 재학습 때 인터넷 없이 바로 시작
+RUN python -c "from torchvision.models import wide_resnet50_2, Wide_ResNet50_2_Weights as W; wide_resnet50_2(weights=W.IMAGENET1K_V1)"
+
+COPY model/ /app/model/
+COPY deploy/local/trainer/prepare_dataset.py deploy/local/trainer/upload_dataset.py /app/
+# 운영 모델(v1~v8) 불러오기: 같은 이미지로 Pod 의 model-import 컨테이너가 실행 (목록 models.json 이 없으면 건너뜀)
+COPY deploy/local/models/ /app/models/
+
+# 로컬 실행에서 바꾸는 설정 (원본 config.yaml 은 저장소에 그대로 두고 이미지 안에서만 바꿈)
+#   - 데이터 위치: Object Storage 에서 내려받은 데이터를 데이터 볼륨(/data)에 캐시
+#       이상 탐지 /data/ksdd2 (normal/, anomaly/)  ·  결함 분류 /data/classifier (라벨 폴더 + coco.json)
+#     Object Storage 주소와 사용 여부(DATA_SOURCE)는 컨테이너 시작 때 entrypoint.sh 가 환경변수로 정함
+#   - 파인튜닝: CPU 로는 너무 오래 걸려서 끔 (FINE_TUNE_STAGE 0 = 파인튜닝 전 PatchCore)
+#   - coreset 후보 패치 수: 30만 개(약 1.8GB 메모리)를 노트북에 맞게 10만 개로 줄임
+RUN sed -i \
+      -e 's#^DATA_DIR:.*#DATA_DIR: /data/ksdd2#' \
+      -e 's#^CACHE_DIR:.*#CACHE_DIR: /data/ksdd2#' \
+      -e 's#^FINE_TUNE_STAGE:.*#FINE_TUNE_STAGE: 0#' \
+      -e 's#^CORESET_POOL_SIZE:.*#CORESET_POOL_SIZE: 100000#' \
+      "/app/model/이상치 모델/config.yaml" \
+ && sed -i \
+      -e "s#^DATA_DIR:.*#DATA_DIR: '/data/classifier'#" \
+      -e "s#^CACHE_DIR:.*#CACHE_DIR: '/data/classifier'#" \
+      -e "s#^BBOX_JSON:.*#BBOX_JSON: '/data/classifier/coco.json'#" \
+      "/app/model/분류 모델/config.yaml" \
+ && grep -E '^(DATA_DIR|CACHE_DIR|BBOX_JSON|FINE_TUNE_STAGE|CORESET_POOL_SIZE):' \
+      "/app/model/이상치 모델/config.yaml" "/app/model/분류 모델/config.yaml"
+
+COPY deploy/local/trainer/entrypoint.sh /usr/local/bin/trainer-entrypoint
+RUN chmod 755 /usr/local/bin/trainer-entrypoint
+
+ENV GPU_TRAINING_PYTHON=/usr/local/bin/python \
+    PYTHON=/usr/local/bin/python \
+    PYTHONIOENCODING=utf-8
+WORKDIR /app/model
+ENTRYPOINT ["/usr/local/bin/trainer-entrypoint"]
+CMD ["uvicorn", "gpu_training_api:app", "--host", "127.0.0.1", "--port", "8100"]

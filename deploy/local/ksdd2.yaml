@@ -1,0 +1,452 @@
+# 불량제로 로컬 실행 매니페스트 (Podman · 쿠버네티스 YAML)
+#
+#   실행: podman kube play deploy/local/ksdd2.yaml
+#   종료: podman kube down deploy/local/ksdd2.yaml          (데이터 볼륨은 남음)
+#   초기화: podman kube down --force deploy/local/ksdd2.yaml (데이터 볼륨까지 삭제)
+#
+#   접속: http://localhost:8080 (검사 화면) · http://localhost:5000 (MLflow) · http://localhost:8502 (실험 대시보드)
+#         Grafana 는 검사 화면에 로그인한 뒤 http://localhost:8080/grafana/
+#   재학습: 학습 데이터를 ksdd2-dataset 볼륨에 넣은 뒤(README 참고) 검사 화면의 재학습 버튼
+#
+# 운영(NHN Cloud)의 service · mlops 인스턴스를 Pod 하나로 합쳤습니다. 컨테이너들이 localhost 를 공유해서
+# 이름 해석이나 고정 IP 없이 127.0.0.1 로 서로 연결됩니다. 외부(호스트)에는 아래 hostPort 3개만 열립니다.
+#
+# 아래 비밀번호와 데모 계정은 "로컬 체험용" 값입니다. 운영에서는 쓰지 않습니다.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ksdd2-local
+# podman kube play 는 Secret 의 data(base64)를 읽습니다. 원래 값은 오른쪽 주석과 같습니다.
+data:
+  postgres-password: bG9jYWxkZW1vLXBvc3RncmVz   # localdemo-postgres
+  grafana-reader-password: bG9jYWxkZW1vLWdyYWZhbmE=   # localdemo-grafana
+  mlflow-backend-uri: cG9zdGdyZXNxbCtwc3ljb3BnMjovL21sZmxvdzpsb2NhbGRlbW8tcG9zdGdyZXNAMTI3LjAuMC4xOjU0MzIvbWxmbG93   # postgresql+psycopg2://mlflow:localdemo-postgres@127.0.0.1:5432/mlflow
+  admin-email: YWRtaW5AZXhhbXBsZS5jb20=   # admin@example.com
+  admin-password: bG9jYWxkZW1vLWFkbWlu   # localdemo-admin
+  training-token: bG9jYWxkZW1vLXRyYWluaW5nLXRva2Vu   # localdemo-training-token
+  object-storage-access-key: bG9jYWxkZW1vLW1pbmlv   # localdemo-minio
+  object-storage-secret-key: bG9jYWxkZW1vLW1pbmlvLXNlY3JldA==   # localdemo-minio-secret
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ksdd2-prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: "defectcatch-api"
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:8000"]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-pgdata
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-mlartifacts
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-grafana
+  # Grafana 는 uid 472 로 실행되므로 볼륨 소유자를 맞춤 (rootless Podman 볼륨은 기본이 root 소유)
+  annotations:
+    volume.podman.io/uid: "472"
+    volume.podman.io/gid: "0"
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-prometheus
+  # Prometheus 는 nobody(uid 65534)로 실행되므로 볼륨 소유자를 맞춤. 없으면 /prometheus 에 쓰지 못해 재시작을 반복함
+  annotations:
+    volume.podman.io/uid: "65534"
+    volume.podman.io/gid: "65534"
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-dataset
+  # 학습 컨테이너가 Object Storage(dataset 버킷)에서 내려받은 학습 데이터를 두는 캐시. 다음 학습부터는 바뀐 파일만 받습니다.
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-object-storage
+  # 로컬 Object Storage(MinIO)의 저장 공간. 학습 데이터 버킷(dataset)이 여기에 들어갑니다.
+  annotations:
+    volume.podman.io/uid: "65532"   # MinIO 이미지(Chainguard)의 실행 사용자
+    volume.podman.io/gid: "65532"
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-inference-images
+  # 검사한 원본 이미지(<요청 ID>.png). 재분류 · 유형 · 박스 좌표는 DB 에 같은 요청 ID 로 저장됩니다. 로컬에서만 켭니다.
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ksdd2
+  labels:
+    app: ksdd2
+spec:
+  restartPolicy: Always
+  containers:
+    # ── mlops (운영 당시 mlops-instance) ──────────────────────────────
+    - name: postgres
+      image: ghcr.io/1230seongjun/ksdd2-mlops/postgres:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: POSTGRES_USER
+          value: mlflow
+        - name: POSTGRES_DB
+          value: mlflow
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: postgres-password}
+        - name: GRAFANA_READER_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: grafana-reader-password}
+      volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+
+    - name: mlflow
+      image: ghcr.io/1230seongjun/ksdd2-mlops/mlflow:latest
+      imagePullPolicy: IfNotPresent
+      # 모델 파일은 운영의 Object Storage 대신 로컬 볼륨(/mlartifacts)에 저장
+      args:
+        - mlflow
+        - server
+        - --host
+        - 0.0.0.0
+        - --port
+        - "5000"
+        - --artifacts-destination
+        - /mlartifacts
+        - --serve-artifacts
+        - --allowed-hosts
+        - "localhost:5000,127.0.0.1:5000,localhost,127.0.0.1"
+      env:
+        - name: MLFLOW_BACKEND_STORE_URI
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: mlflow-backend-uri}
+      ports:
+        - containerPort: 5000
+          hostPort: 5000
+          hostIP: 127.0.0.1
+      volumeMounts:
+        - name: mlartifacts
+          mountPath: /mlartifacts
+
+    - name: experiments-ui
+      image: ghcr.io/1230seongjun/ksdd2-mlops/experiments-ui:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://127.0.0.1:5000
+      ports:
+        - containerPort: 8501
+          hostPort: 8502
+          hostIP: 127.0.0.1
+
+    # 운영의 GPU 학습 서버를 CPU 로 실행. 검사 화면의 재학습 버튼이 api 를 거쳐 여기로 요청함 (외부 포트 없음)
+    # 운영의 NHN Object Storage 를 대신하는 S3 호환 저장소(MinIO). 학습 데이터 버킷(dataset)만 둡니다.
+    # MinIO 커뮤니티판은 공식 이미지 배포가 끝나서, 누구나 받을 수 있는 Chainguard 빌드를 씁니다.
+    # Pod 안(127.0.0.1:9000)에서만 열고 바깥 포트는 열지 않습니다.
+    - name: object-storage
+      image: cgr.dev/chainguard/minio:latest
+      imagePullPolicy: IfNotPresent
+      args: [server, /data, --address, "127.0.0.1:9000", --console-address, "127.0.0.1:9001"]
+      env:
+        # 학습 코드(model/common.yaml)가 NHN 리전 이름 KR1 로 서명하므로 같은 리전으로 맞춤
+        - name: MINIO_SITE_REGION
+          value: KR1
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: object-storage-access-key}
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: object-storage-secret-key}
+      volumeMounts:
+        - name: object-storage
+          mountPath: /data
+
+    - name: trainer
+      image: ghcr.io/1230seongjun/ksdd2-mlops/trainer:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://127.0.0.1:5000
+        - name: GPU_TRAINING_TOKEN
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: training-token}
+        # 운영처럼 학습 데이터를 Object Storage(여기서는 같은 Pod 의 MinIO) 버킷에서 받아 학습
+        - name: DATASET_SOURCE
+          value: object_storage
+        - name: OBJECT_STORAGE_ENDPOINT
+          value: http://127.0.0.1:9000
+        - name: OBJECT_STORAGE_ACCESS_KEY
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: object-storage-access-key}
+        - name: OBJECT_STORAGE_SECRET_KEY
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: object-storage-secret-key}
+      volumeMounts:
+        - name: dataset
+          mountPath: /data
+        # 재학습 데이터로 쓸 수 있게 저장된 검사 이미지를 읽기 전용으로 붙임
+        - name: inference-images
+          mountPath: /data/inference
+          readOnly: true
+
+    # ── service (운영 당시 service-instance) ──────────────────────────
+    # 시작할 때 쓸 기본 모델을 정한 뒤 API 를 띄운다 (운영은 .env 의 MODEL_URI 로 고정, 로컬은 자동).
+    #   1) model-import 가 운영 모델(v1~v8) 불러오기를 마칠 때까지 기다림
+    #   2) 이상 탐지 모델은 가장 최근 버전 → 로컬에서 재학습하면 podman restart ksdd2-api 로 새 버전(v9 …)을 씀
+    #   3) 분류 모델은 그 버전의 classifier_version 태그, 없으면 가장 최근 버전
+    - name: api
+      image: ghcr.io/1230seongjun/ksdd2-mlops/api:latest
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+        - -c
+        - |
+          i=0; while [ ! -f /shared/models-imported ] && [ $i -lt 3600 ]; do sleep 2; i=$((i+2)); done
+          eval "$(python - <<'EOF'
+          import os, time
+          from mlflow import MlflowClient
+          client = MlflowClient(os.environ["MLFLOW_TRACKING_URI"])
+          def versions(name):
+              try:
+                  return {int(v.version): v for v in client.search_model_versions(f"name = '{name}'") if v.status == "READY"}
+              except Exception:
+                  return {}
+          for _ in range(60):
+              try:
+                  client.search_registered_models(max_results=1); break
+              except Exception:
+                  time.sleep(2)
+          detectors, classifiers = versions("Zero-Defects"), versions("Zero-Defects-Classifier")
+          detector = max(detectors, default=1)
+          tagged = detectors[detector].tags.get("classifier_version") if detectors else None
+          classifier = int(tagged) if tagged and int(tagged) in classifiers else max(classifiers, default=1)
+          print(f"export MODEL_URI=models:/Zero-Defects/{detector} CLASSIFIER_MODEL_URI=models:/Zero-Defects-Classifier/{classifier}")
+          EOF
+          )"
+          echo "기본 모델: $MODEL_URI + $CLASSIFIER_MODEL_URI"
+          exec uvicorn main:app --host 0.0.0.0 --port 8000
+      env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://127.0.0.1:5000
+        - name: INFERENCE_DB_HOST
+          value: 127.0.0.1
+        - name: INFERENCE_DB_PORT
+          value: "5432"
+        - name: INFERENCE_DB_NAME
+          value: inference
+        - name: INFERENCE_DB_USER
+          value: mlflow
+        - name: INFERENCE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: postgres-password}
+        # 재학습 버튼 → 같은 Pod 의 trainer
+        - name: GPU_TRAINING_URL
+          value: http://127.0.0.1:8100
+        - name: GPU_TRAINING_TOKEN
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: training-token}
+        # 검사 이미지 저장 (운영에서는 비용 때문에 끔: 기본값 none)
+        - name: INFERENCE_IMAGE_STORE
+          value: local
+        - name: INFERENCE_IMAGE_DIR
+          value: /data/inference
+      volumeMounts:
+        - name: inference-images
+          mountPath: /data/inference
+        - name: shared
+          mountPath: /shared
+          readOnly: true
+
+    # 운영에서 학습했던 모델(v1~v8)을 공개 읽기 전용 버킷에서 받아, 로컬 MLflow 에 같은 번호로 등록한다.
+    # 처음 한 번만 받고(이미 등록돼 있으면 건너뜀), 운영 쪽에는 아무것도 쓰지 않는다 (키 없이 GET 만 함).
+    # 목록: deploy/local/models/models.json · 끝나면 /shared/models-imported 를 남기고 대기
+    - name: model-import
+      image: ghcr.io/1230seongjun/ksdd2-mlops/trainer:latest
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+        - -c
+        - |
+          python /app/models/import_models.py /app/models/models.json || echo "운영 모델 불러오기 실패 — 모델 없이 시작합니다 (재학습하면 v1 부터 등록)"
+          touch /shared/models-imported
+          exec sleep infinity
+      env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://127.0.0.1:5000
+      volumeMounts:
+        - name: shared
+          mountPath: /shared
+
+    # 데모 관리자 계정을 만든다. DB 가 준비될 때까지 기다렸다가 한 번 만들고 대기 상태로 남는다.
+    - name: seed-admin
+      image: ghcr.io/1230seongjun/ksdd2-mlops/api:latest
+      imagePullPolicy: IfNotPresent
+      command:
+        - python
+        - -c
+        - |
+          import os, time
+          import db
+          from auth import hash_password
+          while True:
+              try:
+                  with db.connect_db() as conn:
+                      conn.execute(
+                          "INSERT INTO users (email, password_hash, role) VALUES (%s, %s, 'admin') "
+                          "ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin'",
+                          (os.environ["ADMIN_EMAIL"], hash_password(os.environ["ADMIN_PASSWORD"])),
+                      )
+                  print("데모 관리자 계정 준비됨:", os.environ["ADMIN_EMAIL"], flush=True)
+                  break
+              except Exception as error:
+                  print("DB 대기 중:", type(error).__name__, flush=True)
+                  time.sleep(3)
+          while True:
+              time.sleep(3600)
+      env:
+        - name: INFERENCE_DB_HOST
+          value: 127.0.0.1
+        - name: INFERENCE_DB_PORT
+          value: "5432"
+        - name: INFERENCE_DB_NAME
+          value: inference
+        - name: INFERENCE_DB_USER
+          value: mlflow
+        - name: INFERENCE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: postgres-password}
+        - name: ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: admin-email}
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: admin-password}
+
+    - name: web
+      image: ghcr.io/1230seongjun/ksdd2-mlops/web:latest
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 80
+          hostPort: 8080
+          hostIP: 127.0.0.1
+
+    - name: prometheus
+      image: docker.io/prom/prometheus:v3.15.1
+      imagePullPolicy: IfNotPresent
+      args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+      volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+        - name: prometheus-data
+          mountPath: /prometheus
+
+    - name: grafana
+      image: ghcr.io/1230seongjun/ksdd2-mlops/grafana:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: GF_SERVER_ROOT_URL
+          value: http://localhost:8080/grafana/
+        - name: GF_SERVER_SERVE_FROM_SUB_PATH
+          value: "true"
+        - name: GF_SECURITY_ALLOW_EMBEDDING
+          value: "true"
+        # 인증 프록시: 같은 Pod 의 nginx(127.0.0.1)가 보낸 사용자 헤더만 믿음
+        - name: GF_AUTH_PROXY_ENABLED
+          value: "true"
+        - name: GF_AUTH_PROXY_HEADER_NAME
+          value: X-WEBAUTH-USER
+        - name: GF_AUTH_PROXY_HEADER_PROPERTY
+          value: username
+        - name: GF_AUTH_PROXY_AUTO_SIGN_UP
+          value: "true"
+        - name: GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN
+          value: "false"
+        - name: GF_AUTH_PROXY_WHITELIST
+          value: 127.0.0.1
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "false"
+        - name: GF_USERS_AUTO_ASSIGN_ORG_ROLE
+          value: Viewer
+        - name: GRAFANA_READER_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: ksdd2-local, key: grafana-reader-password}
+      volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+
+  volumes:
+    - name: pgdata
+      persistentVolumeClaim: {claimName: ksdd2-pgdata}
+    - name: mlartifacts
+      persistentVolumeClaim: {claimName: ksdd2-mlartifacts}
+    - name: grafana-data
+      persistentVolumeClaim: {claimName: ksdd2-grafana}
+    - name: prometheus-data
+      persistentVolumeClaim: {claimName: ksdd2-prometheus}
+    - name: prometheus-config
+      configMap: {name: ksdd2-prometheus}
+    - name: dataset
+      persistentVolumeClaim: {claimName: ksdd2-dataset}
+    - name: object-storage
+      persistentVolumeClaim: {claimName: ksdd2-object-storage}
+    # model-import → api 로 "불러오기 끝" 표시만 넘기는 임시 공간 (Pod 를 다시 띄우면 비워짐)
+    - name: shared
+      emptyDir: {}
+    - name: inference-images
+      persistentVolumeClaim: {claimName: ksdd2-inference-images}

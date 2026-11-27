@@ -17,7 +17,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # FastAPI 코드와 모델 추론 코드 복사
-COPY main.py model_service.py db.py auth.py ./
+COPY main.py model_service.py db.py auth.py image_store.py ./
 
 # FastAPI 포트
 EXPOSE 8000

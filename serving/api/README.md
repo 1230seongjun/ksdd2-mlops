@@ -41,6 +41,9 @@ API는 Compose를 통해 INFERENCE_DB_HOST, INFERENCE_DB_PORT, INFERENCE_DB_NAME
 서비스 서버에 PostgreSQL을 배치할 경우 기존 inference DB를 백업·복원하고, API와 새 PostgreSQL을 같은 Docker 네트워크에 연결해 서비스 이름으로 접근합니다. 검사 이력뿐 아니라 사용자, 초대, 세션과 권한도 복원 검증 범위에 포함합니다. 스키마를 포함한 덤프를 복원한 경우 초기 SQL을 다시 적용하지 않습니다. 기존 원본 DB를 유지한 채 전환을 검증하고, 새 DB에 쓰기가 생긴 뒤에는 두 DB의 데이터 차이를 확인한 후 복구 방향을 결정합니다.
 
 검사 저장은 응답 이후 백그라운드에서 이루어집니다. /api/ready와 추론 응답의 200은 각각 API 준비·추론 성공을 보여줍니다. 저장 성공은 실제 검사 요청 ID를 기준으로 DB에서 확인합니다. 요청 행과 탐지 행, 분류가 실행된 경우 분류 행, user_id, 이력 화면을 대조합니다. 실패 시 API 로그의 Inference save failed와 defectcatch_inference_save_total 지표를 봅니다.
+
+검사 이미지 저장 (image_store.py)
+INFERENCE_IMAGE_STORE=local이면 검사한 원본 이미지를 응답 뒤 백그라운드에서 INFERENCE_IMAGE_DIR/requests/<요청 ID>.png(.jpg)로 저장합니다. 판정, 작업자 재분류(reviewed_label), 결함 유형(reviewed_defect_type), 박스 좌표(reviewed_boxes, x·y·w·h — 184×597 픽셀 기준)는 기존대로 inference DB에 저장되며, 파일 이름의 요청 ID가 inference_requests.id와 같아 둘을 이어 붙일 수 있습니다. 저장 실패는 검사 응답에 영향을 주지 않으며 API 로그의 Inference image save failed와 defectcatch_image_store_total 지표로 확인합니다. 기본값은 none(저장 안 함)이며, 운영 Compose에서는 비용 때문에 켜지 않았습니다. 로컬 Podman 실행(deploy/local/ksdd2.yaml)에서만 켭니다.
 운영 확인과 장애 대응
 서비스 서버에서 실행합니다.
 sudo docker compose -f /opt/bulryangzero/service/compose.service.yaml ps
