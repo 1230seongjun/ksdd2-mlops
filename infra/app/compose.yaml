@@ -46,8 +46,8 @@ services:
       DATASET_ROOT: /data
       GPU_TRAINING_TOKEN: "${GPU_TRAINING_TOKEN}"
     volumes:
-      - ../../model:/app/model
-      - ${DATASET_DIR:-../../data}:/data
+      - ../../model:/app/model:z
+      - ${DATASET_DIR:-../../data}:/data:z
       - trainer_cache:/root/.cache   # 처음 학습할 때 받는 사전학습 가중치를 보관
     networks:
       - default
@@ -85,7 +85,7 @@ services:
       - --config.file=/etc/prometheus/conf/prometheus.yml
       - --storage.tsdb.path=/prometheus
     volumes:
-      - ./monitoring/prometheus:/etc/prometheus/conf:ro
+      - ./monitoring/prometheus:/etc/prometheus/conf:ro,z
       - prometheus-data:/prometheus
     networks:
       - default

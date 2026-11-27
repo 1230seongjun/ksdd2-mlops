@@ -17,9 +17,9 @@ services:
       - "127.0.0.1:8080:80"
       - "127.0.0.1:8443:443"
     volumes:
-      - ./nginx:/etc/nginx/conf.d:ro
-      - ../../serving/web:/usr/share/nginx/html:ro
-      - ./tls:/etc/nginx/tls:ro   # scripts/local.sh init 이 만든 자체 서명 인증서
+      - ./nginx:/etc/nginx/conf.d:ro,z
+      - ../../serving/web:/usr/share/nginx/html:ro,z
+      - ./tls:/etc/nginx/tls:ro,z   # scripts/local.sh init 이 만든 자체 서명 인증서
     networks:
       web-app: {}
       grafana-auth:

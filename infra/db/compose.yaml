@@ -21,8 +21,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # 빈 데이터 폴더로 처음 뜰 때만 실행: 검사 이력용 inference DB 생성 + 스키마 적용
-      - ./schema:/schema:ro
-      - ./schema/init-inference.sh:/docker-entrypoint-initdb.d/10-inference.sh:ro
+      - ./schema:/schema:ro,z
+      - ./schema/init-inference.sh:/docker-entrypoint-initdb.d/10-inference.sh:ro,z
     healthcheck:
       test:
         - CMD-SHELL
