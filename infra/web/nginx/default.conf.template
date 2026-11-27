@@ -7,8 +7,9 @@ server {
 
     client_max_body_size 6m;
 
-    # Docker 내부 DNS를 사용해 api 컨테이너의 IP를 다시 조회
-    resolver 127.0.0.11 valid=10s ipv6=off;
+    # 컨테이너 DNS 로 api 컨테이너의 IP를 다시 조회한다.
+    # 주소는 nginx 이미지가 시작할 때 /etc/resolv.conf 에서 채운다 (Docker 127.0.0.11, Podman 네트워크 게이트웨이)
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
 
     # HTML 화면 제공
     location / {

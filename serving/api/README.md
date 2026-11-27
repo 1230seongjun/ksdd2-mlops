@@ -13,7 +13,7 @@ Nginx는 정적 HTML을 제공하고 /api/ 접두어를 제거해 FastAPI에 요
 서비스용 inference DB에는 검사 결과와 계정·세션이 저장됩니다. MLflow는 별도 mlflow DB에 실험·등록 모델 메타데이터를 저장합니다. 운영 검증 당시 두 DB는 MLOps 인스턴스의 PostgreSQL에서 동작했습니다. 서비스 서버 측 DB로의 이전 절차와 검증 기준은 아래에 정리했습니다.
 파일	역할
 [compose.service.yaml](compose.service.yaml)	API·Nginx·Prometheus·Grafana 실행과 연결 설정
-[default.conf](nginx/default.conf)	TLS, HTML 제공, API·Grafana 프록시
+[default.conf.template](../../infra/web/nginx/default.conf.template)	TLS, HTML 제공, API·Grafana 프록시
 [prometheus.yml](prometheus/prometheus.yml)	API 지표 수집 설정
 [웹 UI](../../serving/web/index.html)	검사·결과 다운로드·인증·이력 화면
 [추론 API 문서](../../serving/api/README.md)	API 계약과 인증·이력 저장 구조
