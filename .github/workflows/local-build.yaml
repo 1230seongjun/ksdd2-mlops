@@ -1,0 +1,64 @@
+name: local-build
+
+# README 의 로컬 실행 방법이 실제로 동작하는지 PR 마다 확인한다:
+# 받은 사람과 같은 명령으로 이미지 3개(db · app · web)를 빌드하고 deploy/up.sh 로 띄운 뒤, 주요 경로가 응답하는지 본다.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: local-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-24.04   # Podman 이 기본 설치된 GitHub 호스트 러너
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 이미지 3개 빌드 (README 와 같은 명령)
+        run: |
+          podman --version
+          podman build -f Containerfile.db  -t localhost/ksdd2/db:v1  .
+          podman build -f Containerfile.app -t localhost/ksdd2/app:v1 .
+          podman build -f Containerfile.web -t localhost/ksdd2/web:v1 .
+
+      - name: 실행
+        run: deploy/up.sh
+
+      - name: 응답 확인
+        run: |
+          # 처음 실행은 DB 초기화와 운영 모델 등록 때문에 시간이 걸린다
+          for i in $(seq 90); do
+            curl -fsS http://127.0.0.1:8080/api/health && break
+            sleep 5
+          done
+          echo
+          curl -fsS http://127.0.0.1:8080/api/health
+          # 데모 관리자 로그인 (DB · 계정 생성 확인)
+          curl -fsS -o /dev/null -w "login %{http_code}\n" -H 'Content-Type: application/json' \
+            -d '{"email":"admin@example.com","password":"localdemo-admin"}' http://127.0.0.1:8080/api/auth/login
+          # 로그인하지 않은 Grafana 요청은 401 이어야 한다 (nginx 인증 흐름 확인)
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/grafana/)" = 401
+          curl -fsS http://127.0.0.1:5000/health && echo " mlflow ok"
+          podman exec ksdd2-db-postgres psql -U mlflow -d inference -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'"
+
+      - name: 실패 시 로그
+        if: failure()
+        run: |
+          podman pod ps
+          podman ps -a --format '{{.Names}}\t{{.Status}}'
+          for name in $(podman ps -a --format '{{.Names}}' | grep '^ksdd2-'); do
+            echo "===== $name"; podman logs --tail 40 "$name" || true
+          done
+
+      - name: 정리
+        if: always()
+        run: deploy/down.sh --volumes

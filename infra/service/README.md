@@ -24,7 +24,7 @@ Nginx는 정적 HTML을 제공하고 `/api/` 접두어를 제거해 FastAPI에 �
 | [웹 UI](../../serving/web/zerodefect-ui.html) | 검사·결과 다운로드·인증·이력 화면 |
 | [추론 API 문서](../../serving/api/README.md) | API 계약과 인증·이력 저장 구조 |
 | [DB 스키마](../mlops/db/) | 검사·계정 스키마와 마이그레이션 |
-| [배포 워크플로](../../.github/workflows/deploy.yaml) · [배포 스크립트](../../.github/scripts/deploy_stack.sh) | 변경 감지, 이미지 빌드·배포, 상태 검사와 복구 |
+| [배포 워크플로](../../docs/operations/github-actions/deploy.yaml) · [배포 스크립트](../../docs/operations/github-actions/deploy_stack.sh) | 변경 감지, 이미지 빌드·배포, 상태 검사와 복구 (운영 당시 기록, 현재는 실행되지 않음) |
 
 ## 배포와 접속
 
