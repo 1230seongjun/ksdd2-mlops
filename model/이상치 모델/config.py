@@ -89,6 +89,10 @@ def load_config(path: str | Path = "config.yaml") -> Config:
     missing = [key.upper() for key in Config.__dataclass_fields__ if key not in values]
     if missing:
         raise KeyError(f"설정에 없는 키: {', '.join(missing)} (모델 폴더의 config.yaml 이나 {common_path} 에 있어야 합니다)")
+    dataset_root = os.environ.get("DATASET_ROOT")   # 로컬 실행: 학습 직전에 만든 학습 폴더(deploy/app/build_dataset.py). 있으면 버킷 대신 이 폴더를 읽는다
+    if dataset_root:
+        values["data_source"] = "local"
+        values["data_dir"] = str(Path(dataset_root) / "anomaly")
     if values["data_source"] not in ("local", "object_storage"):
         raise ValueError(f"data_source 는 local 또는 object_storage 여야 합니다: {values['data_source']}")
     if values["data_source"] == "object_storage" and not values["object_storage_endpoint"]:

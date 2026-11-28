@@ -35,6 +35,15 @@ cd "$ROOT/$MODEL_DIR" || exit 2
   command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
 } >> "$LOG"
 
+# 학습 데이터를 준비하는 명령이 있으면 먼저 실행한다 (로컬 실행에서만 설정: 기본 데이터 + 작업자가 확정한 검사 이미지 합치기)
+if [ -n "${PREPARE_DATASET_CMD:-}" ]; then
+  if ! $PREPARE_DATASET_CMD "$MODEL_KEY" >> "$LOG" 2>&1; then
+    echo "[$(date '+%F %T')] 학습 데이터 준비 실패" >> "$LOG"
+    echo 1 > "$LOG.exit"
+    exit 1
+  fi
+fi
+
 PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 "$PYTHON" train.py "$@" >> "$LOG" 2>&1 &
 child=$!
 wait "$child"; code=$?

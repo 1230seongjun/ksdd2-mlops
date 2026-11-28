@@ -43,6 +43,7 @@ from starlette.concurrency import run_in_threadpool
 from mlflow import MlflowClient
 
 import db
+import image_store
 from model_service import build_boxes, load_model, run_model
 from fastapi import Cookie, Depends, HTTPException, Response
 from pydantic import BaseModel, Field, StrictInt
@@ -998,6 +999,10 @@ async def predict(
             raise HTTPException(503, "재검토 대기 기록을 저장할 수 없습니다.")
     elif db.ENABLED:
         background_tasks.add_task(db.save_inference, record)
+
+    # 이미지 저장을 켠 경우(로컬 실행): 원본 이미지를 요청 ID 이름으로 응답 뒤에 저장 (재학습 데이터용)
+    if image_store.ENABLED:
+        background_tasks.add_task(image_store.save_image, request_id, data, file.content_type)
 
     return {
         "id": request_id,
