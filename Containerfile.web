@@ -1,0 +1,12 @@
+# web 계층: nginx + 검사 화면
+# 빌드: podman build -f Containerfile.web -t localhost/ksdd2/web:v1 .
+#
+# 운영과 같은 nginx 이미지(stable-alpine)를 레지스트리 주소까지 적어 쓴다 (짧은 이름은 레지스트리 검색 설정이 없는 Podman 에서 실패함).
+# 검사 화면 파일과 설정을 이미지에 넣어, 실행할 때 저장소 폴더를 연결하지 않아도 되게 한다.
+FROM docker.io/library/nginx:stable-alpine
+
+COPY serving/web/ /usr/share/nginx/html/
+COPY deploy/web/default.conf.template /etc/nginx/templates/default.conf.template
+
+# 시작할 때 컨테이너의 DNS 주소를 ${NGINX_LOCAL_RESOLVERS} 로 채운다 (nginx 공식 이미지 기능)
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1

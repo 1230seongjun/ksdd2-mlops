@@ -1,0 +1,17 @@
+# web 계층: nginx (검사 화면, /api · /grafana 를 app 계층으로 전달)
+# 실행: deploy/up.sh  (ksdd2-web-app 네트워크에만 붙어 DB 에는 닿지 않는다)
+# 바깥에 열리는 곳은 이 계층의 8080 뿐이며, 이 컴퓨터(127.0.0.1)에서만 접속할 수 있다.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ksdd2-web
+  labels:
+    app: ksdd2
+    tier: web
+spec:
+  containers:
+    - name: nginx
+      image: localhost/ksdd2/web:v1
+      imagePullPolicy: IfNotPresent
+      ports:
+        - {containerPort: 80, hostPort: 8080, hostIP: 127.0.0.1}
