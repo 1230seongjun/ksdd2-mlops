@@ -1,0 +1,10 @@
+# 로컬 실행용 Prometheus 설정. 운영 설정(infra/service/monitoring/prometheus/prometheus.yml)과 수집 대상만 다르다:
+# 운영은 compose 서비스 이름(api:8000), 로컬은 같은 app Pod 안이라 127.0.0.1:8000.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "defectcatch-api"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:8000"]

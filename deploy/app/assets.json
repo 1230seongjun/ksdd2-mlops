@@ -1,0 +1,9 @@
+{
+  "_설명": "app 이미지를 빌드할 때 GitHub Release 에서 받는 파일 목록. sha256 이 비어 있는 항목은 받지 않고 건너뛴다. 파일은 deploy/app/pack_dataset.py, pack_model.py 로 만들고 출력된 값을 여기에 적는다.",
+  "release_url": "https://github.com/1230seongjun/ksdd2-mlops/releases/download/assets-v1",
+  "dataset": {
+    "file": "ksdd2-subset.tar.gz",
+    "sha256": ""
+  },
+  "models": []
+}

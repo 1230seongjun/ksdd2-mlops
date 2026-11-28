@@ -1,0 +1,25 @@
+# Grafana 데이터 소스 자동 등록.
+# 운영에서는 Grafana 화면에서 직접 등록했는데, 로컬에서는 받은 사람이 설정 없이 대시보드를 볼 수 있게 파일로 등록한다.
+# uid 는 대시보드 JSON 이 가리키는 값(prometheus, inference)과 같아야 한다 (Containerfile.app 에서 맞춤).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://127.0.0.1:9090
+    isDefault: true
+
+  # 검사 이력 DB. 읽기 전용 계정 grafana_reader (infra/mlops/db/003_grafana_reader.sql, 추론 테이블 3개만 조회)
+  - name: inference
+    uid: inference
+    type: grafana-postgresql-datasource
+    url: ksdd2-db:5432
+    user: grafana_reader
+    jsonData:
+      database: inference
+      sslmode: disable
+      postgresVersion: 1600
+    secureJsonData:
+      password: ${GRAFANA_READER_PASSWORD}

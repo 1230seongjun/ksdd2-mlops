@@ -36,3 +36,6 @@ infra/mlops/.env
 # Vim 임시 파일
 *.swp
 *.swo
+
+# GitHub Release 에 올릴 묶음 (deploy/app/pack_dataset.py · pack_model.py 출력, 저장소에는 올리지 않음)
+*.tar.gz

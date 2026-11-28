@@ -1,0 +1,197 @@
+# app 계층: 추론 API · MLflow · 학습 서버 · 실험 대시보드 · Prometheus · Grafana
+# 실행: deploy/up.sh  (ksdd2-app-db 네트워크로 DB 에, ksdd2-web-app 네트워크로 web 계층에 연결된다)
+#
+# 한 Pod 안의 컨테이너는 localhost(127.0.0.1)를 공유한다. 그래서 학습 서버(8100)와 Prometheus(9090)는
+# 127.0.0.1 에만 열어 같은 Pod 밖(web 계층)에서는 닿지 않게 하고, web 계층이 부르는 API(8000)와 Grafana(3000)만 모든 주소에 연다.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-mlartifacts        # MLflow 모델 파일 (운영의 Object Storage 역할)
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-inference-images   # 검사 이미지 (재학습 데이터, serving/api/image_store.py)
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-prometheus
+  annotations:                   # Prometheus 는 nobody(65534)로 실행되어, 볼륨 소유자를 맞추지 않으면 쓰기 권한 오류로 재시작을 반복한다
+    volume.podman.io/uid: "65534"
+    volume.podman.io/gid: "65534"
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-grafana
+  annotations:                   # Grafana 는 472 사용자로 실행된다 (위와 같은 이유)
+    volume.podman.io/uid: "472"
+    volume.podman.io/gid: "0"
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ksdd2-app          # web 계층은 이 이름(ksdd2-app)으로 API 와 Grafana 에 접속한다
+  labels:
+    app: ksdd2
+    tier: app
+spec:
+  # Prometheus · Grafana 는 공식 이미지를 쓰므로, 저장소에서 관리하는 설정 파일을 app 이미지에서 꺼내 공유 볼륨에 복사한다
+  # (빌드를 3번으로 유지하면서 설정은 저장소 파일 그대로 쓰기 위해)
+  initContainers:
+    - name: monitoring-config
+      image: localhost/ksdd2/app:v1
+      imagePullPolicy: IfNotPresent
+      command: [sh, -c, "cp /app/local/prometheus.yml /prometheus-config/ && cp -r /app/local/grafana/. /grafana-provisioning/"]
+      volumeMounts:
+        - {name: prometheus-config, mountPath: /prometheus-config}
+        - {name: grafana-provisioning, mountPath: /grafana-provisioning}
+
+  containers:
+    - name: mlflow
+      image: localhost/ksdd2/app:v1
+      imagePullPolicy: IfNotPresent
+      # 운영과 같은 방식: 메타데이터는 DB, 모델 파일은 MLflow 가 대신 저장(--serve-artifacts). 저장 위치만 Object Storage 대신 볼륨
+      command:
+        - sh
+        - -c
+        - >-
+          exec mlflow server --host 0.0.0.0 --port 5000
+          --backend-store-uri "postgresql+psycopg2://$DB_USER:$DB_PASSWORD@ksdd2-db:5432/mlflow"
+          --artifacts-destination /mlartifacts --serve-artifacts
+          --allowed-hosts "localhost:5000,127.0.0.1:5000"
+      env:
+        - name: DB_USER
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: db-user}}
+        - name: DB_PASSWORD
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: db-password}}
+      ports:
+        - {containerPort: 5000, hostPort: 5000, hostIP: 127.0.0.1}   # MLflow 화면 (이 컴퓨터에서만)
+      volumeMounts:
+        - {name: mlartifacts, mountPath: /mlartifacts}
+
+    - name: api
+      image: localhost/ksdd2/app:v1
+      imagePullPolicy: IfNotPresent
+      command: [/app/local/start-api.sh]   # 운영 모델 등록 · 데모 관리자 생성 · 기본 모델 선택 후 API 실행
+      env:
+        - {name: MLFLOW_TRACKING_URI, value: "http://127.0.0.1:5000"}
+        - {name: INFERENCE_DB_HOST, value: ksdd2-db}
+        - {name: INFERENCE_DB_PORT, value: "5432"}
+        - {name: INFERENCE_DB_NAME, value: inference}
+        - name: INFERENCE_DB_USER
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: db-user}}
+        - name: INFERENCE_DB_PASSWORD
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: db-password}}
+        - {name: GPU_TRAINING_URL, value: "http://127.0.0.1:8100"}   # 재학습 버튼 → 같은 Pod 의 학습 서버
+        - name: GPU_TRAINING_TOKEN
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: training-token}}
+        - {name: INFERENCE_IMAGE_STORE, value: local}   # 검사 이미지 저장 (운영 기본값은 none)
+        - {name: INFERENCE_IMAGE_DIR, value: /data/inference}
+        - name: ADMIN_EMAIL
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: admin-email}}
+        - name: ADMIN_PASSWORD
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: admin-password}}
+      volumeMounts:
+        - {name: inference-images, mountPath: /data/inference}
+
+    # 학습 서버: 운영 GPU 서버의 코드(model/gpu_training_api.py · run_training.sh)를 그대로 CPU 로 실행한다
+    - name: trainer
+      image: localhost/ksdd2/app:v1
+      imagePullPolicy: IfNotPresent
+      workingDir: /app/model
+      command: [uvicorn, "gpu_training_api:app", --host, 127.0.0.1, --port, "8100"]
+      env:
+        - {name: MLFLOW_TRACKING_URI, value: "http://127.0.0.1:5000"}
+        - name: GPU_TRAINING_TOKEN
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: training-token}}
+        # 학습 직전에 기본 데이터 + 작업자가 확정한 검사 이미지로 학습 폴더를 만든다 (model/run_training.sh → build_dataset.py)
+        - {name: PREPARE_DATASET_CMD, value: "python /app/local/build_dataset.py"}
+        - {name: DATASET_ROOT, value: /work/dataset}
+        - {name: BASE_DATASET_DIR, value: /opt/ksdd2/dataset}
+        - {name: INFERENCE_IMAGE_DIR, value: /data/inference}
+        - {name: INFERENCE_DB_HOST, value: ksdd2-db}
+        - {name: INFERENCE_DB_PORT, value: "5432"}
+        - {name: INFERENCE_DB_NAME, value: inference}
+        - name: INFERENCE_DB_USER
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: db-user}}
+        - name: INFERENCE_DB_PASSWORD
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: db-password}}
+      volumeMounts:
+        - {name: inference-images, mountPath: /data/inference, readOnly: true}
+        - {name: train-work, mountPath: /work}
+
+    # 실험 비교 대시보드 (운영 mlops 서버의 experiments-ui 와 같은 코드)
+    - name: experiments-ui
+      image: localhost/ksdd2/app:v1
+      imagePullPolicy: IfNotPresent
+      workingDir: /app/experiments-ui   # .streamlit/config.toml 을 이 폴더에서 읽는다
+      command: [streamlit, run, app.py, --server.port, "8501", --server.address, 0.0.0.0]
+      env:
+        - {name: MLFLOW_TRACKING_URI, value: "http://127.0.0.1:5000"}
+      ports:
+        - {containerPort: 8501, hostPort: 8502, hostIP: 127.0.0.1}   # 운영과 같은 8502 (이 컴퓨터에서만)
+
+    - name: prometheus
+      image: docker.io/prom/prometheus:v3.15.1   # 운영 당시 실행 버전
+      imagePullPolicy: IfNotPresent
+      args:
+        - --config.file=/etc/prometheus/config/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+        - --web.listen-address=127.0.0.1:9090
+      volumeMounts:
+        - {name: prometheus-config, mountPath: /etc/prometheus/config}
+        - {name: prometheus-data, mountPath: /prometheus}
+
+    - name: grafana
+      image: docker.io/grafana/grafana:13.3.0   # 운영 당시 실행 버전
+      imagePullPolicy: IfNotPresent
+      env:
+        # 운영과 같은 인증 방식: 검사 화면에 로그인한 사용자를 nginx 가 X-WEBAUTH-USER 헤더로 넘기고,
+        # Grafana 는 그 헤더를 web 계층 nginx 주소(deploy/up.sh 가 고정하는 192.168.220.10)에서 온 것만 믿는다
+        - {name: GF_SERVER_ROOT_URL, value: "http://localhost:8080/grafana/"}
+        - {name: GF_SERVER_SERVE_FROM_SUB_PATH, value: "true"}
+        - {name: GF_SECURITY_ALLOW_EMBEDDING, value: "true"}
+        - {name: GF_AUTH_PROXY_ENABLED, value: "true"}
+        - {name: GF_AUTH_PROXY_HEADER_NAME, value: X-WEBAUTH-USER}
+        - {name: GF_AUTH_PROXY_HEADER_PROPERTY, value: username}
+        - {name: GF_AUTH_PROXY_AUTO_SIGN_UP, value: "true"}
+        - {name: GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN, value: "false"}
+        - {name: GF_AUTH_PROXY_WHITELIST, value: 192.168.220.10}
+        - {name: GF_AUTH_ANONYMOUS_ENABLED, value: "false"}
+        - {name: GF_USERS_AUTO_ASSIGN_ORG_ROLE, value: Viewer}
+        - name: GRAFANA_READER_PASSWORD   # 데이터 소스 설정(datasources.yaml)이 읽는 값
+          valueFrom: {configMapKeyRef: {name: ksdd2-demo, key: grafana-reader-password}}
+      volumeMounts:
+        - {name: grafana-provisioning, mountPath: /etc/grafana/provisioning}
+        - {name: grafana-data, mountPath: /var/lib/grafana}
+
+  volumes:
+    - {name: mlartifacts, persistentVolumeClaim: {claimName: ksdd2-mlartifacts}}
+    - {name: inference-images, persistentVolumeClaim: {claimName: ksdd2-inference-images}}
+    - {name: prometheus-data, persistentVolumeClaim: {claimName: ksdd2-prometheus}}
+    - {name: grafana-data, persistentVolumeClaim: {claimName: ksdd2-grafana}}
+    - {name: prometheus-config, emptyDir: {}}
+    - {name: grafana-provisioning, emptyDir: {}}
+    - {name: train-work, emptyDir: {}}       # 학습할 때마다 새로 만드는 학습 폴더

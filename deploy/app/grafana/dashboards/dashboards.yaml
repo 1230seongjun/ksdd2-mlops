@@ -1,0 +1,10 @@
+# 대시보드 자동 등록: 운영에서 쓰던 대시보드 JSON(infra/service/monitoring/grafana/dashboards)을 그대로 불러온다.
+apiVersion: 1
+
+providers:
+  - name: 불량제로
+    folder: 불량제로
+    type: file
+    disableDeletion: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/files
