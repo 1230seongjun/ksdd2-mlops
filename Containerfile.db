@@ -1,0 +1,15 @@
+# db 계층: PostgreSQL 16 + 불량제로 스키마
+# 빌드: podman build -f Containerfile.db -t localhost/ksdd2/db:v1 .
+#
+# 운영 당시 mlops 서버의 PostgreSQL(docker.io/library/postgres:16)과 같은 버전을 쓴다.
+# 스키마는 운영과 같은 파일(infra/mlops/db/*.sql)을 그대로 넣어, 로컬과 운영의 테이블 구조가 달라지지 않게 한다.
+FROM docker.io/library/postgres:16
+
+COPY infra/mlops/db/001_inference_schema.sql \
+     infra/mlops/db/002_accounts.sql \
+     infra/mlops/db/003_grafana_reader.sql \
+     infra/mlops/db/004_inference_review.sql \
+     /schema/
+
+# 빈 데이터 폴더로 처음 뜰 때 공식 이미지가 /docker-entrypoint-initdb.d 의 스크립트를 한 번 실행한다
+COPY deploy/db/10-inference.sh /docker-entrypoint-initdb.d/10-inference.sh

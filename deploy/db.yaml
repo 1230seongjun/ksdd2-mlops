@@ -1,0 +1,42 @@
+# db 계층: PostgreSQL (mlflow DB + 검사 이력 inference DB)
+# 실행: deploy/up.sh  (ksdd2-app-db 네트워크에만 붙고, 호스트 포트는 열지 않는다)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ksdd2-pgdata
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ksdd2-db          # app 계층은 이 이름(ksdd2-db)으로 DB 에 접속한다
+  labels:
+    app: ksdd2
+    tier: db
+spec:
+  containers:
+    - name: postgres
+      image: localhost/ksdd2/db:v1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: POSTGRES_DB
+          value: mlflow
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef: {name: ksdd2-demo, key: db-user}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef: {name: ksdd2-demo, key: db-password}
+        - name: GRAFANA_READER_PASSWORD
+          valueFrom:
+            configMapKeyRef: {name: ksdd2-demo, key: grafana-reader-password}
+      volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+  volumes:
+    - name: pgdata
+      persistentVolumeClaim: {claimName: ksdd2-pgdata}

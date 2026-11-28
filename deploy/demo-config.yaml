@@ -1,0 +1,17 @@
+# 로컬 실행용 데모 값 — 세 계층(db · app · web)의 kube play 에 --configmap 으로 함께 넘긴다.
+#
+# 왜 ConfigMap 인가: 계층마다 다른 YAML 로 실행하는데, 같은 DB 비밀번호를 여러 파일에 복사해 두면 어긋날 수 있어서
+# 한 곳에 모은다. podman kube play 의 --configmap 은 여러 YAML 이 함께 참조할 수 있는 값을 넘기는 기본 방법이다.
+#
+# 이 값들은 127.0.0.1 에만 열리는 로컬 환경 전용 데모 값이며, 운영에서 쓰던 값이 아니다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ksdd2-demo
+data:
+  db-user: mlflow                     # 스키마(003)가 mlflow 역할을 전제로 하므로 운영과 같은 이름
+  db-password: localdemo-db
+  grafana-reader-password: localdemo-grafana
+  admin-email: admin@example.com      # 검사 화면 데모 관리자 계정
+  admin-password: localdemo-admin
+  training-token: localdemo-training-token   # 추론 API → 학습 서버 호출용 (같은 Pod 안에서만 사용)
