@@ -9,7 +9,7 @@ NHN Cloud AI 팩토리 MLOps 부트캠프 팀 프로젝트 · 2026.10.29 – 11.
 <br>
 
 [![CI](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/ci.yaml/badge.svg)](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/ci.yaml)
-[![Deploy](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/deploy.yaml/badge.svg)](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/deploy.yaml)
+[![Local build](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/local-build.yaml/badge.svg)](https://github.com/1230seongjun/ksdd2-mlops/actions/workflows/local-build.yaml)
 ![Dataset License](https://img.shields.io/badge/Dataset-CC_BY--NC--SA_4.0-lightgrey?style=flat-square)
 
 
@@ -28,7 +28,7 @@ NHN Cloud AI 팩토리 MLOps 부트캠프 팀 프로젝트 · 2026.10.29 – 11.
 
 <br>
 
-[소개](#-프로젝트-소개) · [검사 방식](#-검사-방식) · [모델](#-모델) · [아키텍처](#-아키텍처) · [CI/CD](#-cicd) · [시작하기](#-시작하기) · [로드맵](#-로드맵) · [팀](#-팀)
+[소개](#-프로젝트-소개) · [검사 방식](#-검사-방식) · [모델](#-모델) · [아키텍처](#-아키텍처) · [CI/CD](#-cicd) · [로컬에서 실행하기](#-로컬에서-실행하기) · [로드맵](#-로드맵) · [팀](#-팀)
 
 </div>
 
@@ -344,6 +344,8 @@ flowchart LR
 
 > 셀프 호스티드 러너는 PR에서 실행하지 않습니다 (main push와 수동 실행만).
 
+> 위 배포 흐름은 운영 당시 구성입니다. NHN 시크릿과 서버별 러너가 있어야 동작해서, 워크플로와 배포 스크립트는 [docs/operations/github-actions](docs/operations/github-actions/)로 옮겨 기록으로 보존했습니다. 지금 main에서는 스모크 테스트(`ci.yaml`)와, 받은 사람과 같은 방법으로 이미지 3개를 빌드해 실행까지 확인하는 `local-build.yaml`이 돕니다.
+
 <br>
 
 ---
@@ -351,9 +353,9 @@ flowchart LR
 ## 📁 저장소 구조
 
 ```
-.github/
-├── workflows/        CI(ci.yaml) · 배포(deploy.yaml) · 점검용 워크플로
-└── scripts/          서버 배포 스크립트 (deploy_stack.sh)
+Containerfile.db · .app · .web   로컬 실행 이미지 3개 (db · app · web 계층)
+deploy/               로컬 실행 매니페스트(kube play) · 실행 스크립트 · 계층별 설정
+.github/workflows/    CI(ci.yaml) · 로컬 실행 검증(local-build.yaml)
 infra/
 ├── mlops/            MLflow · PostgreSQL · 실험 대시보드
 └── service/          Nginx · Prometheus · Grafana · 알림(monitoring/)
@@ -365,7 +367,7 @@ model/
 ├── 이상치 모델/       이상 탐지 학습 (PatchCore)
 ├── 분류 모델/         결함 유형 분류 학습 (U-Net)
 └── common.yaml       두 모델 공통 설정
-docs/                 README 이미지
+docs/                 README 이미지 · 로컬 실행 설계 · 운영 당시 CI/CD 기록(operations/)
 ```
 
 > 각 스택의 실행 방법과 설정은 폴더별 README(`infra/mlops`, `infra/service`, `serving/api`)에 있습니다.
@@ -374,7 +376,51 @@ docs/                 README 이미지
 
 ---
 
-## 🚀 시작하기
+## 💻 로컬에서 실행하기
+
+운영은 NHN Cloud 서버 두 대와 사설 네트워크 위에서 했기 때문에, 같은 기능을 **노트북 한 대에서 확인할 수 있도록** db · app · web 3계층으로 다시 구성했습니다. 바꾼 이유와 구성은 [로컬 실행 설계](docs/local-run-design.md)에 정리했습니다.
+
+**필요한 것:** [Podman](https://podman.io/docs/installation) 4.9 이상, 디스크 여유 15GB 정도 (app 이미지에 PyTorch가 들어갑니다)
+
+```bash
+git clone https://github.com/1230seongjun/ksdd2-mlops.git
+cd ksdd2-mlops
+
+podman build -f Containerfile.db  -t localhost/ksdd2/db:v1  .
+podman build -f Containerfile.app -t localhost/ksdd2/app:v1 .
+podman build -f Containerfile.web -t localhost/ksdd2/web:v1 .
+
+deploy/up.sh
+```
+
+| 주소 | 내용 |
+|---|---|
+| http://localhost:8080 | 검사 화면 — 데모 관리자 `admin@example.com` / `localdemo-admin` |
+| http://localhost:8080/grafana/ | 모니터링 대시보드 (검사 화면에 로그인한 뒤) |
+| http://localhost:5000 | MLflow (실험 기록 · 모델 Registry) |
+| http://localhost:8502 | 실험 비교 대시보드 |
+
+| 계층 | Pod | 내용 |
+|---|---|---|
+| web | `ksdd2-web` | nginx: 검사 화면, `/api` · `/grafana` 전달 (바깥에 열리는 곳은 여기뿐) |
+| app | `ksdd2-app` | 추론 API · MLflow · 학습 서버 · 실험 대시보드 · Prometheus · Grafana |
+| db | `ksdd2-db` | PostgreSQL (MLflow 메타데이터, 검사 이력) — web 계층과는 네트워크가 분리돼 닿지 않음 |
+
+- **모델과 데이터:** 운영에서 쓰던 모델과 약 50MB 부분 데이터셋(KolektorSDD2, CC BY-NC-SA 4.0)을 app 이미지를 빌드할 때 GitHub Release에서 받습니다. 처음 실행하면 모델이 운영 때와 같은 버전 번호로 로컬 MLflow에 등록되어 바로 검사할 수 있습니다.
+- **재학습:** 관리자로 로그인 → 재학습 → **이상 탐지** 선택, "모델 등록" 체크. 부분 데이터셋에 **작업자가 재검토에서 확정한 검사 이미지**를 더해 CPU로 학습하고, 다음 버전 번호로 로컬 MLflow에만 등록합니다. `podman restart ksdd2-app-api`를 하면 새 버전을 기본 모델로 불러옵니다.
+- **종료:** `deploy/down.sh` (데이터 유지) · `deploy/down.sh --volumes` (처음 상태로)
+- 포트는 모두 `127.0.0.1`에만 열립니다. 가상머신에서 실행했다면 SSH 터널(`ssh -L 8080:127.0.0.1:8080 …`)로 접속합니다.
+- 데모 계정 · 비밀번호는 로컬 전용 값이며 [`deploy/demo-config.yaml`](deploy/demo-config.yaml)에 있습니다.
+
+> 결함 유형 분류 모델의 학습 데이터(팀이 원저자의 비공개 기준을 따라 만든 유형 라벨 · 박스)는 공개 여부가 불확실해 부분 데이터셋에 넣지 않았습니다. 그래서 로컬에서는 분류 모델을 학습하지 않고 운영에서 학습한 모델을 씁니다.
+
+<br>
+
+---
+
+## 🚀 운영 당시 학습 · 배포
+
+> NHN Cloud에서 운영할 때의 방법입니다. 서버 · 버킷 · 러너가 있어야 해서 지금은 그대로 실행되지 않으며, 로컬에서는 [로컬에서 실행하기](#-로컬에서-실행하기)를 따르면 됩니다.
 
 ### 모델 학습 (GPU 서버 · 학습 PC)
 
@@ -417,9 +463,10 @@ python summary.py
 - [x] GitHub Actions + 셀프 호스티드 러너 자동 배포 · 롤백
 - [x] 로그인 · 검사 이력 · 검사 결과 DB 저장
 - [x] HTTPS, NCR 이미지 정리 정책
-- [x] 검사 결과 DB 기반 성능 저하 감지 → Slack · 카카오톡 알림 (12개 규칙)
+- [x] 검사 결과 DB 기반 성능 저하 감지 → Slack · 카카오톡 알림 (13개 규칙)
 - [x] 작업자 · 관리자 접근 구분, 재검토 최종 판정 · 유형 · 박스 DB 저장
-- [ ] 새 검사 이미지 · 재검토 라벨의 Object Storage 업로드 및 학습 데이터 연결 확인
+- [x] 검사 이미지 저장 · 작업자가 확정한 이미지로 재학습 (로컬 실행. 운영은 저장 비용 때문에 저장하지 않음)
+- [x] 노트북 한 대에서 실행하는 3계층 로컬 구성 (데이터셋 · 모델은 GitHub Release)
 - [ ] 폐기한 0.88 기준의 Grafana 패널 · 변수 · iframe URL · 관련 알림 정리
 - [ ] 재검사 후 이전 재검토 대기 기록 처리 검증
 - [x] GPU 서버 재학습 (cron 주 1회 · 관리자 버튼) → MLflow 등록 → 자동 배포
@@ -452,7 +499,8 @@ python summary.py
 - **KolektorSDD2:** https://www.vicos.si/resources/kolektorsdd2/
 - **라이선스:** CC BY-NC-SA 4.0
 
-> ⚠️ 원본 이미지와 이를 변형한 이미지, 재라벨링 데이터는 이 저장소에 포함하지 않습니다. 데이터셋은 비공개 Object Storage 버킷에 버전별로 보관합니다.
+> ⚠️ 저장소(git)에는 이미지를 넣지 않습니다. 운영 학습 데이터는 비공개 Object Storage 버킷에 버전별로 보관했습니다.
+> 로컬 실행용으로는 원본을 184×597로 자르고 원본 GT 마스크로 정상 · 결함만 나눈 약 50MB 부분 데이터셋을, 같은 라이선스(CC BY-NC-SA 4.0)와 출처 표시를 함께 넣어 GitHub Release로 배포합니다. 팀이 만든 결함 유형 라벨은 공개 여부가 불확실해 포함하지 않습니다.
 
 <br>
 
