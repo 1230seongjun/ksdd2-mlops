@@ -1,62 +1,89 @@
-불량제로 검사 서비스
-NHN Cloud에서 제조 표면 이미지의 이상 여부와 결함 유형을 판정합니다. 웹 화면에서 이미지를 검사하고 결과를 JSON으로 내려받거나 계정별 검사 이력을 조회할 수 있습니다. 관리자는 작업자를 초대하고 전체 이력을 조회하며, 작업자는 자신의 이력을 조회합니다.
-구성과 요청 흐름
-```mermaid
-flowchart LR
-    B["브라우저"] -->|HTTPS| N["Nginx"]
-    N -->|"/api 요청 전달"| A["FastAPI"]
-    A -->|"모델 조회·로드"| M["MLflow"]
-    A -->|"계정·세션·검사 결과"| D["PostgreSQL inference"]
+# 불량제로 추론 API
+
+FastAPI가 로그인·모델 선택·이미지 추론·검사 이력·재검토를 처리합니다. Nginx 외부 경로는 `/api/`이며 아래 표는 그 접두어를 포함합니다. 실제 라우트는 Nginx가 `/api/`를 제거한 경로입니다.
+
+## 파일과 연결
+
+| 파일 | 역할 |
+| --- | --- |
+| [main.py](main.py) | HTTP 요청, 인증·모델 준비·추론·재검토·지표·GPU 요청 중계 |
+| [model_service.py](model_service.py) | MLflow 모델 로드, 입력·출력 변환, 박스 처리 |
+| [auth.py](auth.py) | 비밀번호·초대·세션 처리 |
+| [db.py](db.py) | DB 연결, 모델 원본·검토 결과 저장, 역할별 이력 조회 |
+| [서비스 Compose](../../infra/service/compose.service.yaml) | 실행 이미지와 연결 환경변수 |
+| [DB 스키마](../../infra/mlops/db/) | 검사·계정·재검토 SQL. 커밋과 운영 적용은 별도 |
+
+모델은 `MLFLOW_TRACKING_URI`, `MODEL_URI`, `CLASSIFIER_MODEL_URI`로 연결합니다. DB는 `INFERENCE_DB_HOST`, `INFERENCE_DB_PORT`, `INFERENCE_DB_NAME`, `INFERENCE_DB_USER`, `INFERENCE_DB_PASSWORD`를 사용합니다. 실제 값은 서버 환경 파일에서 관리합니다. DB 연결·스키마는 계정 인증에도 필요합니다.
+
+## 인증과 API
+
+로그인은 `Secure`, `HttpOnly`, `SameSite=Lax` 서비스 세션 쿠키를 발급합니다. 브라우저는 HTTPS로 사용합니다. 이력 권한은 세션의 사용자 ID·역할로 서버에서 검사합니다.
+
+| 메서드·외부 경로 | 동작·조건 |
+| --- | --- |
+| `POST /api/auth/login` | 로그인·세션 쿠키 발급 |
+| `GET /api/auth/me`, `POST /api/auth/logout` | 현재 계정 조회·세션 종료 |
+| `POST /api/auth/invitations` | 관리자만 초대 발급 |
+| `POST /api/auth/register` | 초대로 작업자 가입 |
+| `GET /api/models/versions`, `GET /api/models` | 모델 버전·선택지·준비 상태 |
+| `POST /api/models/{model_choice}/prepare` | 로그인 후 Registry 조합 사전 로드 |
+| `POST /api/predict` | 로그인 후 이미지 검사 |
+| `GET /api/inference/history` | 작업자 본인·관리자 전체 이력, 50건 단위 |
+| `GET /api/inference/history/workers` | 관리자용 이력 조회 계정 목록 |
+| `PUT /api/inference/{request_id}/review` | 본인 재검토 건 최종 확정·취소 |
+| `GET /api/health`, `GET /api/ready` | 프로세스·기본 탐지 모델 상태 |
+| `GET /api/metrics` | 요청 상태·지연·저장 결과 지표 |
+
+이력은 파일명·판정·KST 날짜·검토 여부·점수 범위 등을 필터링하며 관리자는 작업자도 지정할 수 있습니다. `records`, `page`, `has_next`, `total`, `total_pages`를 반환합니다. 최종 작업자 판단이 있으면 이력의 표시 판정에 우선 적용하고 원래 모델 판정은 별도로 제공합니다.
+
+## 모델 선택과 입력
+
+`model_choice`와 `file`을 multipart form으로 전달합니다. API 기본 선택값 `champion`은 서비스 Compose에서 탐지 v2·분류 v1 URI로 고정돼 있습니다. 이는 MLflow alias의 자동 승격이나 최신 모델 자동 선택을 의미하지 않습니다. UI는 `registry-dN-cM` 조합을 사전 준비한 뒤 검사합니다. 실제 선택 버전은 응답의 모델 URI로 확인합니다.
+
+- PNG/JPEG, 최대 5 MiB, 가로 184×세로 597px. 자동 리사이즈하지 않습니다.
+- 탐지 모델이 정상·불량을 판정하고 불량일 때만 분류를 시도합니다.
+- 분류 실패 시 탐지 판정은 유지하지만 재검토 분기에 들어갈 수 있습니다. 대기 저장까지 실패하면 최종 HTTP 응답은 503입니다.
+- `id`, `prediction`, `model_name`, `anomaly_score`, `threshold`, `classifier_name`, `defect_type`, `confidence`, `boxes`, `review_required` 등을 반환합니다. `anomaly_score`는 보정된 불량 확률이 아닙니다.
+
+## 재검토와 저장
+
+API의 재검토 조건은 **불량이며 박스가 없거나 유형이 brown·black·blue·surface 중 하나가 아닌 경우**입니다. 신뢰도 0.88 조건은 폐기했습니다. UI의 크기 오류 처리는 추론 후 재검토와 다른 경로입니다.
+
+| 상황 | 처리 |
+| --- | --- |
+| 일반 결과 | DB 저장 활성화 시 응답 후 요청·탐지·성공한 분류 결과를 한 트랜잭션으로 저장 |
+| 재검토 대상 | `inference_review_queue`에 결과 메타데이터 저장 후 응답. DB 비활성화·저장 실패 시 503 |
+| 최종 정상 | 원본 결과 저장, `reviewed_label=normal`, 유형 없음·빈 박스, 상태 finalized, 대기 행 삭제 |
+| 최종 불량 | 유형 필수·박스 선택. 원본 결과와 별도 검토 컬럼 저장, 상태 finalized, 대기 행 삭제 |
+| 취소 | 대기 payload를 NULL로 비우고 cancelled_at 기록. 최종 이력에는 넣지 않음 |
+
+정상·불량 확정 요청은 예를 들어 다음 JSON을 사용합니다. 박스 좌표는 184×597 이미지 범위 안이어야 하며 w·h는 양의 정수입니다. 정상·취소에는 유형과 박스를 지정하지 않습니다.
+
+```json
+{"label":"defect","defect_type":"surface","boxes":[{"x":10,"y":20,"w":30,"h":40}]}
 ```
-Nginx는 정적 HTML을 제공하고 /api/ 접두어를 제거해 FastAPI에 요청을 전달합니다. FastAPI가 MLflow에서 모델을 불러와 서비스 서버에서 추론합니다. 현재 서비스 Compose의 champion 선택지는 탐지 모델 models:/Zero-Defects/2와 분류 모델 models:/Zero-Defects-Classifier/1을 사용합니다. 실제 선택지와 준비 상태는 /api/models로 확인합니다.
 
-서비스용 inference DB에는 검사 결과와 계정·세션이 저장됩니다. MLflow는 별도 mlflow DB에 실험·등록 모델 메타데이터를 저장합니다. 운영 검증 당시 두 DB는 MLOps 인스턴스의 PostgreSQL에서 동작했습니다. 서비스 서버 측 DB로의 이전 절차와 검증 기준은 아래에 정리했습니다.
-파일	역할
-[compose.service.yaml](compose.service.yaml)	API·Nginx·Prometheus·Grafana 실행과 연결 설정
-[default.conf](nginx/default.conf)	TLS, HTML 제공, API·Grafana 프록시
-[prometheus.yml](prometheus/prometheus.yml)	API 지표 수집 설정
-[웹 UI](../../serving/web/index.html)	검사·결과 다운로드·인증·이력 화면
-[추론 API 문서](../../serving/api/README.md)	API 계약과 인증·이력 저장 구조
-[DB 스키마](../mlops/db/)	검사·계정 스키마와 마이그레이션
-[배포 워크플로](../../.github/workflows/deploy.yaml) · [배포 스크립트](../../.github/scripts/deploy_stack.sh)	변경 감지, 이미지 빌드·배포, 상태 검사와 복구
+작업자 판단은 `review_status`, `reviewed_label`, `reviewed_at`, `reviewed_defect_type`, `reviewed_boxes`에 저장합니다. 모델 원래 판정·유형·영역을 덮어쓰지 않습니다. 본인 대기 건을 잠그고 원본 저장·확정 갱신·대기 행 삭제를 같은 트랜잭션에서 수행합니다. 같은 확정 요청 재전송은 저장된 결과를 비교하고, 다른 확정 값이나 취소 이후 확정은 409로 거절합니다.
 
+메타데이터 저장은 이미지 파일 저장과 별개입니다. 서비스의 이미지·라벨 Object Storage 업로드 완료는 [확인 필요]입니다.
 
-배포와 접속
-운영 파일은 /opt/bulryangzero/service에 둡니다. Compose 프로젝트 이름은 ksdd2-mlops입니다. Nginx는 nginx/, web/, tls/를 읽기 전용으로 마운트합니다. web/에는 저장소의 serving/web/가 배포됩니다.
-접근 경로	용도
-HTTPS 443	검사 화면과 API
-HTTP 8080	기존 호스트 바인딩. 배포 스크립트는 서버 로컬의 /api/ready를 검사
-127.0.0.1:9090, 127.0.0.1:3000	서비스 서버의 Prometheus, Grafana
-Nginx /grafana/	Grafana 프록시
+## 오류와 검증
 
+| 응답 | 주요 조건 |
+| --- | --- |
+| 400 | 빈 파일·손상 이미지 |
+| 401 / 403 | 로그인 필요 / 권한 부족 |
+| 413 / 415 / 422 | 용량 초과 / 미지원 MIME / 해상도·선택값·검토 값 오류 |
+| 409 | 모델 조합 미준비·충돌 또는 이미 처리한 검토와 다른 요청 |
+| 500 | 탐지 추론 실패 |
+| 503 | 모델 로드·조회·준비 문제 또는 재검토 대기 저장 실패 |
 
-팀 검증에는 자체 서명 IP 인증서를 사용했습니다. 브라우저는 인증서를 신뢰하는 환경에서 접속하며, CLI는 검증한 공개 PEM을 curl --cacert로 지정할 수 있습니다. 개인키와 DB 자격 증명은 서버에 보관합니다.
+일반 결과의 200은 DB 저장 완료 보장이 아닙니다. `Inference save failed`와 `defectcatch_inference_save_total`을 보고 요청 ID로 실제 행을 대조합니다. `/ready`도 기본 탐지 모델 준비만 확인하므로 분류·DB·계정·선택 조합·판정 품질은 별도 검증합니다.
 
-main 반영 시 GitHub Actions가 변경 범위에 따라 API 이미지 빌드·NCR 등록과 서비스 스택 배포를 수행합니다. UI·서비스 설정만 바뀌면 기존 이미지를 사용해 파일과 Compose 설정을 반영합니다. 워크플로의 수동 실행은 target으로 대상을 선택합니다. 배포 스크립트는 파일·이미지를 백업하고, 준비 검사가 실패하면 이전 구성으로 복구를 시도합니다. DB 데이터 복구는 별도입니다.
+재검사는 새 `/predict` 요청과 새 UUID를 생성합니다. UI는 성공 시 새 결과로 교체하지만 이전 대기 건 정리 호출은 확인되지 않았습니다. 잔존 가능성은 코드상 추론이며 실제 요청 ID 대조가 필요한 후속 항목입니다. 이번 문서 갱신에서는 운영 DB 저장·최종 확정·취소를 다시 실행하지 않았습니다.
 
-자동 배포 전 확인: 현재 rsync --delete 제외 목록에 tls/가 없습니다. 인증서와 개인키의 보존 경로를 정한 뒤 배포·롤백 모두에서 확인합니다. Grafana의 외부 URL은 현재 HTTP :8080 기준이므로 HTTPS의 /grafana/ 경로와 패널을 재검증합니다.
-추론 DB 연결과 저장 검증
-API는 Compose를 통해 INFERENCE_DB_HOST, INFERENCE_DB_PORT, INFERENCE_DB_NAME, INFERENCE_DB_USER, INFERENCE_DB_PASSWORD를 받습니다. 값은 배포 환경 파일에서 관리합니다. 모델 연결은 별도의 MLFLOW_TRACKING_URI, MODEL_URI, CLASSIFIER_MODEL_URI를 사용합니다.
+## Grafana와 GPU API 중계
 
-서비스 서버에 PostgreSQL을 배치할 경우 기존 inference DB를 백업·복원하고, API와 새 PostgreSQL을 같은 Docker 네트워크에 연결해 서비스 이름으로 접근합니다. 검사 이력뿐 아니라 사용자, 초대, 세션과 권한도 복원 검증 범위에 포함합니다. 스키마를 포함한 덤프를 복원한 경우 초기 SQL을 다시 적용하지 않습니다. 기존 원본 DB를 유지한 채 전환을 검증하고, 새 DB에 쓰기가 생긴 뒤에는 두 DB의 데이터 차이를 확인한 후 복구 방향을 결정합니다.
+Nginx 내부 인증 요청은 `/auth/grafana-proxy`에서 서비스 세션을 검사합니다. 관리자·작업자이면 204와 `X-DefectCatch-User: defectcatch-{user_id}`를 반환합니다. Nginx가 `X-WEBAUTH-USER`로 전달하며 외부 `/api/auth/grafana-proxy` 직접 호출은 Nginx에서 차단합니다. 서비스 역할 자체는 전달하지 않습니다. Grafana 권한·주소·검증 결과는 [서비스 문서](../../infra/service/README.md)를 참고합니다.
 
-검사 저장은 응답 이후 백그라운드에서 이루어집니다. /api/ready와 추론 응답의 200은 각각 API 준비·추론 성공을 보여줍니다. 저장 성공은 실제 검사 요청 ID를 기준으로 DB에서 확인합니다. 요청 행과 탐지 행, 분류가 실행된 경우 분류 행, user_id, 이력 화면을 대조합니다. 실패 시 API 로그의 Inference save failed와 defectcatch_inference_save_total 지표를 봅니다.
-운영 확인과 장애 대응
-서비스 서버에서 실행합니다.
-sudo docker compose -f /opt/bulryangzero/service/compose.service.yaml ps
-curl -fsS http://127.0.0.1:8080/api/ready
-curl -fsS http://127.0.0.1:8080/api/models
-curl -fsS http://127.0.0.1:9090/api/v1/targets
-후보 API와 새 UI를 수동 반영한 환경에서 외부 HTTPS, 비로그인 401, 관리자 로그인과 계정 조회, 관리자·작업자 검사 저장을 확인했습니다. 운영에서 관리자·작업자 조회 범위의 직접 대조, 새 DB 복원과 전환, 최신 변경의 자동 배포 재현은 추가 검증 대상입니다.
-증상	확인할 근거
-502 또는 503	API 모델 로딩 로그와 MLflow 연결. 시작 완료 후 502가 계속되면 Nginx upstream과 Docker DNS 확인
-검사 성공 후 이력 누락	DB 연결 대상, 저장 오류 로그, 실제 요청 ID와 사용자별 조회 범위
-No such container	SSH 접속 서버와 DB 컨테이너 이름. 기존 DB는 MLOps 서버에서 조회
-DB와 화면의 시각 차이	DB의 UTC 시각을 한국 시간으로 변환해 요청 ID·파일명과 대조
-Grafana 패널 누락	Prometheus 대상 상태, Grafana 외부 URL·프록시·패널 UID와 ID. 대시보드 보존은 볼륨 또는 JSON 내보내기로 확인
-
-
-검사 이력 운영 확인
-날짜·파일명·판정 검색과 페이지 이동은 API와 웹의 호환 버전이 필요합니다. API 소스가 변경되면 새 이미지로 배포하고 웹 파일도 반영합니다. 실행 중인 이미지 태그는 docker inspect -f '{{.Config.Image}}' ksdd2-mlops-api-1로 확인합니다. /api/ready 200과 실제 DB 저장은 별도로 검증합니다. 로그인·권한, 요청 ID, 이력 상세와 DB 행, 필터별 페이지 경계를 대조합니다.
-
-이력 화면이 페이지 정보 오류를 표시하면 응답의 total_pages와 실제 컨테이너 코드를 확인합니다. 로그인 직후 setting hidden 오류가 발생하면 panel-monitor를 포함한 탭과 패널 ID를 확인합니다. 작업자 간 검사 공유는 보류입니다.
+관리자만 `/api/training/jobs`의 목록·시작, `/api/training/jobs/{job_id}/log`, `/api/training/jobs/{job_id}/stop`을 사용할 수 있습니다. 서버의 `GPU_TRAINING_URL`, `GPU_TRAINING_TOKEN`으로 GPU API에 중계하며 토큰은 브라우저에 전달하지 않습니다. 학습·등록·모델 승격·배포는 이 중계 기능의 완료와 구분합니다.
